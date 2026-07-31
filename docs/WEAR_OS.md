@@ -668,13 +668,35 @@ is least width, so the curve takes the ends off whatever rests there. This is
 the one real "content hidden by the rounded corners" failure on a scrolling
 Wear screen; the middle of the screen is full width and is fine.
 
-`ScalingLazyColumn` has **`AutoCenteringParams`** for exactly this.
-`TransformingLazyColumn` **dropped it**, and content padding is the documented
-replacement, so padding the end is the sanctioned mechanism rather than a
-workaround. `WearSettingsScreen` adds `0.35 × screen height` past the last item
-(`LAST_ITEM_CENTERING_FRACTION`), which lands it just above centre; half a screen
-carries it past centre and leaves a large void under a list that has already
-ended.
+**Use `Modifier.minimumVerticalContentPadding`, and take the value from the
+component's own `*Defaults`.** This is the library's answer, and its KDoc names
+the bug: the modifier exists *"to ensure that, when a list item is at the top or
+bottom of the list, the distance from the item to the screen edge is sufficient
+(such as to avoid the item being clipped by edges of a round screen)"*, with the
+values *"expected to be provided by design systems, such as the recommended
+values in Material3 `ButtonDefaults`, `CardDefaults`, `ListHeaderDefaults`"*.
+
+| Component | Recommended value |
+|---|---|
+| `ButtonDefaults.minimumVerticalListContentPadding` | 0.23 × screen height |
+| `ListHeaderDefaults.minimumTopListContentPadding` | 0.13 × screen height |
+| `ListHeaderDefaults.minimumBottomListContentPadding` | 0.23 × screen height |
+
+**It is per-item, not a bottom inset on the list, and that is deliberate.** The
+list takes `max(its own contentPadding, what the edge item asked for)` — so it is
+still one list-level padding, merely *computed* from whichever item is at the
+edge. Three consequences: the amount can follow the component (a full-width
+`Button` needs nearly twice a `ListHeader`), items in the middle cost nothing,
+and because it is a *minimum* it composes with global screen insets instead of
+fighting them — either side can raise the floor without knowing about the other.
+It also survives the last item changing, which happens here whenever the
+store-unavailable caption appears and displaces the button.
+
+History, so it is not re-derived: `ScalingLazyColumn` solved this with
+**`AutoCenteringParams`**; `TransformingLazyColumn` dropped that in favour of the
+per-item modifier above. A hand-rolled `BoxWithConstraints` + fraction (what
+0.5.3 shipped, at 0.35 of screen height) works but picks a number the design
+system already specifies, and misses the top edge entirely.
 
 **The failure is at the END, so do not "fix" it by narrowing rows.** Constraining
 every row's width to survive the corners makes the common case worse — a
