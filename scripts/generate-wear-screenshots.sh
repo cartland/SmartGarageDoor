@@ -61,7 +61,7 @@ BOOT_TIMEOUT_SECONDS=180
 
 # Stage list mirrors ScreenshotStagesActivity.
 STAGES=(
-    connecting closed inferred holding submitted moving open signed_out sign_in_error
+    connecting closed inferred holding submitted bloom moving open signed_out sign_in_error
     # Voice demo (simulated). voice_armed captures its countdown ring already
     # FULL: the settle below (4s) outlasts the cancel window (3s), so the
     # animation has finished by capture time. Deterministic, which is what the
@@ -244,7 +244,8 @@ stage_description() {
         closed) echo "Closed door (affirmative sensor), \"Hold to open\"" ;;
         inferred) echo "No affirmative sensor, so no prediction: \"Hold to press the remote\"" ;;
         holding) echo "Hold completing: full radial ring, the instant before the press fires" ;;
-        submitted) echo "Press sent: ring completes in the sent colour, \"Waiting for the door\"" ;;
+        submitted) echo "Press sent: gapped ring rotating while the door is awaited, \"Waiting for the door\"" ;;
+        bloom) echo "The commit instant (pinned, not animated): ring thickened inward to fill its reserved band and gone full white, with the door and both labels still readable" ;;
         moving) echo "Door sliding open, up arrow" ;;
         open) echo "Open door, \"Hold to close\"" ;;
         signed_out) echo "Signed out: Sign in button (no mic chip — the voice demo is signed-in only)" ;;

@@ -14,6 +14,29 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.4.1
+
+- **The ring is white now, not peach.** It had been picking up the watch
+  theme's accent colours, which resolve to a pale lavender while you hold and a
+  pale orange once the press is sent. Orange reads as a warning, which is an
+  unfortunate thing for the screen to say at the exact moment it means "that
+  worked". The ring is an instrument, so it is neutral: dimmed white while it
+  counts, full white when the press goes out. The door keeps the only colour on
+  screen that carries meaning.
+- **The ring no longer draws across the label.** Near the bottom of a round
+  screen the usable width narrows sharply, and the label was sized against the
+  screen's edge rather than against the ring drawn inside it, so "Waiting for
+  the door" was struck through on both sides. It was worse on the larger watch,
+  because the label scales with the screen and the ring's thickness does not.
+  The outer edge of the screen is now reserved for the ring, and the label's
+  position is derived from that reservation instead of being a fixed number.
+- **Sending a press no longer paints over the door and the labels.** The
+  confirmation used to swell until it covered the whole screen, so the moment
+  you most wanted to read the door's state was the moment it was hidden. It now
+  thickens into its own reserved band and goes full white, which is still the
+  loudest thing on screen without borrowing anyone else's pixels.
+- The door is slightly smaller, which is what pays for the label moving up.
+
 ## 0.4.0
 
 - **New: a menu, reached by the three dots beside the door.** It tells you which

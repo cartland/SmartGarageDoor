@@ -32,7 +32,9 @@ import com.chriscartland.garage.domain.model.VoiceIntent
 import com.chriscartland.garage.usecase.VoiceCommandIgnoreReason
 import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
+import com.chriscartland.garage.wear.ui.HeroRingState
 import com.chriscartland.garage.wear.ui.HeroScreenContent
+import com.chriscartland.garage.wear.ui.HeroScreenLayout
 import com.chriscartland.garage.wear.ui.VoiceDemoContent
 import com.chriscartland.garage.wear.ui.WearVoiceViewModel
 
@@ -45,7 +47,7 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  *
  * Launch (debug build only):
  *   adb shell am start -n com.chriscartland.garage.debug/com.chriscartland.garage.wear.debug.ScreenshotStagesActivity \
- *     -e stage connecting|closed|inferred|holding|submitted|moving|open|signed_out|sign_in_error|voice_ready|voice_listening|voice_hearing|voice_armed|voice_committing|voice_sent|voice_refused
+ *     -e stage connecting|closed|inferred|holding|submitted|bloom|moving|open|signed_out|sign_in_error|voice_ready|voice_listening|voice_hearing|voice_armed|voice_committing|voice_sent|voice_refused
  *
  * Stages mirror the hero interaction narrative:
  *   connecting    — cold start, no door event yet: "Connecting…", no ⚠ badge
@@ -60,10 +62,11 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  *   submitted     — the press is in flight: a GAPPED ring rotating slowly,
  *                   "Waiting for the door". The rotation phase at capture
  *                   time is arbitrary, so this PNG legitimately differs
- *                   between regens (same as the voice pulse stages); the
- *                   settle also outlasts the ~700ms commit bloom, so what is
- *                   captured is the steady in-flight state and never the
- *                   bloom mid-flight
+ *                   between regens (same as the voice pulse stages)
+ *   bloom         — the commit instant, pinned rather than animated: the ring
+ *                   thickened inward to fill its reserved band and gone full
+ *                   white. Unreachable from `submitted`, whose settle outlasts
+ *                   the ~700ms bloom, which is why it needs its own stage
  *   moving        — door sliding open with the up arrow
  *   open          — red open door, "Hold to close"
  *   signed_out    — Sign in button under the door
@@ -104,6 +107,26 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             listeningLevel = voiceFixture.listeningLevel,
                             onMicTap = {},
                             onCancel = {},
+                        )
+                    } else if (fixture.ring != null) {
+                        // Ring frames that no static fixture can reach through
+                        // HeroScreenContent, because they are transients the
+                        // animation is already past by capture time. Pinned
+                        // directly on the layout instead — see HeroScreenContent's
+                        // KDoc for why the two are separable at all.
+                        HeroScreenLayout(
+                            doorPosition = fixture.doorPosition,
+                            lastChangeTimeSeconds = null,
+                            hasDoorData = fixture.hasDoorData,
+                            authState = fixture.authState,
+                            buttonState = fixture.buttonState,
+                            signInError = fixture.signInError,
+                            ring = fixture.ring,
+                            onHoldStart = {},
+                            onHoldEnd = {},
+                            onVoiceDemoClick = {},
+                            onMenuClick = {},
+                            onSignInClick = {},
                         )
                     } else {
                         HeroScreenContent(
@@ -211,6 +234,8 @@ class ScreenshotStagesActivity : ComponentActivity() {
         val isHolding: Boolean = false,
         val signInError: Boolean = false,
         val hasDoorData: Boolean = true,
+        /** Non-null pins the ring directly instead of letting it animate. */
+        val ring: HeroRingState? = null,
     )
 
     private fun fixtureFor(stage: String): StageFixture =
@@ -227,6 +252,17 @@ class ScreenshotStagesActivity : ComponentActivity() {
                 isHolding = true,
             )
             STAGE_SUBMITTED -> StageFixture(DoorPosition.CLOSED, RemoteButtonState.SendingToDoor)
+            // The commit bloom at full: ring thickened inward to fill its band
+            // and gone full white. ~700ms long in production and therefore
+            // never caught by a settle-then-capture script, which is exactly
+            // why it is pinned here — it is the frame that has to prove the
+            // band works, that the door and both labels survive the moment the
+            // press lands.
+            STAGE_BLOOM -> StageFixture(
+                DoorPosition.CLOSED,
+                RemoteButtonState.SendingToServer,
+                ring = HeroRingState(sweep = 1f, bloom = 1f),
+            )
             STAGE_MOVING -> StageFixture(DoorPosition.OPENING, RemoteButtonState.Succeeded)
             STAGE_OPEN -> StageFixture(DoorPosition.OPEN, RemoteButtonState.Ready)
             STAGE_SIGNED_OUT -> StageFixture(
@@ -250,6 +286,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
         const val STAGE_INFERRED = "inferred"
         const val STAGE_HOLDING = "holding"
         const val STAGE_SUBMITTED = "submitted"
+        const val STAGE_BLOOM = "bloom"
         const val STAGE_MOVING = "moving"
         const val STAGE_OPEN = "open"
         const val STAGE_SIGNED_OUT = "signed_out"

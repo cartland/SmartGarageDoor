@@ -17,7 +17,8 @@ by a frame. A diff in any other stage means a real visual change.
 | closed | <img src="wear-closed.png" width="180" alt="closed"> | Closed door (affirmative sensor), "Hold to open" |
 | inferred | <img src="wear-inferred.png" width="180" alt="inferred"> | No affirmative sensor, so no prediction: "Hold to press the remote" |
 | holding | <img src="wear-holding.png" width="180" alt="holding"> | Hold completing: full radial ring, the instant before the press fires |
-| submitted | <img src="wear-submitted.png" width="180" alt="submitted"> | Press sent: ring completes in the sent colour, "Waiting for the door" |
+| submitted | <img src="wear-submitted.png" width="180" alt="submitted"> | Press sent: gapped ring rotating while the door is awaited, "Waiting for the door" |
+| bloom | <img src="wear-bloom.png" width="180" alt="bloom"> | The commit instant (pinned, not animated): ring thickened inward to fill its reserved band and gone full white, with the door and both labels still readable |
 | moving | <img src="wear-moving.png" width="180" alt="moving"> | Door sliding open, up arrow |
 | open | <img src="wear-open.png" width="180" alt="open"> | Open door, "Hold to close" |
 | signed_out | <img src="wear-signed_out.png" width="180" alt="signed out"> | Signed out: Sign in button (no mic chip — the voice demo is signed-in only) |
