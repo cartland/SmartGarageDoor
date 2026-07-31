@@ -36,7 +36,7 @@ import com.chriscartland.garage.wear.ui.HeroRingState
 import com.chriscartland.garage.wear.ui.HeroScreenContent
 import com.chriscartland.garage.wear.ui.HeroScreenLayout
 import com.chriscartland.garage.wear.ui.VoiceDemoContent
-import com.chriscartland.garage.wear.ui.WearMenuScreen
+import com.chriscartland.garage.wear.ui.WearSettingsScreen
 import com.chriscartland.garage.wear.ui.WearVoiceViewModel
 
 /**
@@ -48,7 +48,7 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  *
  * Launch (debug build only):
  *   adb shell am start -n com.chriscartland.garage.debug/com.chriscartland.garage.wear.debug.ScreenshotStagesActivity \
- *     -e stage connecting|closed|inferred|holding|submitted|bloom|moving|open|signed_out|sign_in_error|menu|menu_local|voice_ready|voice_listening|voice_hearing|voice_armed|voice_committing|voice_sent|voice_refused
+ *     -e stage connecting|closed|inferred|holding|submitted|bloom|moving|open|signed_out|sign_in_error|settings|settings_bottom|settings_local|voice_ready|voice_listening|voice_hearing|voice_armed|voice_committing|voice_sent|voice_refused
  *
  * Stages mirror the hero interaction narrative:
  *   connecting    — cold start, no door event yet: "Connecting…", no ⚠ badge
@@ -72,13 +72,23 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  *   open          — red open door, "Hold to close"
  *   signed_out    — Sign in button under the door
  *   sign_in_error — transient "Sign-in failed" caption under the button
- *   menu          — the menu on a RELEASED build: name, version, store
- *                   button. Deliberately does NOT name the release tag it
- *                   was cut from; that is internal plumbing. Only a fixture
- *                   can show this state, since a local build always has
+ *   settings      — the settings PAGE (one swipe left of the door) on a
+ *                   RELEASED build, signed in: header, account, version.
+ *                   Deliberately does NOT name the release tag it was cut
+ *                   from; that is internal plumbing. Only a fixture can show
+ *                   this state, since a local build always has
  *                   WEAR_TAG_NUMBER = 0
- *   menu_local    — the same menu on a build that never came from a
- *                   release, which still says so
+ *   settings_bottom — the end of that same list. The update button is below
+ *                   the fold, and a settle-then-capture fixture always opens
+ *                   at scroll position 0, so the screen's only action would
+ *                   otherwise appear in no screenshot at all
+ *   settings_local — the same list signed out and on a build that never came
+ *                   from a release, which is the one case that still names
+ *                   itself. Also the signed-out half of the account row,
+ *                   which must not look like the signed-in one
+ *
+ * Note the settings stages render WearSettingsScreen directly, so they carry
+ * no page indicator — in the app it is drawn by the pager one level up.
  *
  * Voice demo stages (a different Composable — VoiceDemoContent). All are
  * simulated by construction: the fixture passes canned VoiceCommandStates and
@@ -107,17 +117,41 @@ class ScreenshotStagesActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 AppScaffold {
-                    if (stage == STAGE_MENU || stage == STAGE_MENU_LOCAL) {
-                        // The menu, in both of the states it has. The RELEASED
-                        // one cannot be reached from a local build at all —
-                        // BuildConfig.WEAR_TAG_NUMBER is 0 unless the build came
-                        // from a release tag — so without a fixture the only
-                        // version of this screen anyone could ever look at was
-                        // the one real users never see.
-                        WearMenuScreen(
-                            versionName = "0.4.1",
-                            tagNumber = if (stage == STAGE_MENU) 17 else 0,
+                    if (stage == STAGE_SETTINGS ||
+                        stage == STAGE_SETTINGS_LOCAL ||
+                        stage == STAGE_SETTINGS_BOTTOM
+                    ) {
+                        // Settings, in the two states worth reviewing. The
+                        // RELEASED + signed-in one cannot be reached from a
+                        // local build at all — BuildConfig.WEAR_TAG_NUMBER is 0
+                        // unless the build came from a release tag — so without
+                        // a fixture the only version of this screen anyone could
+                        // ever look at was the one real users never see.
+                        //
+                        // The pair also covers both account branches, which is
+                        // the part a screenshot can actually adjudicate: a
+                        // signed-in row renders an address, a signed-out one
+                        // renders copy, and they must not look interchangeable.
+                        WearSettingsScreen(
+                            versionName = "0.5.0",
+                            tagNumber = if (stage == STAGE_SETTINGS_LOCAL) 0 else 18,
+                            authState = if (stage == STAGE_SETTINGS_LOCAL) {
+                                AuthState.Unauthenticated
+                            } else {
+                                SCREENSHOT_USER
+                            },
                             onOpenStore = { true },
+                            // The end of the list, which a settle-then-capture
+                            // fixture cannot otherwise reach: it always opens at
+                            // scroll position 0, so the screen's only action —
+                            // the update button — would never appear in the
+                            // gallery at all. Anchoring past the last item lands
+                            // the list at its end.
+                            initialAnchorItemIndex = if (stage == STAGE_SETTINGS_BOTTOM) {
+                                SETTINGS_LAST_ITEM_INDEX
+                            } else {
+                                0
+                            },
                         )
                     } else if (voiceFixture != null) {
                         VoiceDemoContent(
@@ -145,7 +179,6 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             onHoldStart = {},
                             onHoldEnd = {},
                             onVoiceDemoClick = {},
-                            onMenuClick = {},
                             onSignInClick = {},
                         )
                     } else {
@@ -160,7 +193,6 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             onHoldStart = {},
                             onHoldEnd = {},
                             onVoiceDemoClick = {},
-                            onMenuClick = {},
                             onSignInClick = {},
                         )
                     }
@@ -307,8 +339,22 @@ class ScreenshotStagesActivity : ComponentActivity() {
         const val STAGE_HOLDING = "holding"
         const val STAGE_SUBMITTED = "submitted"
         const val STAGE_BLOOM = "bloom"
-        const val STAGE_MENU = "menu"
-        const val STAGE_MENU_LOCAL = "menu_local"
+        const val STAGE_SETTINGS = "settings"
+        const val STAGE_SETTINGS_LOCAL = "settings_local"
+        const val STAGE_SETTINGS_BOTTOM = "settings_bottom"
+
+        /**
+         * Last item of the RELEASED, signed-in settings list: header, account
+         * sub-header, account value, version sub-header, version, update
+         * button. The local-build caption and the store-unavailable caption are
+         * both absent in that shape, which is what makes this a fixed number.
+         *
+         * Coupled to [com.chriscartland.garage.wear.ui.WearSettingsScreen]'s
+         * item list by hand. Adding an item there and not here costs a gallery
+         * that stops short of the bottom — visible in the very screenshot this
+         * exists to produce, so it fails loudly rather than silently.
+         */
+        const val SETTINGS_LAST_ITEM_INDEX = 5
         const val STAGE_MOVING = "moving"
         const val STAGE_OPEN = "open"
         const val STAGE_SIGNED_OUT = "signed_out"

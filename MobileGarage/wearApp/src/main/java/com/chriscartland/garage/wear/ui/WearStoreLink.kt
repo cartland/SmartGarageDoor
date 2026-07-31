@@ -63,7 +63,7 @@ internal object WearStoreLink {
     /**
      * Whether this build came from a release tag at all.
      *
-     * Deliberately a BOOLEAN, not the `wear/N` tag it is derived from. The menu
+     * Deliberately a BOOLEAN, not the `wear/N` tag it is derived from. Settings
      * used to render that tag, and it is internal release plumbing — it means
      * something against this repo's tags and the Play track log, and nothing to
      * anyone wearing the watch. Returning a boolean keeps the tag string out of

@@ -35,46 +35,60 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.wear.compose.foundation.pager.HorizontalPager
+import androidx.wear.compose.foundation.pager.rememberPagerState
 import androidx.wear.compose.foundation.rememberSwipeToDismissBoxState
+import androidx.wear.compose.material3.AnimatedPage
 import androidx.wear.compose.material3.AppScaffold
+import androidx.wear.compose.material3.HorizontalPagerScaffold
 import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.PagerScaffoldDefaults
 import androidx.wear.compose.material3.SwipeToDismissBox
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.wear.BuildConfig
 import com.chriscartland.garage.wear.di.WearComponent
+import com.chriscartland.garage.wear.di.WearSignInConfig
 
-/** Where the app is: the hero screen, or one of its two leaves. */
+/** Where the app is: home (the door and its pages), or the one leaf. */
 internal enum class WearDestination {
-    Hero,
+    Home,
     VoiceDemo,
-    Menu,
 }
 
 /**
- * Compose root for the Wear app: theme + app scaffold (time text) + the hero
- * screen, with the voice demo and the menu layered over it.
+ * Compose root for the Wear app: theme + app scaffold (time text) + home, with
+ * the voice demo layered over it.
  *
- * Navigation is one enum rather than a nav library: every destination other
- * than the hero screen is a leaf reached from it, so the whole graph is "which
- * one is on top". [SwipeToDismissBox] supplies the standard Wear
- * swipe-right-to-go-back gesture and its reveal animation, so a leaf behaves
- * like any other watch screen without pulling in wear-compose-navigation for a
- * one-level tree. It was a boolean while there was exactly one leaf; the enum
- * is what keeps the `when` below exhaustive, so adding a third leaf is a
- * compile error at each site that has to handle it rather than a silently
- * unreachable screen.
+ * ## Two axes, deliberately
+ *
+ * **Sideways** are peers. The door and settings are pages of one
+ * [HorizontalPagerScaffold], so settings is a swipe away from the door and the
+ * platform's own page indicator says so. Neither is "inside" the other, which
+ * is right: settings is not a place you finish and come back from, it is the
+ * other half of the app.
+ *
+ * **Forward** is a leaf. The voice demo is pushed by
+ * [SwipeToDismissBox] and dismissed by swiping right, the standard Wear
+ * go-back. It is a leaf rather than a third page on purpose: arriving on it
+ * opens a live microphone, and a surface with that effect must be entered
+ * deliberately, never brushed into by a stray horizontal swipe.
+ *
+ * This replaced a flat "which screen is on top" enum whose settings entry point
+ * was a floating overflow chip on the hero screen. Two floating chips at the
+ * screen's edges is a phone idiom; Wear has no overflow-menu convention for the
+ * `⋮` glyph to refer to, and the chip spent hero pixels advertising a
+ * destination the platform already has a gesture and an indicator for.
  *
  * ViewModels are resolved from the kotlin-inject component via the
  * `viewModel { }` initializer, mirroring the phone's
- * `viewModel { component.<x>ViewModel }` pattern. Both ViewModels are resolved
- * here and outlive every destination, so nothing is re-fetched on the way back
- * from a leaf.
+ * `viewModel { component.<x>ViewModel }` pattern. Both are resolved here and
+ * outlive every destination, so nothing is re-fetched on the way back.
  */
 @Composable
 fun WearApp(component: WearComponent) {
     val wearHomeViewModel: WearHomeViewModel = viewModel { component.wearHomeViewModel }
     val wearVoiceViewModel: WearVoiceViewModel = viewModel { component.wearVoiceViewModel }
-    var destination by rememberSaveable { mutableStateOf(WearDestination.Hero) }
+    var destination by rememberSaveable { mutableStateOf(WearDestination.Home) }
     val swipeState = rememberSwipeToDismissBoxState()
     val openStore = rememberStoreLauncher()
 
@@ -83,35 +97,83 @@ fun WearApp(component: WearComponent) {
     MaterialTheme {
         AppScaffold {
             SwipeToDismissBox(
-                onDismissed = { destination = WearDestination.Hero },
+                onDismissed = { destination = WearDestination.Home },
                 state = swipeState,
-                // Nothing to dismiss when the hero screen is already showing;
-                // without this, swiping on the hero screen would try to pop a
-                // destination that is not there.
-                userSwipeEnabled = destination != WearDestination.Hero,
-                backgroundKey = WearDestination.Hero.name,
+                // Nothing to dismiss when home is already showing; without
+                // this, swiping there would try to pop a destination that is
+                // not there. Home's own pages handle their swipes internally —
+                // see HomePages for how page 0 hands the gesture back.
+                userSwipeEnabled = destination != WearDestination.Home,
+                backgroundKey = WearDestination.Home.name,
                 contentKey = destination.name,
             ) { isBackground ->
-                // The background layer is always the hero screen: it is what a
-                // leaf reveals as it is swiped away.
-                val shown = if (isBackground) WearDestination.Hero else destination
+                // The background layer is always home: it is what the leaf
+                // reveals as it is swiped away.
+                val shown = if (isBackground) WearDestination.Home else destination
                 when (shown) {
-                    WearDestination.Hero ->
-                        HeroScreen(
-                            viewModel = wearHomeViewModel,
+                    WearDestination.Home ->
+                        HomePages(
+                            homeViewModel = wearHomeViewModel,
                             signInConfig = component.signInConfig,
                             onVoiceDemoClick = { destination = WearDestination.VoiceDemo },
-                            onMenuClick = { destination = WearDestination.Menu },
+                            onOpenStore = openStore,
                         )
 
                     WearDestination.VoiceDemo ->
                         VoiceDemoScreen(viewModel = wearVoiceViewModel)
+                }
+            }
+        }
+    }
+}
 
-                    WearDestination.Menu ->
-                        WearMenuScreen(
+/**
+ * Home: the door and settings as peer pages, with the platform's page
+ * indicator between them.
+ *
+ * The pager's `gestureInclusion` default reserves the screen's left edge on the
+ * first page, so a swipe that starts there is handed to the enclosing
+ * swipe-to-dismiss instead of being eaten as a page change. That is what keeps
+ * "swipe right from the door" meaning "leave the app" rather than nothing at
+ * all.
+ *
+ * Rotary is explicitly OFF for the pager. The crown belongs to whatever is
+ * scrolling — which on the settings page is its list — and a crown that changed
+ * pages instead would make the app's one genuinely scrollable surface
+ * unreachable by the watch's main input. This is a real default in
+ * [HorizontalPager], not a hypothetical, so it is pinned rather than assumed.
+ */
+@Composable
+private fun HomePages(
+    homeViewModel: WearHomeViewModel,
+    signInConfig: WearSignInConfig,
+    onVoiceDemoClick: () -> Unit,
+    onOpenStore: () -> Boolean,
+) {
+    val pagerState = rememberPagerState(pageCount = { HOME_PAGE_COUNT })
+    val authState by homeViewModel.authState.collectAsStateWithLifecycle()
+
+    HorizontalPagerScaffold(pagerState = pagerState) {
+        HorizontalPager(
+            state = pagerState,
+            flingBehavior = PagerScaffoldDefaults.snapWithSpringFlingBehavior(pagerState),
+            rotaryScrollableBehavior = null,
+        ) { page ->
+            AnimatedPage(pageIndex = page, pagerState = pagerState) {
+                when (page) {
+                    HOME_PAGE_DOOR ->
+                        HeroScreen(
+                            viewModel = homeViewModel,
+                            signInConfig = signInConfig,
+                            onVoiceDemoClick = onVoiceDemoClick,
+                        )
+
+                    else ->
+                        WearSettingsScreen(
                             versionName = BuildConfig.VERSION_NAME,
                             tagNumber = BuildConfig.WEAR_TAG_NUMBER,
-                            onOpenStore = openStore,
+                            authState = authState,
+                            onOpenStore = onOpenStore,
                         )
                 }
             }
@@ -120,10 +182,17 @@ fun WearApp(component: WearComponent) {
 }
 
 /**
+ * The door is page 0 because it is why the app exists: opening it must never
+ * cost a swipe, and a cold launch has to land on it every time.
+ */
+private const val HOME_PAGE_DOOR = 0
+private const val HOME_PAGE_COUNT = 2
+
+/**
  * Opens this app's listing in the watch's own Play Store, reporting whether it
  * found one.
  *
- * The irreducible platform write for the menu: the decision of *where* to go is
+ * The irreducible platform write for settings: the decision of *where* to go is
  * [WearStoreLink]'s (and unit-tested there), while `startActivity` can only
  * happen here. Failure is caught rather than pre-checked — see [WearStoreLink]
  * for why asking first would give the wrong answer on Android 11+.
@@ -140,7 +209,7 @@ private fun rememberStoreLauncher(): () -> Boolean {
                 )
                 true
             } catch (e: ActivityNotFoundException) {
-                Logger.w { "WearMenu: no Play Store on this watch: $e" }
+                Logger.w { "WearSettings: no Play Store on this watch: $e" }
                 false
             }
         }

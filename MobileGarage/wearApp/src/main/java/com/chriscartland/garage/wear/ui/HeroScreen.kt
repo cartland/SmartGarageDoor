@@ -38,8 +38,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -98,7 +96,6 @@ fun HeroScreen(
     viewModel: WearHomeViewModel,
     signInConfig: WearSignInConfig,
     onVoiceDemoClick: () -> Unit,
-    onMenuClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
@@ -120,7 +117,6 @@ fun HeroScreen(
         onHoldStart = viewModel::onHoldStart,
         onHoldEnd = viewModel::onHoldEnd,
         onVoiceDemoClick = onVoiceDemoClick,
-        onMenuClick = onMenuClick,
         signInError = signInError,
         onSignInClick = {
             viewModel.onSignInStarted()
@@ -160,7 +156,6 @@ fun HeroScreenContent(
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
     onVoiceDemoClick: () -> Unit,
-    onMenuClick: () -> Unit,
     onSignInClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -257,7 +252,6 @@ fun HeroScreenContent(
         onHoldStart = onHoldStart,
         onHoldEnd = onHoldEnd,
         onVoiceDemoClick = onVoiceDemoClick,
-        onMenuClick = onMenuClick,
         onSignInClick = onSignInClick,
         modifier = modifier,
     )
@@ -300,7 +294,6 @@ internal fun HeroScreenLayout(
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
     onVoiceDemoClick: () -> Unit,
-    onMenuClick: () -> Unit,
     onSignInClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -373,9 +366,15 @@ internal fun HeroScreenLayout(
                 // CenterEnd rather than the top: the top centre belongs to
                 // TimeText, and at the vertical centre the round screen's chord
                 // is at its widest, so a chip beside the door (which occupies
-                // only the middle 52%) clears both the door and the mask.
+                // only the middle 46%) clears both the door and the mask.
                 // Signed-in only — the signed-out screen has one job, and it has
                 // already been fixed once for overflow (0.1.2).
+                //
+                // The last chip standing. Its twin, an overflow `⋮` mirrored at
+                // CenterStart, is gone: settings is a page now, reached by the
+                // platform's own swipe with the platform's own indicator. This
+                // one stays because what it opens is not a peer surface — it is
+                // a live microphone, and that must be asked for explicitly.
                 VoiceDemoChip(
                     onClick = onVoiceDemoClick,
                     modifier = Modifier
@@ -433,22 +432,6 @@ internal fun HeroScreenLayout(
                     }
                 }
             }
-            // Menu entry point, mirroring the voice chip across the screen —
-            // CenterStart for the same reason CenterEnd was chosen, the round
-            // screen's chord being at its widest through the vertical centre.
-            //
-            // OUTSIDE the auth branches, unlike the voice chip: this is the one
-            // affordance whose value does not depend on being signed in. It
-            // exists to get a newer build onto the watch, and a build broken
-            // enough to leave you stuck at the sign-in screen is exactly when
-            // reaching the store matters most. Its footprint is the same as the
-            // voice chip's, which the signed-out layout already clears.
-            MenuChip(
-                onClick = onMenuClick,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = VOICE_CHIP_EDGE_PADDING_DP.dp),
-            )
             // Hold-to-confirm ring: centered on the physical screen, hugging
             // the bezel — never around the door image, whose own box sits
             // wherever the layout puts it. LAST child on purpose: the ring
@@ -702,32 +685,6 @@ private fun VoiceDemoChip(
     }
 }
 
-/**
- * Opens the menu (running build + a link to the Play Store).
- *
- * Iconic and the same size as the voice chip, for the same edge-of-a-round-
- * screen reason. `MoreVert` rather than a settings gear or an info "i": the
- * screen behind it is not settings, and calling it "info" would undersell a
- * button that installs a new version of the app.
- */
-@Composable
-private fun MenuChip(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val description = stringResource(R.string.cd_menu)
-    FilledTonalIconButton(
-        onClick = onClick,
-        modifier = modifier.size(VOICE_CHIP_SIZE_DP.dp),
-    ) {
-        Icon(
-            imageVector = Icons.Filled.MoreVert,
-            contentDescription = description,
-            modifier = Modifier.size(VOICE_CHIP_ICON_SIZE_DP.dp),
-        )
-    }
-}
-
 /** String/label mappers for the hero screen. */
 internal object HeroScreenMappers {
     /**
@@ -836,7 +793,6 @@ private fun HeroScreenContentReadyPreview() {
             onHoldStart = {},
             onHoldEnd = {},
             onVoiceDemoClick = {},
-            onMenuClick = {},
             onSignInClick = {},
         )
     }
@@ -858,7 +814,6 @@ private fun HeroScreenContentHoldingPreview() {
             onHoldStart = {},
             onHoldEnd = {},
             onVoiceDemoClick = {},
-            onMenuClick = {},
             onSignInClick = {},
         )
     }
@@ -880,7 +835,6 @@ private fun HeroScreenContentInferredPositionPreview() {
             onHoldStart = {},
             onHoldEnd = {},
             onVoiceDemoClick = {},
-            onMenuClick = {},
             onSignInClick = {},
         )
     }
@@ -901,7 +855,6 @@ private fun HeroScreenContentSignedOutPreview() {
             onHoldStart = {},
             onHoldEnd = {},
             onVoiceDemoClick = {},
-            onMenuClick = {},
             onSignInClick = {},
         )
     }
