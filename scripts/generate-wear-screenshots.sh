@@ -62,6 +62,7 @@ BOOT_TIMEOUT_SECONDS=180
 # Stage list mirrors ScreenshotStagesActivity.
 STAGES=(
     connecting closed inferred holding submitted bloom moving open signed_out sign_in_error
+    menu menu_local
     # Voice demo (simulated). voice_armed captures its countdown ring already
     # FULL: the settle below (4s) outlasts the cancel window (3s), so the
     # animation has finished by capture time. Deterministic, which is what the
@@ -250,6 +251,8 @@ stage_description() {
         open) echo "Open door, \"Hold to close\"" ;;
         signed_out) echo "Signed out: Sign in button (no mic chip — the voice demo is signed-in only)" ;;
         sign_in_error) echo "Transient \"Sign-in failed\" caption" ;;
+        menu) echo "Menu on a released build: name, version, store button — deliberately NOT the release tag it was cut from" ;;
+        menu_local) echo "The same menu on a build that never came from a release, which still says so" ;;
         voice_listening) echo "Voice demo listening, nothing said yet: pulse rings, the example prompt, and the way out" ;;
         voice_hearing) echo "Voice demo mid-utterance: rings driven by mic level, prompt replaced by live text, cancel hint stepped aside" ;;
         voice_ready) echo "Voice demo at rest: \"Simulated\" marker, \"Tap to speak\", demo door Closed" ;;

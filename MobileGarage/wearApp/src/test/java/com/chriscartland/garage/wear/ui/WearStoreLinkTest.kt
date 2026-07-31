@@ -18,7 +18,6 @@
 package com.chriscartland.garage.wear.ui
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -74,20 +73,25 @@ class WearStoreLinkTest {
         )
     }
 
-    /** A released build names itself the way the release tags do. */
+    /**
+     * A released build is recognised as one — and reports only THAT, never the
+     * tag it came from. The release tag is internal plumbing; it means something
+     * against this repo's tags and the Play track log, and nothing to someone
+     * wearing the watch.
+     */
     @Test
-    fun aReleasedBuildNamesItselfWithItsTag() {
-        assertEquals("wear/15", WearStoreLink.releaseTag(15))
+    fun aReleasedBuildIsRecognisedWithoutNamingItsTag() {
+        assertTrue(WearStoreLink.isReleaseBuild(15))
     }
 
     /**
-     * A build that never came from a tag says so, rather than claiming to be
-     * `wear/0` — "this is not a release" and "you are 15 releases behind" are
+     * A build that never came from a tag is still told apart from a released
+     * one — "this is not a release" and "you are 15 releases behind" are
      * different answers, and the menu exists to tell them apart.
      */
     @Test
     fun aBuildWithNoTagIsNotPassedOffAsARelease() {
-        assertNull(WearStoreLink.releaseTag(0))
-        assertNull(WearStoreLink.releaseTag(-1))
+        assertTrue(!WearStoreLink.isReleaseBuild(0))
+        assertTrue(!WearStoreLink.isReleaseBuild(-1))
     }
 }

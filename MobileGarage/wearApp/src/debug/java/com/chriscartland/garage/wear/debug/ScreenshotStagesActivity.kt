@@ -36,6 +36,7 @@ import com.chriscartland.garage.wear.ui.HeroRingState
 import com.chriscartland.garage.wear.ui.HeroScreenContent
 import com.chriscartland.garage.wear.ui.HeroScreenLayout
 import com.chriscartland.garage.wear.ui.VoiceDemoContent
+import com.chriscartland.garage.wear.ui.WearMenuScreen
 import com.chriscartland.garage.wear.ui.WearVoiceViewModel
 
 /**
@@ -47,7 +48,7 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  *
  * Launch (debug build only):
  *   adb shell am start -n com.chriscartland.garage.debug/com.chriscartland.garage.wear.debug.ScreenshotStagesActivity \
- *     -e stage connecting|closed|inferred|holding|submitted|bloom|moving|open|signed_out|sign_in_error|voice_ready|voice_listening|voice_hearing|voice_armed|voice_committing|voice_sent|voice_refused
+ *     -e stage connecting|closed|inferred|holding|submitted|bloom|moving|open|signed_out|sign_in_error|menu|menu_local|voice_ready|voice_listening|voice_hearing|voice_armed|voice_committing|voice_sent|voice_refused
  *
  * Stages mirror the hero interaction narrative:
  *   connecting    — cold start, no door event yet: "Connecting…", no ⚠ badge
@@ -71,6 +72,13 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  *   open          — red open door, "Hold to close"
  *   signed_out    — Sign in button under the door
  *   sign_in_error — transient "Sign-in failed" caption under the button
+ *   menu          — the menu on a RELEASED build: name, version, store
+ *                   button. Deliberately does NOT name the release tag it
+ *                   was cut from; that is internal plumbing. Only a fixture
+ *                   can show this state, since a local build always has
+ *                   WEAR_TAG_NUMBER = 0
+ *   menu_local    — the same menu on a build that never came from a
+ *                   release, which still says so
  *
  * Voice demo stages (a different Composable — VoiceDemoContent). All are
  * simulated by construction: the fixture passes canned VoiceCommandStates and
@@ -99,7 +107,19 @@ class ScreenshotStagesActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 AppScaffold {
-                    if (voiceFixture != null) {
+                    if (stage == STAGE_MENU || stage == STAGE_MENU_LOCAL) {
+                        // The menu, in both of the states it has. The RELEASED
+                        // one cannot be reached from a local build at all —
+                        // BuildConfig.WEAR_TAG_NUMBER is 0 unless the build came
+                        // from a release tag — so without a fixture the only
+                        // version of this screen anyone could ever look at was
+                        // the one real users never see.
+                        WearMenuScreen(
+                            versionName = "0.4.1",
+                            tagNumber = if (stage == STAGE_MENU) 17 else 0,
+                            onOpenStore = { true },
+                        )
+                    } else if (voiceFixture != null) {
                         VoiceDemoContent(
                             state = voiceFixture.state,
                             demoDoorState = voiceFixture.demoDoorState,
@@ -287,6 +307,8 @@ class ScreenshotStagesActivity : ComponentActivity() {
         const val STAGE_HOLDING = "holding"
         const val STAGE_SUBMITTED = "submitted"
         const val STAGE_BLOOM = "bloom"
+        const val STAGE_MENU = "menu"
+        const val STAGE_MENU_LOCAL = "menu_local"
         const val STAGE_MOVING = "moving"
         const val STAGE_OPEN = "open"
         const val STAGE_SIGNED_OUT = "signed_out"

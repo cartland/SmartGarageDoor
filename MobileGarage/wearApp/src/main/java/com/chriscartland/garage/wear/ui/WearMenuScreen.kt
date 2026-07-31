@@ -94,14 +94,26 @@ fun WearMenuScreen(
                 style = MaterialTheme.typography.displaySmall,
                 textAlign = TextAlign.Center,
             )
+            // A released build says nothing here — its version number above is
+            // the whole answer. The release tag it was cut from used to be
+            // rendered instead, but that is internal plumbing: it means
+            // something against this repo's tags and the Play track log, and
+            // nothing at all to someone wearing the watch.
+            //
+            // A build that never came from a release still says so, because
+            // that is a genuinely different thing from an old build and the
+            // version number cannot tell you which one you have. Reserved slot,
+            // so the column does not reflow between the two cases.
             Text(
-                // A released build names itself the way the tags do (wear/15);
-                // a local one says so rather than pretending to be wear/0.
-                text = WearStoreLink.releaseTag(tagNumber)
-                    ?: stringResource(R.string.menu_local_build),
+                text = if (WearStoreLink.isReleaseBuild(tagNumber)) {
+                    ""
+                } else {
+                    stringResource(R.string.menu_local_build)
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
+                minLines = 1,
             )
             Button(onClick = { storeUnavailable = !onOpenStore() }) {
                 Text(text = stringResource(R.string.menu_open_store))

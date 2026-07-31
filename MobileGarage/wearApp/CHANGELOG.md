@@ -36,6 +36,12 @@ minor = added or removed user-facing feature; patch = fixes, polish, refactors.
   thickens into its own reserved band and goes full white, which is still the
   loudest thing on screen without borrowing anyone else's pixels.
 - The door is slightly smaller, which is what pays for the label moving up.
+- **The menu no longer prints the release tag it was cut from.** A line reading
+  `wear/16` under the version number is release plumbing — it means something
+  against this repo's tags and the Play track log, and nothing to anyone wearing
+  the watch, who already has the version number right above it. A build that
+  never came from a release still says so, because that is a genuinely different
+  thing from an old build and the version number cannot tell you which you have.
 
 ## 0.4.0
 
