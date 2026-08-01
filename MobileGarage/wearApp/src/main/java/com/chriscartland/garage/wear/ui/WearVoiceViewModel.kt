@@ -197,18 +197,23 @@ abstract class WearVoiceViewModel(
                     is VoiceCommandState.Ignored,
                     is VoiceCommandState.Failed,
                     -> _hapticCues.tryEmit(HapticCue.VoiceRefused)
-                    // Leaving a RUNNING countdown for Ready is a cancellation,
-                    // and it feels like lifting a finger off the door — same
-                    // cue, from the same place in the same journey. Reaching
-                    // Ready from anywhere else is an outcome expiring, which
-                    // the user did not do and should not feel.
+                    // Leaving anything RUNNING for Ready is a cancellation —
+                    // whether a countdown was sweeping or the microphone was
+                    // merely open. Both were started by a tap and stopped by a
+                    // tap, and a tap that stops something must say so.
+                    //
+                    // Reaching Ready from anywhere else is an outcome expiring,
+                    // which the user did not do and should not feel.
                     VoiceCommandState.Ready ->
-                        if (previous is VoiceCommandState.Armed) {
+                        if (previous is VoiceCommandState.Armed || previous is VoiceCommandState.Listening) {
                             _hapticCues.tryEmit(HapticCue.VoiceAborted)
                         }
-                    is VoiceCommandState.Listening,
-                    is VoiceCommandState.Sent,
-                    -> Unit
+                    // The tap that opened the microphone, acknowledged. This is
+                    // the moment the user is most likely to be looking away —
+                    // they have just said "listen to me" and are about to
+                    // speak — so it is the moment silence is least affordable.
+                    is VoiceCommandState.Listening -> _hapticCues.tryEmit(HapticCue.VoiceListening)
+                    is VoiceCommandState.Sent -> Unit
                 }
             }
         }

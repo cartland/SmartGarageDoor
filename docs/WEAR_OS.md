@@ -514,6 +514,42 @@ Unified in 0.6.1 — before that they had silently drifted.
 | Abandoned | `GESTURE_END` | `HoldAborted` / `VoiceAborted` |
 | Did not take | `REJECT` | `PressFailed` / `VoiceRefused` |
 
+### The haptic language (0.6.2)
+
+The screen is the wrong place to look when your wrist is down and you are
+walking. The buzz is the interface, so it has to answer two questions on its
+own: **did that register?** and **did it happen?**
+
+| Moment | Cue | Constant | What it means |
+|---|---|---|---|
+| Microphone opened | `VoiceListening` | `VIRTUAL_KEY` | "Say it." Lightest cue — opening a mic commits to nothing |
+| Command understood | `VoiceArmed` | `GESTURE_START` | "Got it. This happens unless you stop it" |
+| Halfway | `VoiceHalfway` | `CLOCK_TICK` | pacing, **not** a point of no return |
+| Sent | `VoiceCommitted` ×2 | `CONFIRM` | the door was told |
+| You stopped it | `VoiceAborted` | `GESTURE_END` | from a countdown **or** a live mic |
+| It did not take | `VoiceRefused` | `REJECT` | misheard, refused by the gate, or the press failed |
+
+Weight tracks stakes: a light tap to open a microphone, a firmer start when a
+door is now three seconds away, a double beat for the irreversible moment.
+
+**Every tap has a cue and every outcome has a cue**, which is the property
+`WearConfirmParityTest.everyVoiceMomentHasItsOwnFeel` pins — including that no
+two of them share a constant, since a wrist cannot read a table. Two gaps
+existed until 0.6.2 and both were *silence*, the worst possible answer:
+
+- **Opening the microphone said nothing.** You tapped the mic and got no
+  feedback at all until you had spoken AND been understood — so a capture that
+  failed was silent from end to end, and the natural response (tap again) is
+  the wrong instinct on a surface that can open a garage.
+- **Cancelling a live microphone said nothing.** Cancelling a *countdown*
+  buzzed; cancelling before speaking did not, so the same gesture registered or
+  did not depending on invisible timing.
+
+An outcome **expiring on its own** deliberately stays silent on both surfaces.
+The user did nothing, so there is nothing to acknowledge — and a buzz there
+would fire after every refusal, teaching people to ignore the one channel this
+design depends on.
+
 **Cancellable until the ring closes, on both.** The midpoint cue is *pacing*,
 not a point of no return; the deadline is the ring completing and nothing
 earlier. `WearLiveVoiceViewModelTest.cancellingOneMillisecondBeforeTheRingCloses`
@@ -737,6 +773,16 @@ So the door and settings are now pages of one `HorizontalPagerScaffold`, and the
 voice surfaces are `SwipeToDismissBox` leaves — the live one entered from the
 door's mic, the rehearsal from settings. Two axes, each meaning one thing:
 **sideways is a peer, forward is a leaf.**
+
+**Leaves are moments, not places (0.6.2).** Leaving the app dismisses any leaf,
+so coming back lands on the door. `WearDestination.survivesBackgrounding` is
+`true` only for `Home`, and the destination is held in `remember` rather than
+`rememberSaveable` so process death cannot restore one either. This matters
+more than it sounds: *arriving* on the voice screen is what opens the
+microphone, so a restored one has already had its arrival and just sits there
+inert until tapped — the app would reopen onto a dead screen. `ON_STOP` rather
+than `ON_PAUSE`, so a transient overlay does not throw away a countdown the
+user can still see and still cancel.
 
 Voice stays a leaf rather than becoming a third page for a reason that got
 sharper in 0.6.0: arriving on it opens a live microphone, and on the live

@@ -373,7 +373,7 @@ class WearSimulatedVoiceViewModelTest {
             runCurrent()
             assertEquals(VoiceDoorState.CLOSED, viewModel.doorState.value)
             // Aborted, not Committed: walking away stopped a running countdown.
-            assertEquals(listOf(HapticCue.VoiceArmed, HapticCue.VoiceAborted), cues)
+            assertEquals(listOf(HapticCue.VoiceListening, HapticCue.VoiceArmed, HapticCue.VoiceAborted), cues)
         }
 
     /**
@@ -539,6 +539,77 @@ class WearSimulatedVoiceViewModelTest {
         }
 
     /**
+     * Opening the microphone buzzes.
+     *
+     * This is the tap most likely to be made without looking — you press the
+     * mic and are already lifting your wrist to speak — so it is the one where
+     * silence costs most. Until 0.6.2 there was none: tapping the mic chip
+     * produced no feedback at all until you had spoken AND been understood,
+     * which on a failed capture meant the entire interaction was silent.
+     */
+    @Test
+    fun openingTheMicrophoneBuzzes() =
+        runTest {
+            val viewModel = createViewModel()
+            val cues = recordCues(viewModel)
+
+            viewModel.onMicTap()
+            runCurrent()
+
+            assertEquals(listOf(HapticCue.VoiceListening), cues)
+        }
+
+    /**
+     * Closing a live microphone without speaking buzzes too — a tap that stops
+     * something must say so, exactly like a tap that starts something.
+     *
+     * The cue is the same [HapticCue.VoiceAborted] an abandoned countdown
+     * gives, because it is the same news: you stopped it, nothing was sent.
+     */
+    @Test
+    fun cancellingWhileStillListeningBuzzes() =
+        runTest {
+            val viewModel = createViewModel()
+            val cues = recordCues(viewModel)
+
+            viewModel.onMicTap()
+            runCurrent()
+            viewModel.onCancel()
+            runCurrent()
+
+            assertEquals(listOf(HapticCue.VoiceListening, HapticCue.VoiceAborted), cues)
+        }
+
+    /**
+     * Re-listening after an outcome buzzes again.
+     *
+     * Each capture is its own attempt, and the acknowledgement belongs to the
+     * tap rather than to the session — a second command must feel exactly like
+     * the first, or the user learns that only the first tap registers.
+     */
+    @Test
+    fun eachNewCaptureBuzzesItsOwnAcknowledgement() =
+        runTest {
+            val viewModel = createViewModel()
+            val cues = recordCues(viewModel)
+
+            speak(viewModel, "what a nice door")
+            advanceUntilIdle()
+            speak(viewModel, "what a nice door")
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf(
+                    HapticCue.VoiceListening,
+                    HapticCue.VoiceRefused,
+                    HapticCue.VoiceListening,
+                    HapticCue.VoiceRefused,
+                ),
+                cues,
+            )
+        }
+
+    /**
      * Cancelling an armed countdown feels exactly like lifting a finger off
      * the door mid-hold, because it is the same act: a visible countdown you
      * stopped. [HapticCue.VoiceAborted] shares `HoldAborted`'s constant.
@@ -559,7 +630,7 @@ class WearSimulatedVoiceViewModelTest {
             runCurrent()
             advanceUntilIdle()
 
-            assertEquals(listOf(HapticCue.VoiceArmed, HapticCue.VoiceAborted), cues)
+            assertEquals(listOf(HapticCue.VoiceListening, HapticCue.VoiceArmed, HapticCue.VoiceAborted), cues)
         }
 
     /**
@@ -582,7 +653,7 @@ class WearSimulatedVoiceViewModelTest {
 
             assertEquals(
                 "A refusal that timed out is not an abandoned countdown.",
-                listOf(HapticCue.VoiceRefused),
+                listOf(HapticCue.VoiceListening, HapticCue.VoiceRefused),
                 cues,
             )
         }
@@ -667,7 +738,7 @@ class WearSimulatedVoiceViewModelTest {
             val cues = recordCues(viewModel)
 
             speak(viewModel, "open the garage door")
-            assertEquals(listOf(HapticCue.VoiceArmed), cues)
+            assertEquals(listOf(HapticCue.VoiceListening, HapticCue.VoiceArmed), cues)
 
             advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS + 1)
             runCurrent()
@@ -678,6 +749,7 @@ class WearSimulatedVoiceViewModelTest {
             runCurrent()
             assertEquals(
                 listOf(
+                    HapticCue.VoiceListening,
                     HapticCue.VoiceArmed,
                     HapticCue.VoiceHalfway,
                     HapticCue.VoiceCommitted,
@@ -708,11 +780,11 @@ class WearSimulatedVoiceViewModelTest {
             // Just before halfway: still only the arming cue.
             advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS / 2 - 1)
             runCurrent()
-            assertEquals(listOf(HapticCue.VoiceArmed), cues)
+            assertEquals(listOf(HapticCue.VoiceListening, HapticCue.VoiceArmed), cues)
 
             advanceTimeBy(2)
             runCurrent()
-            assertEquals(listOf(HapticCue.VoiceArmed, HapticCue.VoiceHalfway), cues)
+            assertEquals(listOf(HapticCue.VoiceListening, HapticCue.VoiceArmed, HapticCue.VoiceHalfway), cues)
         }
 
     /**
@@ -734,7 +806,7 @@ class WearSimulatedVoiceViewModelTest {
             runCurrent()
             // The point is the ABSENCE of VoiceHalfway: a cancelled countdown
             // must never pace a countdown that is no longer running.
-            assertEquals(listOf(HapticCue.VoiceArmed, HapticCue.VoiceAborted), cues)
+            assertEquals(listOf(HapticCue.VoiceListening, HapticCue.VoiceArmed, HapticCue.VoiceAborted), cues)
         }
 
     @Test
@@ -746,7 +818,7 @@ class WearSimulatedVoiceViewModelTest {
             speak(viewModel, "don't open the door")
             advanceUntilIdle()
 
-            assertEquals(listOf(HapticCue.VoiceRefused), cues)
+            assertEquals(listOf(HapticCue.VoiceListening, HapticCue.VoiceRefused), cues)
         }
 
     @Test
@@ -761,6 +833,6 @@ class WearSimulatedVoiceViewModelTest {
             advanceUntilIdle()
 
             // No VoiceCommitted anywhere: the press never happened.
-            assertEquals(listOf(HapticCue.VoiceArmed, HapticCue.VoiceAborted), cues)
+            assertEquals(listOf(HapticCue.VoiceListening, HapticCue.VoiceArmed, HapticCue.VoiceAborted), cues)
         }
 }

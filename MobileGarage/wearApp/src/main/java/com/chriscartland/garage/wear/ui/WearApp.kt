@@ -25,7 +25,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -58,6 +57,25 @@ internal enum class WearDestination {
 
     /** Voice against a pretend door, entered from settings. */
     SimulatedVoice,
+    ;
+
+    /**
+     * Whether leaving the app and coming back leaves you here.
+     *
+     * Only [Home] does. The leaves are **moments, not places**: you open one
+     * to say a sentence, and if you have gone away and come back, that moment
+     * is over. Coming back to a voice screen sitting at "Tap to speak" is
+     * worse than it sounds — arriving on that screen is what starts the
+     * microphone, so a restored one has already had its arrival and just sits
+     * there, inert, until tapped. The app should open where it is useful,
+     * which is the door.
+     *
+     * A property rather than an `if` at the call site so that adding a
+     * destination is a decision someone has to make rather than one they
+     * inherit: a new leaf that forgot this would silently become a place the
+     * app can be parked.
+     */
+    val survivesBackgrounding: Boolean get() = this == Home
 }
 
 /**
@@ -99,9 +117,28 @@ fun WearApp(component: WearComponent) {
     val liveVoiceViewModel: WearLiveVoiceViewModel = viewModel { component.wearLiveVoiceViewModel }
     val simulatedVoiceViewModel: WearSimulatedVoiceViewModel =
         viewModel(key = "simulatedVoice") { component.wearSimulatedVoiceViewModel }
-    var destination by rememberSaveable { mutableStateOf(WearDestination.Home) }
+    // Deliberately `remember`, not `rememberSaveable`: a saved leaf would be
+    // restored after process death, which is the same "come back to an inert
+    // voice screen" problem the ON_STOP reset below solves for the ordinary
+    // case. Home is cheap to rebuild and is where a cold start belongs anyway.
+    var destination by remember { mutableStateOf(WearDestination.Home) }
     val swipeState = rememberSwipeToDismissBoxState()
     val openStore = rememberStoreLauncher()
+
+    // Leaving the app dismisses any leaf, so coming back lands on the door
+    // rather than on a voice screen whose moment has passed. ON_STOP rather
+    // than ON_PAUSE: a transient overlay (a notification, the shade) should not
+    // throw away a countdown the user can still see and still cancel.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP && !destination.survivesBackgrounding) {
+                destination = WearDestination.Home
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     DoorSurfaceEffects(wearHomeViewModel)
 

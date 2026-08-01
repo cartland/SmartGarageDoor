@@ -94,6 +94,22 @@ enum class HapticCue {
     VoiceCommitted,
 
     /**
+     * The microphone just opened. "I am listening — say it."
+     *
+     * The lightest cue in the language, and the only one with no counterpart
+     * on the hold: the hold has no capture phase, because a finger IS the
+     * input. Voice has a phase where the watch is waiting on you, and that
+     * phase begins with a tap whose whole question is *did that register?*
+     * Until 0.6.2 the answer was silence — you tapped the mic, looked away,
+     * and had nothing to go on.
+     *
+     * Deliberately lighter than [VoiceArmed]: opening a microphone commits to
+     * nothing, while a running countdown is a door about to move. The weight
+     * of the buzz tracks the stakes.
+     */
+    VoiceListening,
+
+    /**
      * The cancel window was abandoned before completing, so nothing was sent.
      *
      * The exact counterpart of [HoldAborted], sharing its constant: on both
