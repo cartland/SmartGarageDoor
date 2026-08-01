@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.ui.settings
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
+import com.chriscartland.garage.presentation.AppBuildFact
 
 /**
  * Production wrapper. Shows extended version metadata inside a
@@ -129,29 +131,41 @@ fun VersionSheetContent(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            VersionFieldRow(
-                label = stringResource(R.string.settings_version_field_version),
-                value = versionName,
-                onCopy = onCopy,
-            )
-            VersionFieldRow(
-                label = stringResource(R.string.settings_version_field_build),
-                value = versionCode,
-                onCopy = onCopy,
-            )
-            VersionFieldRow(
-                label = stringResource(R.string.settings_version_field_package),
-                value = packageName,
-                onCopy = onCopy,
-            )
-            VersionFieldRow(
-                label = stringResource(R.string.settings_version_field_built),
-                value = buildTimestamp,
-                onCopy = onCopy,
-            )
+            // Driven by the shared [AppBuildFact] so both platforms state the
+            // same facts in the same order; the LABELS stay Android's own —
+            // "Package" is right here and wrong on iOS, which is the whole
+            // reason the enum exists. Adding a case fails this `when` and the
+            // Swift `switch` together.
+            AppBuildFact.entries.forEach { fact ->
+                VersionFieldRow(
+                    label = stringResource(fact.labelRes()),
+                    value = when (fact) {
+                        AppBuildFact.RELEASE_VERSION -> versionName
+                        AppBuildFact.BUILD_NUMBER -> versionCode
+                        AppBuildFact.STORE_IDENTIFIER -> packageName
+                        AppBuildFact.BUILT_AT -> buildTimestamp
+                    },
+                    onCopy = onCopy,
+                )
+            }
         }
     }
 }
+
+/**
+ * Android's word for each fact.
+ *
+ * "Package" is correct HERE and only here — iOS calls the same value a Bundle
+ * ID. See [AppBuildFact] for why the shared enum refuses to pick either.
+ */
+@StringRes
+private fun AppBuildFact.labelRes(): Int =
+    when (this) {
+        AppBuildFact.RELEASE_VERSION -> R.string.settings_version_field_version
+        AppBuildFact.BUILD_NUMBER -> R.string.settings_version_field_build
+        AppBuildFact.STORE_IDENTIFIER -> R.string.settings_version_field_package
+        AppBuildFact.BUILT_AT -> R.string.settings_version_field_built
+    }
 
 @Composable
 private fun VersionFieldRow(

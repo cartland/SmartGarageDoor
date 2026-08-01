@@ -88,6 +88,9 @@
     "Built": {
       "extractionState": "manual"
     },
+    "Bundle ID": {
+      "extractionState": "manual"
+    },
     "Button health": {
       "extractionState": "manual"
     },
@@ -302,9 +305,6 @@
       "extractionState": "manual"
     },
     "Opening, taking longer than expected": {
-      "extractionState": "manual"
-    },
-    "Package": {
       "extractionState": "manual"
     },
     "Preparing…": {
