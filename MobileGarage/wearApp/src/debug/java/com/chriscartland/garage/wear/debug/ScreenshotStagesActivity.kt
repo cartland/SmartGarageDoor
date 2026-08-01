@@ -150,8 +150,8 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             // pinned to 10:10. Bump it by hand at feature
                             // releases so the gallery does not drift far from
                             // what the watch actually shows.
-                            versionName = "0.6.0",
-                            tagNumber = if (stage == STAGE_SETTINGS_LOCAL) 0 else 23,
+                            versionName = "0.6.1",
+                            tagNumber = if (stage == STAGE_SETTINGS_LOCAL) 0 else 24,
                             authState = if (stage == STAGE_SETTINGS_LOCAL) {
                                 AuthState.Unauthenticated
                             } else {

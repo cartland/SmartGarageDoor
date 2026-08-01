@@ -494,6 +494,60 @@ new information on a wrist is not a 1.5-second read, so Wear passes the 4s that
 refusals already get. `resultFlashDurationIsPerSurface` pins the parameter;
 `theOutcomeStaysUpLongEnoughToRead` pins the Wear value end to end.
 
+### One ring, two ways to start it
+
+There is ONE confirm gesture in this app. Holding the door and speaking to the
+mic are two ways to begin it, and from the moment it begins they are the same
+thing: the same ring, the same clock, the same buzzes, the same escape hatch.
+Unified in 0.6.1 — before that they had silently drifted.
+
+**Identical, and pinned by `WearConfirmParityTest`:**
+
+| | Value | Source |
+|---|---|---|
+| Countdown duration | 2s | `WearConfirmTiming.RING_JOURNEY_MILLIS` — both surfaces derive it, neither writes it |
+| Midpoint pacing cue | 1s | `WearConfirmTiming.HALFWAY_MILLIS` |
+| Ring | `ConfirmRing`, sweep → bloom | literally one component, one driver |
+| Countdown starts | `GESTURE_START` | `HoldEngaged` / `VoiceArmed` |
+| Midpoint | `CLOCK_TICK` | `HoldHalfway` / `VoiceHalfway` |
+| Committed | `CONFIRM`, **twice** | `PressCommitted` / `VoiceCommitted` + a second beat 110ms later |
+| Abandoned | `GESTURE_END` | `HoldAborted` / `VoiceAborted` |
+| Did not take | `REJECT` | `PressFailed` / `VoiceRefused` |
+
+**Cancellable until the ring closes, on both.** The midpoint cue is *pacing*,
+not a point of no return; the deadline is the ring completing and nothing
+earlier. `WearLiveVoiceViewModelTest.cancellingOneMillisecondBeforeTheRingCloses`
+pins the boundary specifically, because a refactor that moved the deadline
+earlier would still pass a test that cancelled at the halfway mark.
+
+**The one real difference — how you abandon it:**
+
+| | Hold | Voice |
+|---|---|---|
+| Starts | finger lands on the door | a confident command passes the gate |
+| Sustains | **you must keep holding** | runs on its own |
+| Completing it means | keep doing nothing different | keep doing nothing at all |
+| Abandoning it means | **lift your finger** | **tap anywhere** |
+| Also cancelled by | drifting off the target | leaving the screen, backgrounding |
+
+That asymmetry is inherent and worth keeping: a hold is a *sustained* act, so
+stopping is passive; voice is a *fired* act, so stopping is active. Everything
+downstream of "the ring is now sweeping" is deliberately identical, so the ring
+means exactly one thing wherever it appears — **when I close, the door moves**.
+
+Two consequences worth stating, because both were bugs first:
+
+- **Voice's window used to be 3s** (the controller's maximum), chosen when
+  voice was a simulation with nothing at stake and a glanced-at watch wanted
+  the most forgiving window available. Once a completed countdown began
+  pressing the real button, two different durations meant the ring was making
+  two different promises. Now both derive from one constant.
+- **Cancelling voice used to be silent**, on the reasoning that cancelling is
+  deliberate and needs no confirmation. The hold had always buzzed. Now both
+  do — and an outcome *expiring* on its own still buzzes on neither, because
+  the user did nothing. That distinction is the whole reason
+  `WearVoiceViewModel` tracks its previous state.
+
 ### How the simulation says "this is not real"
 
 **Four** independent signals since 0.6.0, up from three, because the stakes

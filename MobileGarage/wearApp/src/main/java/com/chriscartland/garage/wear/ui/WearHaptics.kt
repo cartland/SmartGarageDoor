@@ -54,6 +54,9 @@ internal object WearHaptics {
             HapticCue.VoiceArmed -> HapticFeedbackConstants.GESTURE_START
             HapticCue.VoiceHalfway -> HapticFeedbackConstants.CLOCK_TICK
             HapticCue.VoiceCommitted -> HapticFeedbackConstants.CONFIRM
+            // Same constant as HoldAborted: an abandoned countdown is an
+            // abandoned countdown, whichever gesture was driving it.
+            HapticCue.VoiceAborted -> HapticFeedbackConstants.GESTURE_END
             HapticCue.VoiceRefused -> HapticFeedbackConstants.REJECT
         }
 }

@@ -169,6 +169,52 @@ class WearLiveVoiceViewModelTest {
         }
 
     /**
+     * Cancellable right up to the last moment before the ring completes.
+     *
+     * The deadline is the ring finishing, not some earlier point of no return
+     * — the same promise the hold makes, where releasing cancels until the
+     * sweep closes. Asserted one millisecond short of the window because that
+     * is the boundary a refactor would quietly move; a cancel at the halfway
+     * mark would keep passing while the last second silently stopped working.
+     */
+    @Test
+    fun cancellingOneMillisecondBeforeTheRingClosesPressesNothing() =
+        runTest {
+            val viewModel = createViewModel(DoorPosition.CLOSED)
+            speak(viewModel, "open the garage door")
+
+            advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS - 1)
+            runCurrent()
+            assertTrue(
+                "Still cancellable: the ring has not closed yet.",
+                viewModel.state.value is VoiceCommandState.Armed,
+            )
+            viewModel.onCancel()
+            runCurrent()
+
+            letTheWindowElapse()
+            assertEquals(0, remoteButtonRepository.pushCount)
+        }
+
+    /**
+     * The voice countdown takes exactly as long as the hold's, because both
+     * rings make the same promise about the same door.
+     *
+     * Pinned from the LIVE surface as well as in `WearConfirmParityTest`: this
+     * is the one where the number decides how long a real garage door press
+     * can be called off, so it is worth failing twice.
+     */
+    @Test
+    fun theCancelWindowMatchesTheHoldToConfirmDuration() =
+        runTest {
+            val viewModel = createViewModel(DoorPosition.CLOSED)
+            speak(viewModel, "open the garage door")
+
+            val armed = viewModel.state.value as VoiceCommandState.Armed
+            assertEquals(WearHomeViewModel.HOLD_TO_CONFIRM_MILLIS, armed.windowMs)
+        }
+
+    /**
      * Walking away from the screen is a cancellation too. Without this, a
      * countdown would keep running behind the door screen and press the button
      * for a command the user had abandoned — off-screen, which is the worst

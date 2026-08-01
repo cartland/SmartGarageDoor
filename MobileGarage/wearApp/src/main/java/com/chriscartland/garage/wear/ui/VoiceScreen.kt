@@ -372,7 +372,14 @@ fun VoiceContent(
             // whole screen rather than a changed label: at a glance, "is it
             // hearing me?" has to be answerable without reading anything.
             if (listening) {
-                PulseRings(level = listeningLevel, modifier = Modifier.fillMaxSize())
+                PulseRings(
+                    level = listeningLevel,
+                    // The rings must stop short of whatever the text block
+                    // actually occupies, which is one line for the prompt and
+                    // two once a transcript is being spoken into it.
+                    textLines = VoiceLayout.listeningTextLines(partialTranscript),
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
 
             // Header: what this is, and the door any command will be judged
@@ -581,13 +588,16 @@ private fun ListeningLine(partialTranscript: String?) {
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
-        // Exactly one line, because [VoiceLayout] reserves exactly one. A
-        // transcript that wrapped would push its own top edge up into the
-        // annulus the pulse rings were just capped to fit, and the overlap this
-        // whole change removes would come back for long sentences only — the
-        // worst kind of regression, since the short test phrase would keep
-        // looking right.
-        maxLines = 1,
+        // As many lines as [VoiceLayout] reserved, never more. The block is
+        // bottom-anchored, so the second line grows UPWARD into the annulus the
+        // rings were capped out of — which is safe only because both numbers
+        // come from listeningTextLines(). Hard-coding either one is how the
+        // overlap comes back for long sentences only: the worst kind of
+        // regression, since the short test phrase keeps looking right.
+        // Two when there is a transcript, one for the prompt — the same
+        // decision VoiceLayout reserves space for, taken from the same place
+        // so the text and the rings can never disagree about how tall this is.
+        maxLines = VoiceLayout.listeningTextLines(partialTranscript),
         // START, not end: this is a live transcript, so the words you want are
         // the ones that just arrived. Ellipsizing the tail would pin the screen
         // to the beginning of the sentence and hide the part still being said.
@@ -607,6 +617,7 @@ private fun ListeningLine(partialTranscript: String?) {
 @Composable
 private fun PulseRings(
     level: Float,
+    textLines: Int,
     modifier: Modifier = Modifier,
 ) {
     val transition = rememberInfiniteTransition(label = "listening")
@@ -627,6 +638,7 @@ private fun PulseRings(
             .pulseMaxRadiusDp(
                 diameterDp = size.minDimension.toDp().value,
                 micRadiusDp = MIC_LISTENING_SIZE_DP / 2f,
+                textLines = textLines,
             ).dp
             .toPx()
         val quiet = start + (limit - start) * IDLE_REACH_FRACTION
@@ -688,11 +700,25 @@ internal object VoiceRing {
  */
 internal object VoiceLayout {
     /**
-     * How far the listening line's TOP edge sits from the bottom of the screen:
-     * its padding plus roughly one line of `bodySmall`.
+     * How far the listening line's TOP edge sits from the bottom of the
+     * screen: its padding plus one line of `bodySmall` per line reserved.
      */
     const val LISTENING_TEXT_PADDING_DP: Float = 30f
     private const val LISTENING_TEXT_LINE_DP: Float = 20f
+
+    /**
+     * How many lines the listening text needs.
+     *
+     * The prompt is authored to fit one line and does. A TRANSCRIPT is a
+     * sentence somebody said, and real commands do not fit: "open the garage
+     * door please" is 27 characters and was rendered `…en the garage door
+     * please"`, losing the verb — on the one line whose whole job is to show
+     * you what the watch thinks you said.
+     *
+     * Two lines is the fix, and it is granted only while a transcript is
+     * present so the prompt state keeps every pixel of ring travel it has now.
+     */
+    fun listeningTextLines(partialTranscript: String?): Int = if (partialTranscript == null) 1 else 2
 
     /** Gap between the outermost ring and that text, so they never touch. */
     private const val PULSE_CLEARANCE_DP: Float = 6f
@@ -706,8 +732,12 @@ internal object VoiceLayout {
     fun pulseMaxRadiusDp(
         diameterDp: Float,
         micRadiusDp: Float,
+        textLines: Int = 1,
     ): Float =
-        (diameterDp / 2f - LISTENING_TEXT_PADDING_DP - LISTENING_TEXT_LINE_DP - PULSE_CLEARANCE_DP)
+        (
+            diameterDp / 2f - LISTENING_TEXT_PADDING_DP -
+                LISTENING_TEXT_LINE_DP * textLines - PULSE_CLEARANCE_DP
+        )
             // A watch small enough for the band to swallow the whole annulus
             // gets a halo hugging the mic rather than an inverted radius.
             .coerceAtLeast(micRadiusDp)

@@ -14,6 +14,27 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.6.1
+
+- **What the watch heard you say is readable now.** The live transcript was
+  pinned to a single line, so a normal command came out as "…en the garage door
+  please" with the first word cut off — on the one line whose entire job is to
+  show you what it thinks you said. It gets two lines while you are speaking,
+  and the listening animation is kept clear of them. The "Say open the garage
+  door" prompt was already fine and is untouched.
+
+- **Speaking and holding are now one gesture with two starts.** They had
+  quietly drifted apart: holding the door gave you 2 seconds to change your
+  mind, speaking gave you 3, and letting go of a hold buzzed while cancelling a
+  spoken command said nothing at all. Both are 2 seconds now, both buzz the
+  same way at the start, the halfway point, the commit and the cancel, and both
+  can still be called off right up to the moment the ring closes around the
+  screen. The ring means one thing everywhere: when it closes, the door moves.
+
+- The difference that remains is the one that should: a hold is something you
+  keep doing, so you stop it by lifting your finger; a spoken command runs on
+  its own, so you stop it by tapping the screen.
+
 ## 0.6.0
 
 - **The mic beside the door now opens the real garage door.** Speaking to the
