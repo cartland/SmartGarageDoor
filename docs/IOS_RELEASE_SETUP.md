@@ -125,6 +125,89 @@ Xcode (⌘R). Real push *delivery* requires a physical device.
 4. Automatic signing recreates the certs/profiles on first archive — no manual cert export needed.
    The APNs `.p8` is already on Firebase (no per-machine step); only re-upload it if the key is rotated.
 
+## Signing: stored cert, not cloud signing
+
+**CI signs with a certificate and profile held as GitHub secrets.** It used to
+use cloud signing (`-allowProvisioningUpdates`), which has `xcodebuild` mint an
+Apple Distribution certificate on demand.
+
+**Why that was changed (ios/12, 2026-08-01).** Certificates are a small,
+account-wide, *capped* resource — Apple allows two Apple Distribution certs per
+account. A CI job that creates one per release is spending a budget it cannot
+refill, and when the cap is reached every release fails at the archive step:
+
+```
+error: Choose a certificate to revoke. Your account has reached the
+maximum number of certificates. To create a new one, you must choose
+a certificate to revoke.
+error: No profiles for 'com.chriscartland.garage' were found
+```
+
+The second line is a knock-on: with no Distribution cert available, Xcode falls
+back to looking for a *Development* profile and finds none. **Nothing reaches
+App Store Connect when this happens** — export and upload are skipped, so the
+build number stays free and the same tag can be re-run once signing is fixed.
+
+### The three secrets
+
+| Secret | What it is |
+|---|---|
+| `IOS_DIST_CERT_P12_BASE64` | base64 of a `.p12` holding the Apple Distribution cert **and its private key** |
+| `IOS_DIST_CERT_PASSWORD` | the password that `.p12` was exported with |
+| `IOS_PROVISIONING_PROFILE_BASE64` | base64 of the App Store `.mobileprovision` for `com.chriscartland.garage` |
+
+The workflow imports these into a throwaway keychain (random per-run password,
+deleted by *Clean secrets*), reads the profile's UUID and Name out of it, and
+archives with `CODE_SIGN_STYLE=Manual`. **It fails loudly if any secret is
+missing** rather than falling back to cloud signing — a silent fallback would
+quietly return to the path that exhausted the quota.
+
+### Producing them (one-time, and after any cert expiry)
+
+Requires a Mac and the Apple Developer portal. A certificate is only useful with
+its **private key**, which exists solely on the machine that generated the
+signing request — so a cert previously minted by CI cloud signing **cannot be
+exported**, because its key died with the runner. If the account is at the cap
+and none of the existing certs has a local key, revoking one is not optional.
+
+1. **Free a slot if needed.** [Certificates][certs] → revoke an unused Apple
+   Distribution cert. (Revoking invalidates builds signed with it that have not
+   yet shipped; TestFlight builds already uploaded are unaffected.)
+2. **Generate a signing request.** Keychain Access → *Certificate Assistant* →
+   *Request a Certificate From a Certificate Authority* → save to disk. This is
+   what creates the private key locally.
+3. **Create the certificate.** [Certificates][certs] → **+** → *Apple
+   Distribution* → upload the request → download the `.cer` → double-click to
+   install into the login keychain.
+4. **Export the `.p12`.** Keychain Access → *My Certificates* → find the new
+   *Apple Distribution* row → expand it and confirm it has a private key
+   underneath (if not, step 2 was skipped) → right-click → *Export* → `.p12` →
+   set a password.
+5. **Create the App Store profile.** [Profiles][profiles] → **+** →
+   *App Store Connect* → App ID `com.chriscartland.garage` → select the
+   certificate from step 3 → download the `.mobileprovision`.
+6. **Store all three.** Never paste a secret into a terminal argument or a chat
+   — pipe from the file so it stays out of shell history:
+
+   ```bash
+   base64 -i /path/to/dist.p12            | gh secret set IOS_DIST_CERT_P12_BASE64
+   base64 -i /path/to/profile.mobileprovision | gh secret set IOS_PROVISIONING_PROFILE_BASE64
+   gh secret set IOS_DIST_CERT_PASSWORD   # prompts, does not echo
+   ```
+
+7. **Delete the local `.p12`** once the secret is set. GitHub Actions is the
+   only place deploy-capable credentials are meant to live.
+
+[certs]: https://developer.apple.com/account/resources/certificates/list
+[profiles]: https://developer.apple.com/account/resources/profiles/list
+
+### Expiry
+
+Apple Distribution certificates last one year and provisioning profiles expire
+with them. There is no warning in CI before the fact — the first symptom is an
+archive failure. When it happens, repeat steps 2–7 above; step 1 is only needed
+if the account is again at the cap.
+
 ## Automated releases (`release-ios.sh` + `release-ios.yml`)
 
 Mirrors the Android model. `scripts/release-ios.sh` computes the next `ios/N` tag
