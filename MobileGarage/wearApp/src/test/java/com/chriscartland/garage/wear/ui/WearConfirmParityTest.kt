@@ -116,6 +116,42 @@ class WearConfirmParityTest {
         )
     }
 
+    /**
+     * The voice language is COMPLETE: every moment a user can produce has a
+     * cue, and no two adjacent meanings share one.
+     *
+     * This is the property that matters on the go, where the screen is not
+     * being looked at. The failure it guards is not "a wrong buzz" but
+     * "silence" — a tap that registered nothing feels identical to a tap that
+     * registered and did the wrong thing, and the user's only recourse is to
+     * tap again, which on a live surface is exactly the wrong instinct.
+     *
+     * `VoiceListening` is the one with no hold counterpart, and deliberately:
+     * the hold has no capture phase to acknowledge, because a finger IS the
+     * input.
+     */
+    @Test
+    fun everyVoiceMomentHasItsOwnFeel() {
+        val language = mapOf(
+            "microphone opened" to HapticCue.VoiceListening,
+            "command understood, countdown running" to HapticCue.VoiceArmed,
+            "halfway" to HapticCue.VoiceHalfway,
+            "sent" to HapticCue.VoiceCommitted,
+            "you stopped it" to HapticCue.VoiceAborted,
+            "it did not take" to HapticCue.VoiceRefused,
+        )
+        val collisions = language.entries
+            .groupBy { WearHaptics.constantFor(it.value) }
+            .filterValues { it.size > 1 }
+            .mapValues { (_, entries) -> entries.map { it.key } }
+        assertEquals(
+            "These voice moments feel identical, so a wrist cannot tell them apart: " +
+                "$collisions",
+            emptyMap<Int, List<String>>(),
+            collisions,
+        )
+    }
+
     /** Abandoning is the same news on both surfaces, so it is the same buzz. */
     @Test
     fun abandoningEitherCountdownUsesTheGestureEndConstant() {

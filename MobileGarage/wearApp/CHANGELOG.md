@@ -14,6 +14,28 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.6.2
+
+- **The voice screen no longer waits for you.** It was a place the app could be
+  parked: leave while it is open, come back, and you were still on it — and
+  worse, sitting there doing nothing, because opening that screen is what
+  starts the microphone and it had already opened. Coming back now puts you on
+  the door, which is where the app is useful.
+
+- **Every tap on the voice screen now tells you it landed.** Two moments were
+  completely silent. Tapping the mic gave no feedback at all until you had
+  spoken *and* been understood, so a command it failed to catch was silent from
+  beginning to end. Tapping to close the mic before speaking was silent too, so
+  the same gesture confirmed itself or not depending on timing you cannot see.
+  Both buzz now.
+
+- The buzzes are a language rather than a set of noises: a light tap when the
+  microphone opens, a firmer one when a command lands and the door is a few
+  seconds away, a tick at the halfway mark, a double beat when it is sent, and
+  distinct feedback for "you stopped it" versus "that did not take". Each one
+  is different from the others, so the wrist alone tells you what happened. An
+  outcome fading on its own stays silent, because you did not do anything.
+
 ## 0.6.1
 
 - **What the watch heard you say is readable now.** The live transcript was

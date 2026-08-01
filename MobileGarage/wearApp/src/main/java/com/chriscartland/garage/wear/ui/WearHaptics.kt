@@ -54,6 +54,11 @@ internal object WearHaptics {
             HapticCue.VoiceArmed -> HapticFeedbackConstants.GESTURE_START
             HapticCue.VoiceHalfway -> HapticFeedbackConstants.CLOCK_TICK
             HapticCue.VoiceCommitted -> HapticFeedbackConstants.CONFIRM
+            // The plain "your touch registered" cue, and the only voice cue
+            // with no hold counterpart — the hold has no capture phase to
+            // acknowledge. Light on purpose: an open microphone commits to
+            // nothing yet.
+            HapticCue.VoiceListening -> HapticFeedbackConstants.VIRTUAL_KEY
             // Same constant as HoldAborted: an abandoned countdown is an
             // abandoned countdown, whichever gesture was driving it.
             HapticCue.VoiceAborted -> HapticFeedbackConstants.GESTURE_END
