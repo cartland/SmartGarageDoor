@@ -981,7 +981,22 @@ captured from a real Wear emulator by a single script.
   about to fire, hint slot empty) → `submitted` (ring complete in the sent
   colour, "Waiting for the door") → `moving` → `open` ("Hold to close"),
   plus `signed_out` and `sign_in_error`. **When the hero screen gains a new
-  visual state, add a stage** — that is the whole maintenance contract.
+  visual state, add a stage** — and add its one-line entry to
+  `stage_description()` in the script, which refuses to write a gallery
+  for a stage it cannot describe.
+- **The settings fixture's `versionName` is PINNED** (`"0.6.0"` as of
+  wear/23), not read from `BuildConfig`, for the same reason the emulator
+  clock is pinned to 10:10: a live value would churn every settings PNG on
+  every release. The cost is that it goes stale silently — it sat at
+  `"0.5.0"` for three releases, so the store screenshots advertised the
+  wrong version. **Bump it by hand at feature releases**; do not "fix" it
+  into a live read.
+- **Backticks inside a double-quoted `echo` are command substitution.** A
+  gallery description containing `` `bloom` `` made bash run a command
+  called `bloom`, print `command not found`, and silently drop the phrase
+  from the generated README (fixed in #1184). Same silent-corruption family
+  as the Konsist `file.name` and POSIX-ERE `\b` traps: the output looks
+  plausible, so nothing draws attention to it.
 - **Script** — creates/boots the `wear_capture` AVD headless
   (`wearos_large_round`, 454×454, `system-images;android-34;android-wear`;
   self-installing, needs cmdline-tools 13114758+ for SDK XML v4), builds +
