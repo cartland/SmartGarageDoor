@@ -1,3 +1,3 @@
-The mic beside the door now opens the real garage door. Say "open the garage door" and, unless you tap to cancel within three seconds, it opens. It only listens while you are signed in, only acts on a clear command, and refuses anything the door contradicts.
+What the watch heard you say is readable now. The live transcript was cut off at one line; it gets two.
 
-The old simulation moved to Settings, so you can still practise against a pretend door. A SIMULATION marker and a blue ring keep it hard to mistake for the real thing.
+Speaking and holding are one gesture with two starts. Both give you the same two seconds to change your mind, buzz the same way throughout, and can be called off right up to the moment the ring closes. A hold is something you keep doing, so you stop it by lifting your finger; a spoken command runs on its own, so you tap to stop it.

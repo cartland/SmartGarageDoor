@@ -133,6 +133,21 @@ abstract class WearVoiceViewModel(
     /** Pending midpoint tick for the running cancel window, if any. */
     private var halfwayJob: Job? = null
 
+    /** Pending second beat of the commit buzz, if any. */
+    private var commitBeatJob: Job? = null
+
+    /**
+     * What the controller said last, so a move INTO `Ready` can be told apart
+     * from resting there.
+     *
+     * `Ready` is reached three ways — at startup, when a terminal outcome
+     * expires, and when the user cancels — and only the third is an abandoned
+     * countdown worth buzzing about. Without this the abort cue would also
+     * fire every time a refusal timed out, which is the opposite of the hold's
+     * behaviour it exists to match.
+     */
+    private var previousState: VoiceCommandState = VoiceCommandState.Ready
+
     init {
         // What actually keeps opening the screen silent is the exhaustive
         // `when` below: the initial state is Ready, and Ready emits no cue.
@@ -155,6 +170,8 @@ abstract class WearVoiceViewModel(
                     halfwayJob?.cancel()
                     halfwayJob = null
                 }
+                val previous = previousState
+                previousState = current
                 when (current) {
                     is VoiceCommandState.Armed -> {
                         _hapticCues.tryEmit(HapticCue.VoiceArmed)
@@ -173,16 +190,48 @@ abstract class WearVoiceViewModel(
                     // window elapses, which is the moment the real feature
                     // would press the remote. Sent arrives a fake round-trip
                     // later and would put the buzz in the wrong place.
-                    is VoiceCommandState.Sending -> _hapticCues.tryEmit(HapticCue.VoiceCommitted)
+                    is VoiceCommandState.Sending -> {
+                        _hapticCues.tryEmit(HapticCue.VoiceCommitted)
+                        emitSecondCommitBeat()
+                    }
                     is VoiceCommandState.Ignored,
                     is VoiceCommandState.Failed,
                     -> _hapticCues.tryEmit(HapticCue.VoiceRefused)
-                    VoiceCommandState.Ready,
+                    // Leaving a RUNNING countdown for Ready is a cancellation,
+                    // and it feels like lifting a finger off the door — same
+                    // cue, from the same place in the same journey. Reaching
+                    // Ready from anywhere else is an outcome expiring, which
+                    // the user did not do and should not feel.
+                    VoiceCommandState.Ready ->
+                        if (previous is VoiceCommandState.Armed) {
+                            _hapticCues.tryEmit(HapticCue.VoiceAborted)
+                        }
                     is VoiceCommandState.Listening,
                     is VoiceCommandState.Sent,
                     -> Unit
                 }
             }
+        }
+    }
+
+    /**
+     * The second half of the commit buzz, on its own job.
+     *
+     * Mirrors `WearHomeViewModel.emitSecondCommitBeat` deliberately, and for
+     * the same reason: the commit is the one irreversible moment the gesture
+     * has, the screen marks it with a full-screen bloom, and a single tick
+     * under that reads as an understatement. Wrist actuators are too coarse to
+     * convey "harder", so emphasis is expressed as *again*.
+     *
+     * On its own job so it cannot be cancelled by whatever the controller does
+     * next — `Sending` is brief on a fast network, and the second beat belongs
+     * to the commit rather than to however long the server took.
+     */
+    private fun emitSecondCommitBeat() {
+        commitBeatJob?.cancel()
+        commitBeatJob = viewModelScope.launch {
+            delay(WearConfirmTiming.COMMIT_BEAT_GAP_MILLIS)
+            _hapticCues.tryEmit(HapticCue.VoiceCommitted)
         }
     }
 
@@ -237,13 +286,18 @@ abstract class WearVoiceViewModel(
 
     companion object {
         /**
-         * Cancel window. The shared maximum (3s), chosen deliberately: a watch
-         * is glanced at rather than watched, so the wrist wants the most
-         * forgiving window the controller allows. It is also the window in
-         * which a real press can still be called off, which is its own argument
-         * for taking the maximum.
+         * Cancel window — the SAME duration the hold takes to sweep, from the
+         * same constant ([WearConfirmTiming.RING_JOURNEY_MILLIS]).
+         *
+         * It used to be the controller's 3s maximum, on the reasoning that a
+         * glanced-at watch wants the most forgiving window available. That was
+         * right while voice was a simulation. Now that a completed countdown
+         * presses the real button, the ring on this screen is making the same
+         * promise as the ring on the door screen — "when I complete, the door
+         * moves" — and a promise that takes a different time on each screen
+         * teaches that the ring is decorative.
          */
-        const val ARMED_WINDOW_MILLIS: Long = VoiceCommandController.MAX_ARMED_WINDOW_MS
+        const val ARMED_WINDOW_MILLIS: Long = WearConfirmTiming.RING_JOURNEY_MILLIS
 
         /**
          * How long the outcome stays up — deliberately longer than the shared

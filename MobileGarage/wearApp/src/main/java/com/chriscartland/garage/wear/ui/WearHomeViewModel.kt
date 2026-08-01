@@ -358,8 +358,15 @@ class WearHomeViewModel(
     }
 
     companion object {
-        /** Hold duration required to confirm a press (the radial indicator sweep time). */
-        const val HOLD_TO_CONFIRM_MILLIS: Long = 2_000L
+        /**
+         * Hold duration required to confirm a press (the radial indicator
+         * sweep time).
+         *
+         * Derived, not written twice: the voice surface's cancel window is the
+         * same value from the same place, because both draw the same ring at
+         * the same door. See [WearConfirmTiming].
+         */
+        const val HOLD_TO_CONFIRM_MILLIS: Long = WearConfirmTiming.RING_JOURNEY_MILLIS
 
         /**
          * When the midpoint haptic fires. A pacing cue ("about one more
@@ -367,14 +374,10 @@ class WearHomeViewModel(
          * right up to the end, which is a safety property worth more than
          * tidier haptic semantics.
          */
-        const val HOLD_HALFWAY_MILLIS: Long = HOLD_TO_CONFIRM_MILLIS / 2
+        const val HOLD_HALFWAY_MILLIS: Long = WearConfirmTiming.HALFWAY_MILLIS
 
-        /**
-         * Gap between the two beats of the commit buzz. Long enough to be felt
-         * as two events rather than one smeared one, short enough to still be
-         * the same event — and it lands under the screen's commit bloom.
-         */
-        const val COMMIT_BEAT_GAP_MILLIS: Long = 110L
+        /** Gap between the two beats of the commit buzz. */
+        const val COMMIT_BEAT_GAP_MILLIS: Long = WearConfirmTiming.COMMIT_BEAT_GAP_MILLIS
 
         /** Foreground poll cadence while idle. */
         const val IDLE_POLL_MILLIS: Long = 10_000L

@@ -94,7 +94,20 @@ enum class HapticCue {
     VoiceCommitted,
 
     /**
-     * Voice demo: the utterance was refused, whether by the classifier (not a
+     * The cancel window was abandoned before completing, so nothing was sent.
+     *
+     * The exact counterpart of [HoldAborted], sharing its constant: on both
+     * surfaces this is the moment a countdown you could see stops early, and
+     * it should feel the same whichever one you were watching.
+     *
+     * Only a RUNNING countdown produces it. A refusal expiring on its own is
+     * not something the user did, so it stays silent — the hold is silent
+     * there too.
+     */
+    VoiceAborted,
+
+    /**
+     * Voice: the utterance was refused, whether by the classifier (not a
      * command, not confident) or by the door-state gate (already open, moving).
      * One cue for every refusal — the screen explains which; the wrist only
      * needs to know it did not take.

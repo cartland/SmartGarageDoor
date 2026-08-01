@@ -372,7 +372,8 @@ class WearSimulatedVoiceViewModelTest {
             advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS * 2)
             runCurrent()
             assertEquals(VoiceDoorState.CLOSED, viewModel.doorState.value)
-            assertEquals(listOf(HapticCue.VoiceArmed), cues)
+            // Aborted, not Committed: walking away stopped a running countdown.
+            assertEquals(listOf(HapticCue.VoiceArmed, HapticCue.VoiceAborted), cues)
         }
 
     /**
@@ -447,6 +448,11 @@ class WearSimulatedVoiceViewModelTest {
             // No collector at all: this arms and then commits.
             speak(viewModel, "open the garage door")
             advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS + 1)
+            runCurrent()
+            // Past the commit's second beat too, so what this asserts is
+            // "nothing was QUEUED" rather than "the second beat had not fired
+            // yet" — which would pass for the wrong reason.
+            advanceTimeBy(WearConfirmTiming.COMMIT_BEAT_GAP_MILLIS + 1)
             runCurrent()
 
             val cues = recordCues(viewModel)
@@ -532,9 +538,18 @@ class WearSimulatedVoiceViewModelTest {
             assertEquals(null, viewModel.partialTranscript.value)
         }
 
-    /** Cancelling is a silent, deliberate act — it is not a refusal. */
+    /**
+     * Cancelling an armed countdown feels exactly like lifting a finger off
+     * the door mid-hold, because it is the same act: a visible countdown you
+     * stopped. [HapticCue.VoiceAborted] shares `HoldAborted`'s constant.
+     *
+     * Before 0.6.1 this was silent, on the reasoning that cancelling is
+     * deliberate and therefore needs no confirmation. That held while the
+     * countdown was a simulation; now that letting it finish presses the real
+     * button, the wrist should confirm that it did not.
+     */
     @Test
-    fun cancellingDoesNotBuzz() =
+    fun cancellingAnArmedCountdownBuzzesLikeAnAbandonedHold() =
         runTest {
             val viewModel = createViewModel()
             val cues = recordCues(viewModel)
@@ -544,7 +559,32 @@ class WearSimulatedVoiceViewModelTest {
             runCurrent()
             advanceUntilIdle()
 
-            assertEquals(listOf(HapticCue.VoiceArmed), cues)
+            assertEquals(listOf(HapticCue.VoiceArmed, HapticCue.VoiceAborted), cues)
+        }
+
+    /**
+     * ...but an outcome expiring on its own does NOT buzz, even though it also
+     * lands on `Ready`. The user did nothing, so there is nothing to confirm —
+     * and the hold is equally silent when its own outcome fades.
+     *
+     * This is the case the naive "buzz whenever we reach Ready" version gets
+     * wrong, and it fires after every single refusal, so getting it wrong is
+     * loud.
+     */
+    @Test
+    fun anExpiringOutcomeDoesNotBuzzAbort() =
+        runTest {
+            val viewModel = createViewModel()
+            val cues = recordCues(viewModel)
+
+            speak(viewModel, "what a nice garage door")
+            advanceUntilIdle()
+
+            assertEquals(
+                "A refusal that timed out is not an abandoned countdown.",
+                listOf(HapticCue.VoiceRefused),
+                cues,
+            )
         }
 
     // --- Live partial text (in-app capture only) -----------------------------
@@ -631,8 +671,18 @@ class WearSimulatedVoiceViewModelTest {
 
             advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS + 1)
             runCurrent()
+            // TWO commit beats, like the hold's: the commit is the one
+            // irreversible moment either gesture has, and a wrist actuator
+            // expresses emphasis as "again" rather than "harder".
+            advanceTimeBy(WearConfirmTiming.COMMIT_BEAT_GAP_MILLIS + 1)
+            runCurrent()
             assertEquals(
-                listOf(HapticCue.VoiceArmed, HapticCue.VoiceHalfway, HapticCue.VoiceCommitted),
+                listOf(
+                    HapticCue.VoiceArmed,
+                    HapticCue.VoiceHalfway,
+                    HapticCue.VoiceCommitted,
+                    HapticCue.VoiceCommitted,
+                ),
                 cues,
             )
         }
@@ -682,7 +732,9 @@ class WearSimulatedVoiceViewModelTest {
 
             advanceTimeBy(WearVoiceViewModel.ARMED_WINDOW_MILLIS * 2)
             runCurrent()
-            assertEquals(listOf(HapticCue.VoiceArmed), cues)
+            // The point is the ABSENCE of VoiceHalfway: a cancelled countdown
+            // must never pace a countdown that is no longer running.
+            assertEquals(listOf(HapticCue.VoiceArmed, HapticCue.VoiceAborted), cues)
         }
 
     @Test
@@ -708,6 +760,7 @@ class WearSimulatedVoiceViewModelTest {
             runCurrent()
             advanceUntilIdle()
 
-            assertEquals(listOf(HapticCue.VoiceArmed), cues)
+            // No VoiceCommitted anywhere: the press never happened.
+            assertEquals(listOf(HapticCue.VoiceArmed, HapticCue.VoiceAborted), cues)
         }
 }
