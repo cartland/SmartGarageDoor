@@ -154,6 +154,35 @@ struct SettingsContentView: View {
     @State private var snoozeSheetOpen = false
     @State private var accountSheetOpen = false
 
+
+    /// iOS's word for each shared fact.
+    ///
+    /// **`.storeIdentifier` is "Bundle ID", not "Package".** Android's About
+    /// screen says Package because Android has a package name; iOS has a
+    /// bundle identifier, and Xcode, App Store Connect and the Settings app
+    /// all call it the Bundle ID. The two values are the same string for this
+    /// app, which is how Android's word survived here unnoticed.
+    ///
+    /// No `default` case, deliberately: adding a fact to `AppBuildFact` has to
+    /// break this build until iOS has worded it.
+    private func aboutLabel(for fact: AppBuildFact) -> LocalizedStringResource {
+        switch fact {
+        case .releaseVersion: return "Version"
+        case .buildNumber: return "Build"
+        case .storeIdentifier: return "Bundle ID"
+        case .builtAt: return "Built"
+        }
+    }
+
+    private func aboutValue(for fact: AppBuildFact) -> String {
+        switch fact {
+        case .releaseVersion: return appVersion
+        case .buildNumber: return appBuild
+        case .storeIdentifier: return appPackage
+        case .builtAt: return appBuilt
+        }
+    }
+
     init(
         authState: AuthDisplayState,
         displayName: String?,
@@ -277,10 +306,14 @@ struct SettingsContentView: View {
             // tap-to-copy; iOS-native inline rows rather than a sheet). iOS shows
             // no system "copied" chip, so each row flashes its own confirmation.
             Section("About") {
-                CopyableValueRow(label: "Version", value: appVersion)
-                CopyableValueRow(label: "Build", value: appBuild)
-                CopyableValueRow(label: "Package", value: appPackage)
-                CopyableValueRow(label: "Built", value: appBuilt)
+                // Which facts, and in what order, is the shared AppBuildFact's
+                // decision so both platforms answer the same questions. The
+                // WORDING is ours: Android calls appPackage a "Package", iOS
+                // calls the same value a Bundle ID, and copying Android's word
+                // is exactly the bug this enum was introduced to stop.
+                ForEach(AppBuildFact.allCases, id: \.self) { fact in
+                    CopyableValueRow(label: aboutLabel(for: fact), value: aboutValue(for: fact))
+                }
                 // Privacy policy URL is the shared `AppLinks.PRIVACY_POLICY_URL`
                 // (domain/commonMain) — same value Android's Settings opens, so
                 // the two platforms can't drift.

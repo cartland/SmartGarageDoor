@@ -19,6 +19,14 @@ Versioning mirrors Android (see `MobileGarage/CHANGELOG.md` § versioning):
 major = rewrite or core-experience shift; minor = a user-facing feature added or
 removed; patch = fixes, polish, refactors. iOS uses independent `ios/N` tags.
 
+## 0.1.4
+
+- **Settings now uses iOS's own word for the app's identifier.** The About
+  section called it "Package", which is Android's term. iOS calls the same
+  thing a Bundle ID, and that is what Xcode, App Store Connect and the Settings
+  app all call it. The value was always right; only the label was borrowed. The
+  other rows (Version, Build, Built) already read correctly and are unchanged.
+
 ## 0.1.3
 
 - **The app can now be translated.** Every screen's text was built as plain
