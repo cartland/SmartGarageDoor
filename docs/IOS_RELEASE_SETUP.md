@@ -132,8 +132,10 @@ use cloud signing (`-allowProvisioningUpdates`), which has `xcodebuild` mint an
 Apple Distribution certificate on demand.
 
 **Why that was changed (ios/12, 2026-08-01).** Certificates are a small,
-account-wide, *capped* resource — Apple allows two Apple Distribution certs per
-account. A CI job that creates one per release is spending a budget it cannot
+account-wide, *capped* resource — Apple allows only a small number of Apple
+Distribution certs per account (commonly two; the exact figure has varied by
+account type and era, and the portal is the authority). The number does not
+change the procedure: when you hit it, something has to be revoked. A CI job that creates one per release is spending a budget it cannot
 refill, and when the cap is reached every release fails at the archive step:
 
 ```
