@@ -1,10 +1,13 @@
 ---
 category: plan
 status: active
-last_verified: 2026-06-29
+last_verified: 2026-08-01
 ---
 
-> **Last update 2026-05-13:** iOS Phase 38A fully complete — `NativeComponent` DI graph runtime-verified via `NativeComponentTest` (40/40 pass on `iosSimulatorArm64`, PR #826). Phase 38B–G remain blocked on user setup. User-action checklist added as the first subsection below so the user-blocked moves are visible without scrolling.
+> **Last update 2026-08-01:** iOS release `ios/12` is BLOCKED on three signing
+> secrets — see the first section. Wear 0.6.2 is live on Play `wear:internal`.
+> Older note, still accurate:
+> **2026-05-13:** iOS Phase 38A fully complete — `NativeComponent` DI graph runtime-verified via `NativeComponentTest` (40/40 pass on `iosSimulatorArm64`, PR #826). Phase 38B–G remain blocked on user setup. User-action checklist added as the first subsection below so the user-blocked moves are visible without scrolling.
 
 # Pending Follow-ups
 
@@ -13,6 +16,76 @@ User-flagged items that aren't tied to a specific release and aren't smoke-test 
 **Scope:** items that need their own design/implementation effort. Smoke-test verifications belong in [`PENDING_SMOKE_TESTS.md`](./PENDING_SMOKE_TESTS.md). Per-version implementation history belongs in [`../CHANGELOG.md`](../CHANGELOG.md). Architectural conventions belong in [`../../CLAUDE.md`](../../CLAUDE.md).
 
 **Why this lives in the repo, not memory:** project-specific TODOs need to be reviewable in PRs and discoverable to anyone reading the repo cold. See `feedback_dump_context_repo_first.md` for the rule.
+
+## BLOCKED: iOS release ios/12 (2026-08-01)
+
+**`ios/12` (0.1.4) is tagged and cannot ship until three GitHub secrets exist.**
+Everything else about it is green — it cleared the App Store Connect build-number
+pre-flight, the on-main check, and both launch-smoke legs (newest runtime and the
+iOS 16.4 deployment-target leg), then failed at **Archive**:
+
+```
+error: Choose a certificate to revoke. Your account has reached the
+maximum number of certificates.
+```
+
+**Nothing reached App Store Connect** — export and upload were `skipped` — so
+build number 12 is still free.
+
+### What the user must do
+
+Produce three secrets; full procedure in
+[`../../docs/IOS_RELEASE_SETUP.md`](../../docs/IOS_RELEASE_SETUP.md)
+§ "Signing: stored cert".
+
+| Secret | Contents |
+|---|---|
+| `IOS_DIST_CERT_P12_BASE64` | Apple Distribution cert **+ private key** |
+| `IOS_DIST_CERT_PASSWORD` | that `.p12`'s export password |
+| `IOS_PROVISIONING_PROFILE_BASE64` | App Store `.mobileprovision` |
+
+**Check before revoking anything.** Keychain Access → *My Certificates* → if an
+existing *Apple Distribution* row has a private key nested under it, export that
+one and skip the revoke entirely. Only a cert minted by CI cloud signing is
+unrecoverable (its private key only ever existed on the runner).
+
+### What the agent does next
+
+Re-run the existing workflow run — **do not cut a new tag**:
+
+```bash
+gh run rerun 30686957769 --failed
+```
+
+Tracking issue: **#1190**. Workflow already switched to manual signing in #1191;
+it fails fast naming any missing secret.
+
+## Next up (requested 2026-08-01, not yet started)
+
+**Wear voice: hold the screen awake while anything is active, and get out of the
+way when the door moves.**
+
+1. **Wakelock while any voice activity is outstanding, with a cooldown when it
+   stops.** Today `WearHomeViewModel.keepScreenOn` covers a press in flight and a
+   moving door, but **no voice state holds the screen at all** — the screen can
+   sleep mid-listen. "Active" is at least: recognizer listening, armed countdown
+   running, press sending, and waiting for the door to react afterwards. The
+   requester notes there are more scenarios, so the rule wants to be stated
+   positively (which states are idle) rather than as a list of active ones.
+2. **Dismiss the voice screen when the door starts moving**, so the hero screen's
+   door animation is what you are looking at when it happens. Live surface only —
+   the simulated one is isolated by design and should not be yanked out of a
+   rehearsal by the real door.
+
+## Open — from the 2026-07/08 wear + iOS work
+
+| Item | Why it is not done | Size |
+|---|---|---|
+| **Downgrade the App Store Connect API key from Admin** | Admin was required only for cloud signing, which #1191 removed. Upload needs far less (App Manager, likely Developer). Roles are fixed at key creation, so this means minting a new key and revoking the old, and it is **untested on the manual-signing path** — the "App Manager fails" note in CLAUDE.md is about cloud-signing export. Do it as its own change AFTER ios/12 ships, so a failure is attributable. | S |
+| **Copy the curated Wear screenshots to `distribution/playstore/wear/`** | The generated staging set (`MobileGarage/screenshots/store/wear/`) was regenerated for 0.6.0 and now includes the three `voice_sim_*` stages and the live-voice wording, but no generator writes into `distribution/`. The live Play listing still shows the pre-0.6.0 simulated wording. Upload via `gh workflow run play-listing-images.yml -f image_types=wearScreenshots -f apply=false` to rehearse first. | S |
+| **Real press + phone-relay sign-in on the physical Pixel Watch 4** | Maintainer-only: it operates the real door. Since 0.6.0 this covers **voice** as well as hold — never drive the door screen's mic over adb. Detail in [`../../docs/WEAR_OS.md`](../../docs/WEAR_OS.md) § "Deliberately not included" item 1. | — |
+| **Check-in staleness on the watch** | `CheckInStalenessManager` is phone-only, so `LiveVoiceDoor` passes `isCheckInStale = false` and the watch door always renders the FRESH palette. Bounds the live voice gate: a door whose last known position is clean but whose device stopped reporting. Voice inherits exactly the hold button's exposure — wiring staleness fixes both. | M |
+| **OAuth consent screen still says `project-587667443259`** | Google Cloud console change, not code. Issue **#1130**. | S |
 
 ## User action items (2026-05-13)
 
