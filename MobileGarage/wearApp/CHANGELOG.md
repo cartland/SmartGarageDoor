@@ -14,6 +14,29 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.6.3
+
+- **The screen stays awake while you are talking to it.** Voice is the only
+  thing here you can do without touching the watch — you tap once, say a
+  sentence and wait — so nothing was keeping the display alive, and it could go
+  dark mid-command and take the microphone with it. It now stays lit for the
+  whole thing: the mic being open, the countdown, the send, and the outcome.
+
+- **It stays lit a few seconds after everything stops, too.** The moment a
+  command ends is the moment there is finally something to read, and going dark
+  exactly then blacked out the answer.
+
+- **A sent command keeps the screen up until the door actually moves.** Being
+  told the press went through is not the thing you were waiting for. The watch
+  now also checks the door more often while a spoken press is outstanding —
+  before, it could be up to ten seconds behind a door it had just opened.
+
+- **The voice screen gets out of the way once the door starts moving**, so you
+  see the door animate instead of a microphone sitting on top of it. Only when
+  the door *starts* moving — arriving while it is already moving leaves you
+  where you are, since that is exactly when you might want to reverse it. The
+  simulation in Settings never does this; it would drop you onto the real door.
+
 ## 0.6.2
 
 - **The voice screen no longer waits for you.** It was a place the app could be

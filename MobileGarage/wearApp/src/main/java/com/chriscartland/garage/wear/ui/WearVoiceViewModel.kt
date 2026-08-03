@@ -33,8 +33,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Shared implementation of the watch's voice surface: the controller, the
@@ -70,7 +74,7 @@ import kotlinx.coroutines.launch
  */
 abstract class WearVoiceViewModel(
     classifyVoiceIntent: ClassifyVoiceIntentUseCase,
-    dispatchers: DispatcherProvider,
+    private val dispatchers: DispatcherProvider,
     environmentFactory: (CoroutineScope) -> VoiceCommandEnvironment,
 ) : ViewModel() {
     /**
@@ -130,8 +134,48 @@ abstract class WearVoiceViewModel(
      */
     val hapticCues: Flow<HapticCue> = _hapticCues
 
+    private val _awaitingDoorReaction = MutableStateFlow(false)
+
+    /**
+     * True from the moment a press goes out until the door is seen to move —
+     * or until [DOOR_REACTION_TIMEOUT_MILLIS] says it is not going to.
+     *
+     * This is the one part of a voice command that outlives the command. The
+     * controller is finished the instant it reaches `Sent`, but the thing the
+     * user actually asked for has not happened yet: a garage door takes a
+     * second or two to start, and the watch only learns of it on its next poll.
+     * Everything between those two points is still the interaction, so this is
+     * what the rest of the app hangs off it — the screen stays awake, the door
+     * poll tightens, and on the live surface the screen it dismisses to is the
+     * one showing the door.
+     */
+    val awaitingDoorReaction: StateFlow<Boolean> = _awaitingDoorReaction
+
+    private val _keepScreenOn = MutableStateFlow(false)
+
+    /**
+     * True while the screen should be held awake for this surface.
+     *
+     * Voice is the one interaction here that a wrist can conduct without
+     * touching anything — you tap once, say a sentence, and wait. Between the
+     * tap and the outcome there is nothing to keep the display alive, and a
+     * watch that sleeps mid-utterance takes the microphone with it. So the rule
+     * is the whole session rather than any one moment of it: see
+     * [VoiceScreenWake].
+     *
+     * OR-ed with `WearHomeViewModel.keepScreenOn` at the composition root,
+     * which is also the only place that performs the platform write.
+     */
+    val keepScreenOn: StateFlow<Boolean> = _keepScreenOn
+
     /** Pending midpoint tick for the running cancel window, if any. */
     private var halfwayJob: Job? = null
+
+    /** Watches for the door to react to a press we sent, if one is out. */
+    private var doorReactionJob: Job? = null
+
+    /** The running cap or cooldown on [keepScreenOn], whichever is current. */
+    private var keepScreenOnJob: Job? = null
 
     /** Pending second beat of the commit buzz, if any. */
     private var commitBeatJob: Job? = null
@@ -193,10 +237,22 @@ abstract class WearVoiceViewModel(
                     is VoiceCommandState.Sending -> {
                         _hapticCues.tryEmit(HapticCue.VoiceCommitted)
                         emitSecondCommitBeat()
+                        // A press is on its way, so the door is now something
+                        // we are waiting on. The wait begins when the press
+                        // leaves, not when the server admits it arrived — but
+                        // see the `Sent` arm: this state cannot be relied upon
+                        // to arrive at all.
+                        awaitDoorReaction()
                     }
-                    is VoiceCommandState.Ignored,
-                    is VoiceCommandState.Failed,
-                    -> _hapticCues.tryEmit(HapticCue.VoiceRefused)
+                    is VoiceCommandState.Ignored -> _hapticCues.tryEmit(HapticCue.VoiceRefused)
+                    is VoiceCommandState.Failed -> {
+                        _hapticCues.tryEmit(HapticCue.VoiceRefused)
+                        // The press did not land, so there is no door reaction
+                        // coming. Stop waiting for one rather than holding the
+                        // screen through a timeout for an event that cannot
+                        // arrive.
+                        stopAwaitingDoorReaction()
+                    }
                     // Leaving anything RUNNING for Ready is a cancellation —
                     // whether a countdown was sweeping or the microphone was
                     // merely open. Both were started by a tap and stopped by a
@@ -213,9 +269,37 @@ abstract class WearVoiceViewModel(
                     // they have just said "listen to me" and are about to
                     // speak — so it is the moment silence is least affordable.
                     is VoiceCommandState.Listening -> _hapticCues.tryEmit(HapticCue.VoiceListening)
-                    is VoiceCommandState.Sent -> Unit
+                    // A press left, and this is the state that proves it —
+                    // `Sending` may never be seen at all.
+                    //
+                    // `controller.state` is a StateFlow, so it CONFLATES: when
+                    // the press resolves inside a single dispatch, `Sending` is
+                    // overwritten by `Sent` before this collector is scheduled
+                    // and the collector goes straight from `Armed` to `Sent`.
+                    // Verified, not theorised — a probe collector on the live
+                    // surface observes exactly `[Ready, Listening, Armed,
+                    // Sent]`. Over real HTTP the press takes far longer than a
+                    // dispatch and `Sending` does arrive, which is precisely
+                    // what makes this the kind of gap that would only ever show
+                    // up on a fast network.
+                    //
+                    // So the wait starts from whichever of the two is actually
+                    // observed. `Sending` restarts it (a new press deserves a
+                    // fresh deadline); `Sent` only starts one if the `Sending`
+                    // it followed was missed.
+                    is VoiceCommandState.Sent ->
+                        if (doorReactionJob?.isActive != true) awaitDoorReaction()
                 }
             }
+        }
+        // Screen wake. Separate from the cue collector above because it is not
+        // event-shaped: it asks "is anything outstanding right now", which is a
+        // property of the current state rather than of the move into it, and it
+        // has a second input the cue collector does not care about.
+        viewModelScope.launch(dispatchers.default) {
+            combine(controller.state, _awaitingDoorReaction, VoiceScreenWake::phaseOf)
+                .distinctUntilChanged()
+                .collect { phase -> if (phase != null) holdScreenOn() else beginCooldown() }
         }
     }
 
@@ -237,6 +321,78 @@ abstract class WearVoiceViewModel(
         commitBeatJob = viewModelScope.launch {
             delay(WearConfirmTiming.COMMIT_BEAT_GAP_MILLIS)
             _hapticCues.tryEmit(HapticCue.VoiceCommitted)
+        }
+    }
+
+    /**
+     * Wait for the door to react to a press we just sent, then stop waiting.
+     *
+     * Bounded by [DOOR_REACTION_TIMEOUT_MILLIS] so a door that never moves —
+     * a relay that did not fire, an opener with no power — ends the wait
+     * rather than pinning the screen on until the cap expires.
+     *
+     * Watches [VoiceCommandEnvironment.doorState] rather than the real door
+     * directly, which is what lets the rehearsal rehearse this too: the
+     * simulated environment runs its own transit, so the simulated surface
+     * holds its screen through a pretend door's travel exactly as the live one
+     * holds through a real one.
+     */
+    private fun awaitDoorReaction() {
+        doorReactionJob?.cancel()
+        _awaitingDoorReaction.value = true
+        doorReactionJob = viewModelScope.launch(dispatchers.default) {
+            withTimeoutOrNull(DOOR_REACTION_TIMEOUT_MILLIS) {
+                environment.doorState.first { it == VoiceDoorState.MOVING }
+            }
+            _awaitingDoorReaction.value = false
+        }
+    }
+
+    private fun stopAwaitingDoorReaction() {
+        doorReactionJob?.cancel()
+        doorReactionJob = null
+        _awaitingDoorReaction.value = false
+    }
+
+    /**
+     * Something is outstanding: hold the screen, and restart the cap.
+     *
+     * The cap is per phase rather than per session, so a long command
+     * (listening, then arming, then sending) keeps the screen up throughout
+     * while a single *stuck* phase cannot hold it forever. `Listening` is the
+     * one that can genuinely hang — a recognizer that never returns and never
+     * errors leaves the state there indefinitely — and it is also the phase
+     * with a live microphone, which makes it the one worth bounding.
+     */
+    private fun holdScreenOn() {
+        _keepScreenOn.value = true
+        keepScreenOnJob?.cancel()
+        keepScreenOnJob = viewModelScope.launch(dispatchers.default) {
+            delay(SCREEN_ON_CAP_MILLIS)
+            _keepScreenOn.value = false
+        }
+    }
+
+    /**
+     * Nothing is outstanding any more: keep the screen up a little longer,
+     * then let go.
+     *
+     * The cooldown is not politeness, it is the last thing the interaction
+     * needs. The moment everything stops is the moment there is finally
+     * something to read — the outcome, or the door — and dropping the screen
+     * exactly then would black out the answer to the question the user asked.
+     * It also spans the seam between this surface releasing and
+     * `WearHomeViewModel` taking over once the door is seen to move.
+     *
+     * Skipped when the screen is not being held (the cap already expired, or
+     * nothing ever started), so resting at `Ready` costs nothing.
+     */
+    private fun beginCooldown() {
+        if (!_keepScreenOn.value) return
+        keepScreenOnJob?.cancel()
+        keepScreenOnJob = viewModelScope.launch(dispatchers.default) {
+            delay(SCREEN_ON_COOLDOWN_MILLIS)
+            _keepScreenOn.value = false
         }
     }
 
@@ -317,9 +473,92 @@ abstract class WearVoiceViewModel(
         const val RESULT_FLASH_MILLIS: Long = VoiceCommandController.IGNORED_DISMISS_MS
 
         /**
+         * How long a sent press has to produce a visibly moving door before
+         * the wait is called off.
+         *
+         * The SAME grace the hold-to-confirm button gives a press before it
+         * declares `DoorFailed`, from the same constant — the two surfaces
+         * press the same button through the same relay and watch the same
+         * poll, so the point at which each gives up on the door must be one
+         * decision. Its note explains why the number is as generous as it is.
+         */
+        const val DOOR_REACTION_TIMEOUT_MILLIS: Long = WearHomeViewModel.DOOR_RESPONSE_TIMEOUT_MILLIS
+
+        /**
+         * Cap on how long any ONE phase may hold the screen awake.
+         *
+         * Comfortably longer than every phase that ends on its own (the cancel
+         * window is 2s, an outcome 4s) so it only ever fires on something
+         * genuinely stuck, and each new phase restarts it — a full command
+         * therefore never runs out of screen partway through.
+         */
+        const val SCREEN_ON_CAP_MILLIS: Long = 20_000L
+
+        /**
+         * How long the screen stays up after everything stops.
+         *
+         * Long enough to read a two-line outcome on a wrist, and to cover the
+         * handover to the door screen when a press lands.
+         */
+        const val SCREEN_ON_COOLDOWN_MILLIS: Long = 5_000L
+
+        /**
          * Room for the longest real burst (armed, then committed) plus slack.
          * Overflow drops the oldest rather than blocking the state machine.
          */
         private const val HAPTIC_BUFFER = 8
     }
+}
+
+/**
+ * When the voice surface is doing something, expressed as a phase name.
+ *
+ * ## Why every state is listed
+ *
+ * The rule is stated as "these are the phases", not "these are the busy
+ * states", because the interesting question is what happens to a state added
+ * later. An `else -> false` would quietly decide that a new state is idle, and
+ * the symptom — a watch that sleeps in the middle of whatever the new state is
+ * — would show up on a wrist rather than in CI. An exhaustive `when` makes
+ * adding a state a decision someone has to write down, and the Kotlin compiler
+ * ask for it.
+ *
+ * `Ready` alone is idle, and even it is not idle while a press it sent is
+ * still waiting on the door.
+ *
+ * ## Why a name and not a boolean
+ *
+ * The phase name is what `distinctUntilChanged` compares, so **changing phase
+ * restarts the cap**. A boolean would stay `true` across an entire command and
+ * a single cap would have to cover listening, arming, sending and the outcome
+ * together — which means either a cap too short for a slow utterance or one too
+ * long to bound a hung recognizer. Naming the phases lets the cap be per phase,
+ * which is the thing it can actually be sized against. Same device as
+ * `WearHomeViewModel.keepScreenOnTrigger`, for the same reason.
+ */
+internal object VoiceScreenWake {
+    fun phaseOf(
+        state: VoiceCommandState,
+        awaitingDoorReaction: Boolean,
+    ): String? =
+        when (state) {
+            // The only resting state — and only when nothing it started is
+            // still outstanding. A command whose press has left but whose door
+            // has not moved is finished as far as the controller is concerned
+            // and very much not finished as far as the user is concerned.
+            VoiceCommandState.Ready -> if (awaitingDoorReaction) AWAITING_DOOR else null
+            // Keyed by attempt so cancel-and-relisten reads as a new phase and
+            // gets a fresh cap rather than inheriting the previous one's.
+            is VoiceCommandState.Listening -> "listening-${state.attempt}"
+            is VoiceCommandState.Armed -> "armed"
+            is VoiceCommandState.Sending -> "sending"
+            is VoiceCommandState.Sent -> "sent"
+            is VoiceCommandState.Failed -> "failed"
+            // Keyed by reason so two different refusals in a row are two
+            // phases; an outcome replaced by another outcome is new
+            // information and deserves its own reading time.
+            is VoiceCommandState.Ignored -> "ignored-${state.reason}"
+        }
+
+    private const val AWAITING_DOOR = "awaiting-door"
 }

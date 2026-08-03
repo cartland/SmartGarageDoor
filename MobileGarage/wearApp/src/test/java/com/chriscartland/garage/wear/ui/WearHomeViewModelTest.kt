@@ -498,6 +498,61 @@ class WearHomeViewModelTest {
             assertEquals(2, doorRepository.fetchCurrentDoorEventCount)
         }
 
+    /**
+     * A press sent by the VOICE surface tightens the poll too.
+     *
+     * Voice does not drive [ButtonStateMachine], so the loop's own
+     * "is a press outstanding" test could not see a spoken one: the watch sat
+     * at its idle cadence while the door it had just opened was already moving.
+     * That is the difference between the door screen animating *as* the door
+     * moves and animating some seconds after it has stopped.
+     */
+    @Test
+    fun aVoicePressTightensTheDoorPoll() =
+        runTest {
+            val viewModel = createViewModel()
+            viewModel.onVisible()
+            runCurrent()
+            assertEquals(1, doorRepository.fetchCurrentDoorEventCount)
+
+            viewModel.onVoicePressAwaitingDoor(true)
+            runCurrent()
+            assertEquals(
+                "Turning it on polls immediately rather than sitting out the idle sleep " +
+                    "that was already running.",
+                2,
+                doorRepository.fetchCurrentDoorEventCount,
+            )
+
+            advanceTimeBy(WearHomeViewModel.ACTIVE_POLL_MILLIS + 1)
+            runCurrent()
+            assertEquals(3, doorRepository.fetchCurrentDoorEventCount)
+
+            viewModel.onVoicePressAwaitingDoor(false)
+            advanceTimeBy(WearHomeViewModel.ACTIVE_POLL_MILLIS + 1)
+            runCurrent()
+            assertEquals(
+                "The active sleep already in flight still completes.",
+                4,
+                doorRepository.fetchCurrentDoorEventCount,
+            )
+            advanceTimeBy(WearHomeViewModel.ACTIVE_POLL_MILLIS + 1)
+            runCurrent()
+            assertEquals(
+                "…and then the cadence is back to idle.",
+                4,
+                doorRepository.fetchCurrentDoorEventCount,
+            )
+
+            // Mandatory, not tidiness: the refresh loop is `while (true) { fetch;
+            // delay }` on viewModelScope, which the test scheduler can see but
+            // runTest does not own. Leaving it running means runTest's cleanup
+            // advances a scheduler that is never idle — the test does not fail,
+            // it spins at 100% CPU until something kills it. `visiblePollsUntilHidden`
+            // ends the same way for the same reason.
+            viewModel.onHidden()
+        }
+
     @Test
     fun keepScreenOnOnlyWhilePressInFlightOrDoorMoving() =
         runTest {

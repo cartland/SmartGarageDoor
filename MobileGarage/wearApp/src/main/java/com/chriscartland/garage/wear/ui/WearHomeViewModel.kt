@@ -158,6 +158,14 @@ class WearHomeViewModel(
     private var signInErrorJob: Job? = null
     private var keepScreenOnJob: Job? = null
 
+    /**
+     * Whether a press sent by the voice surface is still waiting on the door —
+     * see [onVoicePressAwaitingDoor]. Plain state rather than a flow: the poll
+     * loop reads it once per iteration, and the one moment it must act on
+     * promptly is handled by restarting the loop.
+     */
+    private var voicePressAwaitingDoor = false
+
     init {
         viewModelScope.launch(dispatchers.default) {
             combine(stateMachine.state, currentDoorEvent) { button, doorEvent ->
@@ -258,7 +266,8 @@ class WearHomeViewModel(
             while (true) {
                 fetchCurrentDoorEventUseCase()
                 val waitingOnDoor = buttonState.value is RemoteButtonState.SendingToServer ||
-                    buttonState.value is RemoteButtonState.SendingToDoor
+                    buttonState.value is RemoteButtonState.SendingToDoor ||
+                    voicePressAwaitingDoor
                 delay(if (waitingOnDoor) ACTIVE_POLL_MILLIS else IDLE_POLL_MILLIS)
             }
         }
@@ -268,6 +277,34 @@ class WearHomeViewModel(
     fun onHidden() {
         refreshJob?.cancel()
         refreshJob = null
+    }
+
+    /**
+     * A press sent by the VOICE surface is waiting on the door.
+     *
+     * The door mirror is shared, but the notion of "a press is outstanding" was
+     * not: voice does not drive [ButtonStateMachine], so a spoken press left
+     * this loop polling at its idle cadence and the watch could take a full
+     * [IDLE_POLL_MILLIS] to notice a door that had already started moving. That
+     * is the difference between the door screen animating as the door moves and
+     * animating some seconds after it stopped.
+     *
+     * Pushed from the composition root rather than injected, mirroring
+     * [onVisible] / [onHidden]: the two ViewModels stay unaware of each other,
+     * and the root — which already owns both — does the wiring.
+     *
+     * Turning it ON restarts the loop rather than waiting for the current sleep
+     * to end, because the sleep in progress is the idle one and the whole point
+     * is not to spend it.
+     */
+    fun onVoicePressAwaitingDoor(awaiting: Boolean) {
+        if (voicePressAwaitingDoor == awaiting) return
+        voicePressAwaitingDoor = awaiting
+        if (awaiting && refreshJob?.isActive == true) {
+            refreshJob?.cancel()
+            refreshJob = null
+            onVisible()
+        }
     }
 
     /** A sign-in attempt is starting: clear any stale failure message. */

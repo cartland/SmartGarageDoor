@@ -32,11 +32,13 @@ import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RuleBasedVoiceIntentClassifier
+import com.chriscartland.garage.usecase.VoiceCommandController
 import com.chriscartland.garage.usecase.VoiceCommandIgnoreReason
 import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -46,6 +48,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -395,5 +398,237 @@ class WearLiveVoiceViewModelTest {
                 "Expected the ack token to carry the voice marker, got: $token",
                 token.contains("wear-test-voice"),
             )
+        }
+
+    // --- Keeping the screen awake -------------------------------------------
+
+    /**
+     * `Sending` is not guaranteed to be observable, so nothing may depend on
+     * seeing it.
+     *
+     * `controller.state` is a StateFlow and therefore CONFLATES. When a press
+     * resolves inside a single dispatch, `Sending` is overwritten by `Sent`
+     * before any collector is scheduled — a probe subscriber here observes
+     * exactly `Ready, Listening, Armed, Sent`, with no `Sending` at all. That
+     * is asserted below rather than described, because it is the premise the
+     * production code is written against.
+     *
+     * Over real HTTP the press takes far longer than a dispatch and `Sending`
+     * does arrive, which is what makes this the sort of gap that would only
+     * ever surface on a fast network — and never in a place anyone was looking.
+     */
+    @Test
+    fun theWaitForTheDoorStartsEvenWhenSendingIsNeverObserved() =
+        runTest {
+            val viewModel = createViewModel(DoorPosition.CLOSED)
+            val seen = mutableListOf<VoiceCommandState>()
+            backgroundScope.launch { viewModel.state.collect { seen += it } }
+            runCurrent()
+
+            speak(viewModel, "open the garage door")
+            letTheWindowElapse()
+
+            assertEquals(
+                "The premise: a fast press skips Sending entirely. If this ever " +
+                    "starts failing, the conflation window changed and the Sent " +
+                    "fallback in WearVoiceViewModel may no longer be load-bearing " +
+                    "— check it still is before deleting it. Saw: $seen",
+                emptyList<VoiceCommandState>(),
+                seen.filterIsInstance<VoiceCommandState.Sending>(),
+            )
+            assertEquals(1, remoteButtonRepository.pushCount)
+            assertTrue(
+                "A press went out, so the door is being waited on — regardless of " +
+                    "which state announced it.",
+                viewModel.awaitingDoorReaction.value,
+            )
+        }
+
+    /**
+     * Voice is the one interaction here a wrist can conduct without touching
+     * anything. Between the tap that opens the mic and the outcome there is no
+     * contact to keep the display alive, and a watch that sleeps mid-utterance
+     * takes the microphone with it.
+     */
+    @Test
+    fun theScreenStaysAwakeFromTheFirstWordToTheOutcome() =
+        runTest {
+            val viewModel = createViewModel(DoorPosition.CLOSED)
+            runCurrent()
+            assertFalse("Nothing has started yet.", viewModel.keepScreenOn.value)
+
+            viewModel.onMicTap()
+            runCurrent()
+            assertTrue("The mic is open and no finger is on the screen.", viewModel.keepScreenOn.value)
+
+            viewModel.onTranscript("open the garage door")
+            runCurrent()
+            assertTrue("Counting down to a real press.", viewModel.keepScreenOn.value)
+
+            letTheWindowElapse()
+            assertTrue("Showing the outcome of that press.", viewModel.keepScreenOn.value)
+        }
+
+    /**
+     * The screen outlives the command by a cooldown, because the moment
+     * everything stops is the moment there is finally something to read.
+     * Releasing exactly then would black out the answer.
+     */
+    @Test
+    fun theScreenIsReleasedAfterACooldownRatherThanTheInstantItEnds() =
+        runTest {
+            val viewModel = createViewModel(DoorPosition.CLOSED)
+            speak(viewModel, "is the garage door open")
+            assertTrue(viewModel.state.value is VoiceCommandState.Ignored)
+            assertTrue(viewModel.keepScreenOn.value)
+
+            advanceTimeBy(VoiceCommandController.IGNORED_DISMISS_MS + 1)
+            runCurrent()
+            assertEquals(VoiceCommandState.Ready, viewModel.state.value)
+            assertTrue(
+                "The refusal has expired but the screen holds through the cooldown.",
+                viewModel.keepScreenOn.value,
+            )
+
+            advanceTimeBy(WearVoiceViewModel.SCREEN_ON_COOLDOWN_MILLIS + 1)
+            runCurrent()
+            assertFalse("Cooldown over: let go.", viewModel.keepScreenOn.value)
+        }
+
+    /**
+     * A press is not finished when the server acknowledges it — it is finished
+     * when the door moves. That gap is a second or two of mechanism plus a poll,
+     * and it is the part the user is actually waiting through.
+     */
+    @Test
+    fun aSentPressKeepsTheScreenAwakeUntilTheDoorMoves() =
+        runTest {
+            val viewModel = createViewModel(DoorPosition.CLOSED)
+            speak(viewModel, "open the garage door")
+            letTheWindowElapse()
+            assertEquals(1, remoteButtonRepository.pushCount)
+            assertTrue(viewModel.awaitingDoorReaction.value)
+
+            // The outcome expires. The controller is done; the interaction is not.
+            advanceTimeBy(WearVoiceViewModel.RESULT_FLASH_MILLIS + 1)
+            runCurrent()
+            assertEquals(VoiceCommandState.Ready, viewModel.state.value)
+            assertTrue(
+                "Back at rest, but still waiting on the door it just told to move.",
+                viewModel.keepScreenOn.value,
+            )
+
+            doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.OPENING))
+            runCurrent()
+            assertFalse("The door answered: stop waiting.", viewModel.awaitingDoorReaction.value)
+        }
+
+    /**
+     * A door that never moves — a relay that did not fire, an opener with no
+     * power — ends the wait on a timeout rather than pinning the screen on.
+     */
+    @Test
+    fun aDoorThatNeverMovesEndsTheWaitOnItsOwn() =
+        runTest {
+            val viewModel = createViewModel(DoorPosition.CLOSED)
+            speak(viewModel, "open the garage door")
+            letTheWindowElapse()
+            assertTrue(viewModel.awaitingDoorReaction.value)
+
+            advanceTimeBy(WearVoiceViewModel.DOOR_REACTION_TIMEOUT_MILLIS + 1)
+            runCurrent()
+            assertFalse(viewModel.awaitingDoorReaction.value)
+
+            advanceTimeBy(WearVoiceViewModel.SCREEN_ON_COOLDOWN_MILLIS + 1)
+            runCurrent()
+            assertFalse(viewModel.keepScreenOn.value)
+        }
+
+    /** Nothing left, so there is no door reaction to wait for. */
+    @Test
+    fun aFailedPressDoesNotWaitForADoorThatWasNeverTold() =
+        runTest {
+            val viewModel = createViewModel(DoorPosition.CLOSED)
+            remoteButtonRepository.setPushSucceeds(false)
+
+            speak(viewModel, "open the garage door")
+            letTheWindowElapse()
+
+            assertTrue(viewModel.state.value is VoiceCommandState.Failed)
+            assertFalse(viewModel.awaitingDoorReaction.value)
+        }
+
+    /**
+     * `Listening` is the one phase that can genuinely hang — a recognizer that
+     * never returns and never errors — and it is also the phase with a live
+     * microphone. The cap is what stops it holding the display indefinitely.
+     */
+    @Test
+    fun aHungRecognizerDoesNotHoldTheScreenForever() =
+        runTest {
+            val viewModel = createViewModel(DoorPosition.CLOSED)
+            viewModel.onMicTap()
+            runCurrent()
+            assertTrue(viewModel.keepScreenOn.value)
+
+            advanceTimeBy(WearVoiceViewModel.SCREEN_ON_CAP_MILLIS + 1)
+            runCurrent()
+            assertTrue("Still listening…", viewModel.state.value is VoiceCommandState.Listening)
+            assertFalse("…but no longer holding the screen for it.", viewModel.keepScreenOn.value)
+        }
+
+    // --- Getting out of the way ---------------------------------------------
+
+    /**
+     * Once the door starts moving, this screen is a microphone sitting on top
+     * of the animation the user asked to see.
+     */
+    @Test
+    fun theDoorStartingToMoveAsksTheAppToLeaveTheVoiceScreen() =
+        runTest {
+            val viewModel = createViewModel(DoorPosition.CLOSED)
+            runCurrent()
+            var dismissals = 0
+            backgroundScope.launch { viewModel.doorStartedMoving.collect { dismissals++ } }
+            runCurrent()
+            assertEquals(0, dismissals)
+
+            doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.OPENING))
+            runCurrent()
+            assertEquals(1, dismissals)
+
+            // Settling is not a reason to go anywhere; only starting to move is.
+            doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.OPEN))
+            runCurrent()
+            assertEquals(1, dismissals)
+        }
+
+    /**
+     * Arriving while the door is ALREADY moving must not bounce the user
+     * straight back out — that would make the mic unreachable for the whole of
+     * a transit, which is exactly when someone might want to reverse it.
+     *
+     * The second half is the positive control: without it, a `doorStartedMoving`
+     * that never fired at all would satisfy the first half perfectly.
+     */
+    @Test
+    fun arrivingWhileTheDoorIsAlreadyMovingDoesNotBounceStraightBackOut() =
+        runTest {
+            val viewModel = createViewModel(DoorPosition.OPENING)
+            runCurrent()
+            var dismissals = 0
+            backgroundScope.launch { viewModel.doorStartedMoving.collect { dismissals++ } }
+            runCurrent()
+            assertEquals(
+                "A door already moving on arrival is context, not news.",
+                0,
+                dismissals,
+            )
+
+            doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.OPEN))
+            runCurrent()
+            doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.CLOSING))
+            runCurrent()
+            assertEquals("A real transition still fires.", 1, dismissals)
         }
 }

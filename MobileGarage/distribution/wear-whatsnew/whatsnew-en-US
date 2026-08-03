@@ -1,3 +1,3 @@
-The voice screen is no longer somewhere the app can be parked. Leave and come back and you are on the door, which is where the app is useful.
+The screen stays awake while you are talking to the watch. Voice is the one thing you do without touching it, so nothing was keeping the display on and it could go dark mid-command, taking the microphone with it. It stays lit through the whole thing now, and for a few seconds after.
 
-Every tap now tells you it landed. Opening the mic and closing it before speaking were both completely silent before, so a command it failed to catch gave you nothing at all. The buzzes are a language now: opening, understood, halfway, sent, stopped, and did-not-take each feel different, so your wrist alone tells you what happened.
+A sent command keeps the screen up until the door really moves, and the voice screen steps aside once it does, so you see the door animate instead of a microphone on top of it.
