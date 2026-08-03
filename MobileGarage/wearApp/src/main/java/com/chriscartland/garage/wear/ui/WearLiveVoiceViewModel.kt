@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.wear.ui
 
+import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.usecase.ButtonAckToken
@@ -26,9 +27,15 @@ import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RemoteButtonVoiceCommandEnvironment
 import com.chriscartland.garage.usecase.VoiceDoorState
 import com.chriscartland.garage.usecase.VoiceDoorStateMapper
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /**
  * The watch's LIVE voice surface: a committed command presses the REAL garage
@@ -93,7 +100,51 @@ class WearLiveVoiceViewModel(
                 },
             )
         },
+    ) {
+    private val _doorStartedMoving = MutableSharedFlow<Unit>(
+        replay = 0,
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
+
+    /**
+     * Fires when the real door begins to move — the cue to get out of the way.
+     *
+     * The voice screen is a means, not a destination: you go there to say a
+     * sentence, and the thing you actually wanted to see is the door. Once it
+     * starts moving, this screen is a microphone sitting on top of the
+     * animation the user asked for. So the app leaves, and `WearApp` sends the
+     * user back to the door.
+     *
+     * **A transition, not a state.** Emitted only when the door *becomes*
+     * MOVING, so arriving here while it is already moving does not bounce you
+     * straight back out — which would make the mic unreachable for the whole
+     * of a transit, exactly when someone might want to reverse it.
+     *
+     * **Regardless of who moved it.** A door opened from the wall button or the
+     * phone is just as worth watching as one this watch opened, and a voice
+     * command could not have been committed against a moving door anyway.
+     *
+     * Live only, and it exists on this class rather than the base for the
+     * reason the two classes exist at all: leaving the *rehearsal* because a
+     * pretend door moved would drop the user onto the real door, which is the
+     * one screen a simulation must never hand them.
+     */
+    val doorStartedMoving: Flow<Unit> = _doorStartedMoving
+
+    init {
+        viewModelScope.launch(dispatchers.default) {
+            doorState
+                // Whatever the door was on arrival is context, not news.
+                .drop(1)
+                .filter { it == VoiceDoorState.MOVING }
+                // `replay = 0`: a dismissal nobody is around to act on is
+                // stale by the time anyone is, and the door screen is where a
+                // returning user lands anyway.
+                .collect { _doorStartedMoving.tryEmit(Unit) }
+        }
+    }
+}
 
 /** How the live surface projects the real door into the gate's view. */
 internal object LiveVoiceDoor {

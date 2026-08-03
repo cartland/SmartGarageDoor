@@ -60,22 +60,24 @@ gh run rerun 30686957769 --failed
 Tracking issue: **#1190**. Workflow already switched to manual signing in #1191;
 it fails fast naming any missing secret.
 
-## Next up (requested 2026-08-01, not yet started)
+## Done — wear voice screen wake + dismissal (requested 2026-08-01, shipped 0.6.3)
 
-**Wear voice: hold the screen awake while anything is active, and get out of the
-way when the door moves.**
+Both halves landed. Design and the numbers:
+[`../../docs/WEAR_OS.md`](../../docs/WEAR_OS.md) § "Keeping the screen awake, and
+then getting out of the way".
 
-1. **Wakelock while any voice activity is outstanding, with a cooldown when it
-   stops.** Today `WearHomeViewModel.keepScreenOn` covers a press in flight and a
-   moving door, but **no voice state holds the screen at all** — the screen can
-   sleep mid-listen. "Active" is at least: recognizer listening, armed countdown
-   running, press sending, and waiting for the door to react afterwards. The
-   requester notes there are more scenarios, so the rule wants to be stated
-   positively (which states are idle) rather than as a list of active ones.
-2. **Dismiss the voice screen when the door starts moving**, so the hero screen's
-   door animation is what you are looking at when it happens. Live surface only —
-   the simulated one is isolated by design and should not be yanked out of a
-   rehearsal by the real door.
+1. **Wakelock while any voice activity is outstanding, with a cooldown.**
+   `VoiceScreenWake.phaseOf` states the rule positively as an exhaustive `when`
+   — `Ready` alone is idle, and a state added later fails the build rather than
+   defaulting to "asleep". Per-phase 20s cap, 5s cooldown.
+2. **Dismiss the voice screen when the door starts moving.** Live surface only,
+   on the *transition* into MOVING so arriving mid-transit does not bounce you
+   out.
+3. **Not in the original ask, but required to make (2) work:** a spoken press
+   now tightens the door poll (`WearHomeViewModel.onVoicePressAwaitingDoor`).
+   Voice does not drive `ButtonStateMachine`, so the watch could be a full 10s
+   idle poll behind the door it had just opened — which is most of the
+   animation the dismissal exists to reveal.
 
 ## Open — from the 2026-07/08 wear + iOS work
 

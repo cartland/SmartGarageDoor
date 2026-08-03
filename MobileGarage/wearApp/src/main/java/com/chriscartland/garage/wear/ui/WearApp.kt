@@ -142,6 +142,39 @@ fun WearApp(component: WearComponent) {
 
     DoorSurfaceEffects(wearHomeViewModel)
 
+    // The screen stays awake if ANY surface says something is happening, and
+    // this is the only place that knows all three. Each ViewModel decides its
+    // own answer (and is tested on it); the root ORs them and performs the one
+    // platform write, so the surfaces never have to agree on who is in charge
+    // of the display — which matters most exactly when a hand-off is in
+    // progress, i.e. a spoken press whose door is starting to move while the
+    // app is on its way back to the door screen.
+    val homeWantsScreen by wearHomeViewModel.keepScreenOn.collectAsStateWithLifecycle()
+    val liveVoiceWantsScreen by liveVoiceViewModel.keepScreenOn.collectAsStateWithLifecycle()
+    val simulatedVoiceWantsScreen by simulatedVoiceViewModel.keepScreenOn.collectAsStateWithLifecycle()
+    KeepScreenOnWhile(homeWantsScreen || liveVoiceWantsScreen || simulatedVoiceWantsScreen)
+
+    // A spoken press is outstanding, so the door poll should tighten — the same
+    // courtesy a held press gets from the state machine. Without it the watch
+    // can be up to one idle poll behind the door it just opened, which delays
+    // both the dismissal below and the animation it exists to reveal.
+    val voiceAwaitingDoor by liveVoiceViewModel.awaitingDoorReaction.collectAsStateWithLifecycle()
+    LaunchedEffect(voiceAwaitingDoor) {
+        wearHomeViewModel.onVoicePressAwaitingDoor(voiceAwaitingDoor)
+    }
+
+    // The door started moving: leave the voice screen so the door screen can
+    // show it. Guarded on being ON the live voice screen — the simulated one
+    // never emits this at all, and a dismissal is only meaningful for the
+    // destination the user is actually looking at.
+    LaunchedEffect(liveVoiceViewModel) {
+        liveVoiceViewModel.doorStartedMoving.collect {
+            if (destination == WearDestination.Voice) {
+                destination = WearDestination.Home
+            }
+        }
+    }
+
     MaterialTheme {
         AppScaffold {
             SwipeToDismissBox(
@@ -279,13 +312,32 @@ private fun rememberStoreLauncher(): () -> Boolean {
 }
 
 /**
- * The door's app-scoped side effects: foreground polling, the screen-wake
- * window, and the press-outcome haptics.
+ * Holds the display awake while [active], and never for any other reason.
  *
- * These live at the root rather than inside [HeroScreen] because none of them
- * is about the hero screen being *visible* — they are about the app being in
+ * The irreducible platform write, and deliberately the ONLY one in the app:
+ * every surface that wants the screen up publishes a boolean and [WearApp] ORs
+ * them. Two independent writers of `View.keepScreenOn` would fight — last write
+ * wins, so whichever surface updated most recently would decide — and the
+ * disposal below would let a screen leaving the composition switch the flag off
+ * underneath a surface that still wanted it.
+ */
+@Composable
+private fun KeepScreenOnWhile(active: Boolean) {
+    val view = LocalView.current
+    LaunchedEffect(view, active) { view.keepScreenOn = active }
+    DisposableEffect(view) {
+        onDispose { view.keepScreenOn = false }
+    }
+}
+
+/**
+ * The door's app-scoped side effects: foreground polling and the press-outcome
+ * haptics.
+ *
+ * These live at the root rather than inside [HeroScreen] because neither is
+ * about the hero screen being *visible* — they are about the app being in
  * the foreground with a press or a moving door outstanding. Hosting them in
- * the hero screen made all three quietly dependent on whether
+ * the hero screen made them quietly dependent on whether
  * [SwipeToDismissBox] keeps its background composed while the voice demo is on
  * top, which is an implementation detail of the navigation container and not
  * something this app should have an opinion about. If it does not, opening the
@@ -295,19 +347,13 @@ private fun rememberStoreLauncher(): () -> Boolean {
  * Anchoring them here makes the behaviour identical either way: a press you
  * started still completes, still wakes the screen, and still buzzes, whichever
  * screen you happen to be looking at.
+ *
+ * The screen-wake write used to live here too; it moved to
+ * [KeepScreenOnWhile] once voice gained a say in it.
  */
 @Composable
 private fun DoorSurfaceEffects(viewModel: WearHomeViewModel) {
-    val keepScreenOn by viewModel.keepScreenOn.collectAsStateWithLifecycle()
-
-    // Hold the screen awake only while the ViewModel says something worth
-    // watching is happening (press in flight / door moving, 15s cap). The
-    // window flag is the irreducible platform write; the decision is the VM's.
     val view = LocalView.current
-    LaunchedEffect(view, keepScreenOn) { view.keepScreenOn = keepScreenOn }
-    DisposableEffect(view) {
-        onDispose { view.keepScreenOn = false }
-    }
 
     // Haptics: the ViewModel decides WHEN and WHAT (testable); this performs
     // the platform write. View.performHapticFeedback needs no VIBRATE

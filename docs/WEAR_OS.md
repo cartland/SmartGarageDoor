@@ -584,6 +584,80 @@ Two consequences worth stating, because both were bugs first:
   the user did nothing. That distinction is the whole reason
   `WearVoiceViewModel` tracks its previous state.
 
+### Keeping the screen awake, and then getting out of the way (0.6.3)
+
+Voice is the one interaction in this app a wrist can conduct **without touching
+anything**. You tap once, say a sentence, and wait. Between that tap and the
+outcome there is no contact keeping the display alive — and a watch that sleeps
+mid-utterance takes the microphone with it.
+
+**The rule is the whole session, not any one moment of it.** `VoiceScreenWake`
+names a phase for every state (`listening-N`, `armed`, `sending`, `sent`,
+`failed`, `ignored-REASON`, `awaiting-door`) and `Ready` alone is idle. It is an
+**exhaustive `when`**, so a state added later fails the build until someone says
+what it means for the screen — an `else -> false` would decide silently that the
+new state is idle, and the symptom would appear on a wrist rather than in CI.
+
+Three numbers, all in `WearVoiceViewModel`:
+
+| | Value | Why |
+|---|---|---|
+| Cap, per phase | 20s | Bounds a *stuck* phase. `Listening` is the one that can genuinely hang — a recognizer that never returns and never errors — and it is also the phase with a live microphone. Changing phase restarts it, so a long command never runs out of screen partway through. |
+| Cooldown | 5s | The moment everything stops is the moment there is finally something to read. Releasing exactly then would black out the answer. |
+| Door-reaction wait | 15s | `WearHomeViewModel.DOOR_RESPONSE_TIMEOUT_MILLIS`, derived not re-written — the same grace the hold gives a press before declaring `DoorFailed`. Both press the same button through the same relay. |
+
+**A press is not finished when the server acknowledges it.** It is finished when
+the door moves, and that gap is a second or two of mechanism plus a poll.
+`awaitingDoorReaction` spans exactly that, which is why `Ready` is not
+unconditionally idle: the controller is done while the user is still waiting.
+
+Three things hang off that one signal, which is what earns it:
+
+1. **The screen stays awake** through the wait.
+2. **The door poll tightens** to `ACTIVE_POLL_MILLIS`. Voice does not drive
+   `ButtonStateMachine`, so before 0.6.3 the loop's own "is a press outstanding"
+   test could not see a spoken one and the watch sat at its 10s idle cadence
+   while the door it had just opened was already moving.
+3. **The voice screen dismisses itself** when the door starts moving
+   (`WearLiveVoiceViewModel.doorStartedMoving` → `WearApp`). Once the door is
+   moving, this screen is a microphone sitting on top of the animation the user
+   asked to see.
+
+Three details of the dismissal are deliberate:
+
+- **A transition, not a state.** Arriving while the door is *already* moving
+  does not bounce you straight back out — that would make the mic unreachable
+  for the whole of a transit, which is exactly when someone might want to
+  reverse it.
+- **Regardless of who moved it.** A door opened from the wall button or the
+  phone is just as worth watching, and a voice command could not have been
+  committed against a moving door anyway.
+- **Live only.** The rehearsal never emits it. Leaving a simulation because a
+  *pretend* door moved would drop the user onto the real one, which is the
+  single screen a simulation must never hand them.
+
+**`Sending` may never be observed — do not hang anything off seeing it.**
+`VoiceCommandController.state` is a `StateFlow`, so it **conflates**: when a
+press resolves inside a single dispatch, `Sending` is overwritten by `Sent`
+before any collector is scheduled, and a subscriber sees `Ready, Listening,
+Armed, Sent` with no `Sending` at all. Found the hard way while building the
+door wait, and now pinned by
+`WearLiveVoiceViewModelTest.theWaitForTheDoorStartsEvenWhenSendingIsNeverObserved`
+— which asserts the *premise* (no `Sending` in a fast press) as well as the
+behaviour, so the fallback cannot be deleted as dead code later. The wait
+therefore starts from whichever of `Sending`/`Sent` actually arrives. Over real
+HTTP the press takes far longer than a dispatch and `Sending` does show up,
+which is exactly what makes this the kind of gap that would only ever bite on a
+fast network — and the reason the commit haptic, which also fires on `Sending`,
+is worth a look if it is ever reported as intermittently missing.
+
+**The composition root owns the platform write.** Each surface publishes a
+`keepScreenOn` boolean and `WearApp` ORs all three into one `KeepScreenOnWhile`.
+Two independent writers of `View.keepScreenOn` would fight — last write wins,
+and a screen leaving the composition would switch the flag off underneath a
+surface that still wanted it. That matters most exactly during the hand-off
+above, where the voice surface is releasing as the door screen takes over.
+
 ### How the simulation says "this is not real"
 
 **Four** independent signals since 0.6.0, up from three, because the stakes
