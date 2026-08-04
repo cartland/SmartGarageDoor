@@ -15,6 +15,17 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.23.7
+
+- **Nothing changes on screen.** The About rows in Settings show the same four
+  facts, in the same order, with the same labels; they are simply built from a
+  shared description of what an About section states rather than from a list
+  written out twice. This is here because the iOS app had copied Android's row
+  labels verbatim and so called its bundle identifier a "Package", which is
+  Android's word for it. The values happen to be identical, which is why nobody
+  noticed. Adding a fifth fact now fails to compile on both platforms until
+  both have worded it.
+
 ## 2.23.6
 
 - **Settings now names the version on your watch, not just that there is one.**
