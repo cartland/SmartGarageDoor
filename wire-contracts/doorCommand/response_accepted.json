@@ -1,0 +1,1 @@
+{"executed":false,"verdict":{"accepted":true,"checkInAgeSeconds":5,"checkInStale":false,"command":"CLOSE","doorState":"OPEN","rejection":null,"sensorEventType":"OPEN"}}
