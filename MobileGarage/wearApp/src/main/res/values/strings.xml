@@ -77,6 +77,7 @@
     <string name="voice_cancel_hint">Tap anywhere to cancel</string>
     <string name="voice_transcript">\"%1$s\"</string>
     <string name="voice_door_moving">Moving</string>
+    <string name="voice_door_stuck">Stuck</string>
 
     <!-- Refusals whose wording does not depend on which door is in play. -->
     <string name="voice_ignored_no_speech">No speech heard</string>
@@ -96,6 +97,7 @@
     <string name="voice_live_ignored_already_open">The door is already open</string>
     <string name="voice_live_ignored_already_closed">The door is already closed</string>
     <string name="voice_live_ignored_moving">The door is moving</string>
+    <string name="voice_live_ignored_stuck">The door is stuck. You can close it</string>
     <string name="voice_live_ignored_state_unknown">Door state is unknown</string>
     <string name="voice_live_ignored_state_changed">The door changed. Cancelled.</string>
 
@@ -115,6 +117,7 @@
     <string name="voice_sim_ignored_already_open">Demo door is already open</string>
     <string name="voice_sim_ignored_already_closed">Demo door is already closed</string>
     <string name="voice_sim_ignored_moving">Demo door is moving</string>
+    <string name="voice_sim_ignored_stuck">Demo door is stuck. You could close it</string>
     <string name="voice_sim_ignored_state_unknown">Demo door state is unknown</string>
     <string name="voice_sim_ignored_state_changed">Demo door changed. Cancelled.</string>
 

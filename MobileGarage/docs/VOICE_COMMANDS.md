@@ -89,7 +89,7 @@ staleness at decision time:
 | `CLOSED` | **Accept** | Reject: already closed |
 | `OPEN`, `OPEN_MISALIGNED` | Reject: already open | **Accept** |
 | `OPENING`, `CLOSING` | Reject: door is moving | Reject: door is moving |
-| `OPENING_TOO_LONG`, `CLOSING_TOO_LONG` | Reject: can't confirm door state | Reject: can't confirm door state |
+| `OPENING_TOO_LONG`, `CLOSING_TOO_LONG` | Reject: door is stuck | **Accept** |
 | `ERROR_SENSOR_CONFLICT`, `UNKNOWN`, no event | Reject: can't confirm door state | Reject: can't confirm door state |
 
 `OPEN_MISALIGNED` moved out of the reject row in 2.23.2. It reads like an
@@ -103,6 +103,25 @@ correct direction; OPEN is refused as already-open), it cannot mask a door that
 has since closed (the server transitions straight to `Closed` the moment the
 closed sensor trips, and the gate re-checks at commit), and every other surface
 already treated it as Open — the status label, the hold hint, the door art.
+
+The stuck transits became close-only in 2.23.8, by the same argument. They had
+rejected both directions on the reasoning that a door which is mid-travel and
+overdue has no honest terminal answer. True, but beside the point: a door
+stopped partway is exactly when you want to send a press, because it may be
+obstructed and need another go, and it is sitting open to the street while it
+waits. `EventInterpreter.ts` reaches `OpeningTooLong` / `ClosingTooLong` only
+after `Closed`, `Open`, and `ErrorSensorConflict` have each been ruled out — so
+the closed sensor reads NOT-closed and the open sensor is not OPEN, and the
+door is definitively partway. CLOSE is therefore a well-defined direction and
+the wrong-direction hazard cannot arise. OPEN stays rejected: the door already
+tried to open and did not get there, so a press is not "more open", and the
+standing bias of every surface here is toward closed. `ERROR_SENSOR_CONFLICT`
+keeps rejecting both — its sensors actively disagree, so unlike a stuck transit
+there is no position to reason from at all.
+
+These two states are the only ones where the gate's answer depends on the
+direction for a reason other than "you asked for where it already is", which is
+why they get their own `VoiceDoorState.STUCK` rather than borrowing `OPEN`.
 
 Additional gates, all typed rejections:
 

@@ -250,6 +250,32 @@ class WearSimulatedVoiceViewModelTest {
             )
         }
 
+    /**
+     * The rehearsal has to teach the real thing, and a stuck door is the one
+     * state where the two directions part company for a reason other than
+     * "you asked for where it already is". If the simulation refused both,
+     * practising on it would teach the wrong reflex for the case that matters.
+     */
+    @Test
+    fun aStuckDemoDoorCanStillBeClosedButNotOpened() =
+        runTest {
+            val viewModel = createViewModel()
+            viewModel.demoDoor.setDoorState(VoiceDoorState.STUCK)
+
+            speak(viewModel, "open the garage door")
+            assertEquals(
+                VoiceCommandIgnoreReason.DOOR_STUCK,
+                (viewModel.state.value as VoiceCommandState.Ignored).reason,
+            )
+
+            viewModel.demoDoor.setDoorState(VoiceDoorState.STUCK)
+            speak(viewModel, "close the garage door")
+            assertTrue(
+                "A stuck demo door must still accept close",
+                viewModel.state.value !is VoiceCommandState.Ignored,
+            )
+        }
+
     @Test
     fun anUnknownDemoDoorStateRefusesRatherThanGuesses() =
         runTest {

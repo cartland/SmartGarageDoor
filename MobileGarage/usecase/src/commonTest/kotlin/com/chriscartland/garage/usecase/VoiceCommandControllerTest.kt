@@ -303,6 +303,39 @@ class VoiceCommandControllerTest {
             assertEquals(VoiceCommandIgnoreReason.DOOR_MOVING, ignored.reason)
         }
 
+    /**
+     * The point of STUCK: a door stopped partway can still be told to close.
+     * This is the only state where the two directions disagree for a reason
+     * other than "you asked for where it already is".
+     */
+    @Test
+    fun gateAllowsCloseWhenDoorIsStuck() =
+        runTest {
+            val env = FakeVoiceCommandEnvironment()
+            env.door.value = VoiceDoorState.STUCK
+            val controller = createController(env)
+            controller.onMicTap()
+            controller.onTranscript("close the garage door")
+            assertIs<VoiceCommandState.Armed>(controller.state.value)
+
+            advanceTimeBy(WINDOW)
+            runCurrent()
+            assertEquals(1, env.presses.size, "A stuck door must still be closable")
+        }
+
+    @Test
+    fun gateBlocksOpenWhenDoorIsStuck() =
+        runTest {
+            val env = FakeVoiceCommandEnvironment()
+            env.door.value = VoiceDoorState.STUCK
+            val controller = createController(env)
+            controller.onMicTap()
+            controller.onTranscript("open the garage door")
+            val ignored = assertIs<VoiceCommandState.Ignored>(controller.state.value)
+            assertEquals(VoiceCommandIgnoreReason.DOOR_STUCK, ignored.reason)
+            assertTrue(env.presses.isEmpty())
+        }
+
     @Test
     fun gateBlocksWhenDoorUnknown() =
         runTest {

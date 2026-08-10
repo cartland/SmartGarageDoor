@@ -14,6 +14,22 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.7.0
+
+- **You can now tell a stuck door to close.** A door that starts moving and
+  never arrives — jammed on something, or reversed by the safety beam — used to
+  refuse every spoken command, which meant voice gave up in the one situation
+  where you most want to reach the door: it is stopped partway, open to the
+  street, and needs another press. Saying "close the garage door" now works.
+
+- **Opening one is still refused.** The door already tried to open and did not
+  get there, so another press is not going to be more open, and everything in
+  this app leans toward closed when it is unsure.
+
+- A door with sensors that actively disagree still refuses both directions.
+  That one has no position to reason from at all, which is the difference: a
+  stuck door's position is known, it is just not where it was going.
+
 ## 0.6.3
 
 - **The screen stays awake while you are talking to it.** Voice is the only

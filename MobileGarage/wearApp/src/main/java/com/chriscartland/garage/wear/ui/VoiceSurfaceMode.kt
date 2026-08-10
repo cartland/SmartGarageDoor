@@ -109,6 +109,7 @@ internal object VoiceStrings {
             VoiceDoorState.CLOSED -> R.string.door_state_closed
             VoiceDoorState.OPEN -> R.string.door_state_open
             VoiceDoorState.MOVING -> R.string.voice_door_moving
+            VoiceDoorState.STUCK -> R.string.voice_door_stuck
             VoiceDoorState.UNKNOWN -> R.string.door_state_unknown
         }
 
@@ -184,7 +185,7 @@ internal object VoiceStrings {
 
     /**
      * Refusals. The four that are about the utterance read identically on both
-     * surfaces; the five that are about the door name which door they mean.
+     * surfaces; the six that are about the door name which door they mean.
      */
     @StringRes
     fun ignoredLine(
@@ -203,6 +204,8 @@ internal object VoiceStrings {
                 if (live) R.string.voice_live_ignored_already_closed else R.string.voice_sim_ignored_already_closed
             VoiceCommandIgnoreReason.DOOR_MOVING ->
                 if (live) R.string.voice_live_ignored_moving else R.string.voice_sim_ignored_moving
+            VoiceCommandIgnoreReason.DOOR_STUCK ->
+                if (live) R.string.voice_live_ignored_stuck else R.string.voice_sim_ignored_stuck
             VoiceCommandIgnoreReason.DOOR_STATE_UNKNOWN ->
                 if (live) R.string.voice_live_ignored_state_unknown else R.string.voice_sim_ignored_state_unknown
             VoiceCommandIgnoreReason.DOOR_STATE_CHANGED ->

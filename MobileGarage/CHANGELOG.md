@@ -15,6 +15,19 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.23.8
+
+- **A stuck door can now be told to close by voice.** A door that starts moving
+  and never arrives used to refuse every spoken command, which gave up in the
+  one situation where reaching the door matters most: it is stopped partway,
+  open to the street, and wants another press. Opening one stays refused, and a
+  door whose sensors actively disagree still refuses both.
+
+- Patch rather than minor on this side because the phone's voice card is behind
+  the developer flag, so no general user gains a capability here. The same
+  change is a real one on the watch, where the microphone on the door screen is
+  an ordinary control — it ships there as 0.7.0.
+
 ## 2.23.7
 
 - **Nothing changes on screen.** The About rows in Settings show the same four

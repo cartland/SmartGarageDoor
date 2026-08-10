@@ -46,6 +46,7 @@ class VoiceStringsTest {
         VoiceCommandIgnoreReason.DOOR_ALREADY_OPEN,
         VoiceCommandIgnoreReason.DOOR_ALREADY_CLOSED,
         VoiceCommandIgnoreReason.DOOR_MOVING,
+        VoiceCommandIgnoreReason.DOOR_STUCK,
         VoiceCommandIgnoreReason.DOOR_STATE_UNKNOWN,
         VoiceCommandIgnoreReason.DOOR_STATE_CHANGED,
     )
@@ -56,6 +57,25 @@ class VoiceStringsTest {
         VoiceCommandIgnoreReason.NOT_A_COMMAND,
         VoiceCommandIgnoreReason.NOT_CONFIDENT,
     )
+
+    /**
+     * The two lists above are maintained by hand, which means a new refusal
+     * added to the enum lands in neither and escapes both tests silently —
+     * they iterate their list, so an absent reason is simply never asserted.
+     * This makes that omission fail loudly instead, and it is the reason the
+     * lists can stay explicit (which is what keeps them readable as a
+     * statement of which refusals talk about a door).
+     */
+    @Test
+    fun everyRefusalIsClassifiedAsAboutTheDoorOrAboutTheUtterance() {
+        assertEquals(
+            "A refusal reason is in neither list, so no test words it. Add it to " +
+                "ignoredReasonsAboutTheDoor if it talks about a door, otherwise to " +
+                "ignoredReasonsAboutTheUtterance.",
+            VoiceCommandIgnoreReason.entries.toSet(),
+            (ignoredReasonsAboutTheDoor + ignoredReasonsAboutTheUtterance).toSet(),
+        )
+    }
 
     /**
      * Every state that names an action or an outcome.

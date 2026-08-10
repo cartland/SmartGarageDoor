@@ -29,10 +29,26 @@ import kotlinx.coroutines.launch
 
 /**
  * Door state as the voice-command gate sees it. A projection of the
- * richer door-event model: the gate only needs "is the door settled,
- * and which side" to decide whether a spoken direction is actionable.
+ * richer door-event model: the gate needs "is the door settled, and
+ * which side" to decide whether a spoken direction is actionable, plus
+ * [STUCK] for the one unsettled case where a direction still is.
  */
-enum class VoiceDoorState { CLOSED, OPEN, MOVING, UNKNOWN }
+enum class VoiceDoorState {
+    CLOSED,
+    OPEN,
+
+    /** Mid-travel and behaving: every direction waits for it to arrive. */
+    MOVING,
+
+    /**
+     * Stopped partway, past the point where travel should have finished.
+     * Definitively neither closed nor open, so CLOSE is a well-defined
+     * direction and is accepted; OPEN is refused.
+     */
+    STUCK,
+
+    UNKNOWN,
+}
 
 /** Why a capture ended without arming a command. */
 enum class VoiceCommandIgnoreReason {
@@ -56,6 +72,14 @@ enum class VoiceCommandIgnoreReason {
 
     /** The door is mid-motion; commands only apply to settled states. */
     DOOR_MOVING,
+
+    /**
+     * Open command while the door is stuck partway. Closing a stuck door
+     * is accepted (that is the point of [VoiceDoorState.STUCK]); opening
+     * one is not, because the door is already as open as this attempt
+     * managed and the standing bias is toward the closed direction.
+     */
+    DOOR_STUCK,
 
     /** The door state is unknown; refuse rather than guess. */
     DOOR_STATE_UNKNOWN,
@@ -365,6 +389,8 @@ class VoiceCommandController(
     ): VoiceCommandIgnoreReason? =
         when (door) {
             VoiceDoorState.MOVING -> VoiceCommandIgnoreReason.DOOR_MOVING
+            VoiceDoorState.STUCK ->
+                if (intent == VoiceIntent.OPEN) VoiceCommandIgnoreReason.DOOR_STUCK else null
             VoiceDoorState.UNKNOWN -> VoiceCommandIgnoreReason.DOOR_STATE_UNKNOWN
             VoiceDoorState.OPEN ->
                 if (intent == VoiceIntent.OPEN) VoiceCommandIgnoreReason.DOOR_ALREADY_OPEN else null
