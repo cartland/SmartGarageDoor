@@ -119,6 +119,7 @@
     <string name="voice_door_closed">Closed</string>
     <string name="voice_door_open">Open</string>
     <string name="voice_door_moving">Moving</string>
+    <string name="voice_door_stuck">Stuck</string>
     <string name="voice_door_unknown">Unknown</string>
 
     <!-- Verdict panel under the simulated sheet: the classifier's read on
@@ -158,6 +159,7 @@
     <string name="voice_control_ignored_already_open">The door is already open</string>
     <string name="voice_control_ignored_already_closed">The door is already closed</string>
     <string name="voice_control_ignored_moving">The door is moving</string>
+    <string name="voice_control_ignored_stuck">The door is stuck. You can close it</string>
     <string name="voice_control_ignored_state_unknown">Door state is unknown</string>
     <string name="voice_control_ignored_state_changed">Door state changed before sending</string>
     <!-- Mic button content descriptions per state. -->

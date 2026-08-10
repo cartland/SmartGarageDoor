@@ -251,6 +251,7 @@ private fun VoiceDoorState.labelRes(): Int =
         VoiceDoorState.CLOSED -> R.string.voice_door_closed
         VoiceDoorState.OPEN -> R.string.voice_door_open
         VoiceDoorState.MOVING -> R.string.voice_door_moving
+        VoiceDoorState.STUCK -> R.string.voice_door_stuck
         VoiceDoorState.UNKNOWN -> R.string.voice_door_unknown
     }
 

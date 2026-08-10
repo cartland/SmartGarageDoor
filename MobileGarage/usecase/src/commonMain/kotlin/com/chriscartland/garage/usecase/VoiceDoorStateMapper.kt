@@ -24,9 +24,10 @@ import com.chriscartland.garage.domain.model.DoorPosition
  *
  * Deny-by-default (the standing principle: okay to incorrectly ignore,
  * never okay to incorrectly execute): clean terminal positions map to
- * actionable states, clean transits map to MOVING, and every genuine
- * anomaly (stuck too long, sensor conflict) maps to UNKNOWN so the gate
- * refuses rather than guesses. A stale device check-in also forces
+ * actionable states, clean transits map to MOVING, a transit that ran
+ * past its deadline maps to STUCK (close-only), and every genuine
+ * anomaly (sensor conflict, no reading at all) maps to UNKNOWN so the
+ * gate refuses rather than guesses. A stale device check-in also forces
  * UNKNOWN — cached state that may no longer match reality must never
  * pass the direction gate (the wrong-direction hazard: cache says
  * closed, door is actually open, an "open" command would really close
@@ -55,10 +56,35 @@ import com.chriscartland.garage.domain.model.DoorPosition
  * art draws it at `OPEN_POSITION`. Voice refusing what every other
  * surface acts on was the inconsistency, not the fix.
  *
- * The stuck-transit positions stay UNKNOWN deliberately. They are
- * genuinely mid-travel and genuinely wrong, so "state unknown" is more
- * honest than either terminal answer — and every direction is refused
- * under MOVING too, so nothing is gained by reclassifying them.
+ * ## Why the stuck transits are STUCK, not UNKNOWN
+ *
+ * They were UNKNOWN — refusing everything — on the reasoning that a
+ * door which is genuinely mid-travel and genuinely wrong has no honest
+ * terminal answer. True, but it answered the wrong question. A door
+ * stopped partway is the case where you most want to send a press: it
+ * may be obstructed and need another go, and it is sitting open to the
+ * street while it waits.
+ *
+ * Closing one is not a guess, by the same argument that moved
+ * OPEN_MISALIGNED. `EventInterpreter.ts` reaches `OpeningTooLong` /
+ * `ClosingTooLong` only after `Closed`, `Open`, and
+ * `ErrorSensorConflict` have each been ruled out — so the closed sensor
+ * reads NOT-closed and the open sensor is not OPEN. The door is
+ * definitively partway. The wrong-direction hazard (act on a cached
+ * "closed" for a door that is really open, and "open" really closes it)
+ * therefore cannot arise: CLOSE is the correct direction, and the gate
+ * re-checks at commit anyway. Nor can it mask a door that has since
+ * finished — the moment the closed sensor trips, the server transitions
+ * straight to `Closed`.
+ *
+ * OPEN stays refused. The door already tried to open and did not get
+ * there, so a press is not "more open"; and the standing bias of every
+ * surface in this app is toward the closed direction, because open is
+ * the state that gets its own warning notification.
+ *
+ * ERROR_SENSOR_CONFLICT keeps refusing both. Its sensors actively
+ * disagree, so unlike a stuck transit there is no position to reason
+ * from at all.
  */
 object VoiceDoorStateMapper {
     fun project(
@@ -70,8 +96,7 @@ object VoiceDoorStateMapper {
             DoorPosition.CLOSED -> VoiceDoorState.CLOSED
             DoorPosition.OPEN, DoorPosition.OPEN_MISALIGNED -> VoiceDoorState.OPEN
             DoorPosition.OPENING, DoorPosition.CLOSING -> VoiceDoorState.MOVING
-            DoorPosition.OPENING_TOO_LONG,
-            DoorPosition.CLOSING_TOO_LONG,
+            DoorPosition.OPENING_TOO_LONG, DoorPosition.CLOSING_TOO_LONG -> VoiceDoorState.STUCK
             DoorPosition.ERROR_SENSOR_CONFLICT,
             DoorPosition.UNKNOWN,
             null,

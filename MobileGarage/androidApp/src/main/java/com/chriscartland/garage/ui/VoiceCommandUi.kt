@@ -97,6 +97,8 @@ fun VoiceCommandIgnoreReason.displayText(): String =
             stringResource(R.string.voice_control_ignored_already_closed)
         VoiceCommandIgnoreReason.DOOR_MOVING ->
             stringResource(R.string.voice_control_ignored_moving)
+        VoiceCommandIgnoreReason.DOOR_STUCK ->
+            stringResource(R.string.voice_control_ignored_stuck)
         VoiceCommandIgnoreReason.DOOR_STATE_UNKNOWN ->
             stringResource(R.string.voice_control_ignored_state_unknown)
         VoiceCommandIgnoreReason.DOOR_STATE_CHANGED ->

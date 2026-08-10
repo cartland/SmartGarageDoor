@@ -1,3 +1,3 @@
-The screen stays awake while you are talking to the watch. Voice is the one thing you do without touching it, so nothing was keeping the display on and it could go dark mid-command, taking the microphone with it. It stays lit through the whole thing now, and for a few seconds after.
+You can now tell a stuck door to close. A door that starts moving and never arrives, jammed on something or reversed by the safety beam, used to refuse every spoken command. That gave up in the one situation where you most want to reach it: stopped partway, open to the street, needing another press.
 
-A sent command keeps the screen up until the door really moves, and the voice screen steps aside once it does, so you see the door animate instead of a microphone on top of it.
+Opening a stuck door is still refused, and a door whose sensors disagree still refuses both directions.

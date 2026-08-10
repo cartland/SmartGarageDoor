@@ -289,20 +289,62 @@ class WearLiveVoiceViewModelTest {
         }
 
     /**
-     * Deny-by-default. A door stuck mid-transit projects to UNKNOWN, and
+     * A door stopped partway is the case where sending a press matters most:
+     * it may be obstructed and need another go, and it is sitting open to the
+     * street while it waits. This is the live surface, so the accepted half
+     * really does press the button.
+     *
+     * Closing is not a guess. The server reports `OpeningTooLong` only after
+     * `Closed`, `Open`, and `ErrorSensorConflict` are ruled out, so the door is
+     * definitively partway and CLOSE is well defined. Opening stays refused —
+     * the door already tried and did not get there.
+     */
+    @Test
+    fun aStuckDoorCanBeClosedButNotOpened() =
+        runTest {
+            val viewModel = createViewModel(DoorPosition.OPENING_TOO_LONG)
+            assertEquals(VoiceDoorState.STUCK, viewModel.doorState.value)
+
+            speak(viewModel, "open the garage door")
+            letTheWindowElapse()
+            val ignored = viewModel.state.value as VoiceCommandState.Ignored
+            assertEquals(VoiceCommandIgnoreReason.DOOR_STUCK, ignored.reason)
+            assertEquals(0, remoteButtonRepository.pushCount)
+
+            speak(viewModel, "close the garage door")
+            letTheWindowElapse()
+            assertEquals(
+                "A door stuck partway must still be closable by voice",
+                1,
+                remoteButtonRepository.pushCount,
+            )
+        }
+
+    /**
+     * Deny-by-default, and the boundary that keeps STUCK from swallowing every
+     * anomaly. Conflicting sensors give no position to reason from at all, so
      * UNKNOWN refuses BOTH directions — the wrong-direction hazard is exactly
      * why: if the cached position is wrong, "open" may really close.
      */
     @Test
     fun anAnomalousDoorRefusesEveryDirection() =
         runTest {
-            val viewModel = createViewModel(DoorPosition.OPENING_TOO_LONG)
+            val viewModel = createViewModel(DoorPosition.ERROR_SENSOR_CONFLICT)
             assertEquals(VoiceDoorState.UNKNOWN, viewModel.doorState.value)
 
             speak(viewModel, "open the garage door")
+            letTheWindowElapse()
+            assertEquals(
+                VoiceCommandIgnoreReason.DOOR_STATE_UNKNOWN,
+                (viewModel.state.value as VoiceCommandState.Ignored).reason,
+            )
 
-            val ignored = viewModel.state.value as VoiceCommandState.Ignored
-            assertEquals(VoiceCommandIgnoreReason.DOOR_STATE_UNKNOWN, ignored.reason)
+            speak(viewModel, "close the garage door")
+            letTheWindowElapse()
+            assertEquals(
+                VoiceCommandIgnoreReason.DOOR_STATE_UNKNOWN,
+                (viewModel.state.value as VoiceCommandState.Ignored).reason,
+            )
             assertEquals(0, remoteButtonRepository.pushCount)
         }
 
