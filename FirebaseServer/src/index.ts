@@ -22,6 +22,7 @@ firebase.initializeApp();
 import { httpEcho } from './functions/http/Echo'
 import { httpCurrentEventData, httpEventHistory } from './functions/http/Events'
 import { httpRemoteButton, httpAddRemoteButtonCommand } from './functions/http/RemoteButton'
+import { httpDoorCommand } from './functions/http/DoorCommand'
 import { httpCheckForOpenDoors } from './functions/http/OpenDoor'
 import { httpDeleteOldData } from './functions/http/DeleteData'
 import { httpServerConfig, httpServerConfigUpdate } from './functions/http/ServerConfig'
@@ -194,6 +195,20 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'remoteButton') 
  */
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'addRemoteButtonCommand') {
   exports.addRemoteButtonCommand = httpAddRemoteButtonCommand;
+}
+
+/**
+ * A mobile client asks whether "open" or "close" is actionable right now.
+ *
+ * Trigger Type: HTTP
+ *
+ * Runs in parallel to addRemoteButtonCommand and does NOT replace it. This
+ * endpoint only REPORTS a verdict — it has no route to the command collection
+ * the device polls, so it cannot move the door. See
+ * functions/http/DoorCommand.ts for why the auth is already the real auth.
+ */
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'doorCommand') {
+  exports.doorCommand = httpDoorCommand;
 }
 
 /**

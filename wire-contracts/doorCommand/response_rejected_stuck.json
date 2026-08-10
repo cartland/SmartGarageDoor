@@ -1,0 +1,1 @@
+{"executed":false,"verdict":{"accepted":false,"checkInAgeSeconds":5,"checkInStale":false,"command":"OPEN","doorState":"STUCK","rejection":"DOOR_STUCK","sensorEventType":"OPENING_TOO_LONG"}}

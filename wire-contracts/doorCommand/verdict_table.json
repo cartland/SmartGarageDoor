@@ -1,0 +1,16 @@
+{
+  "description": "Every door state crossed with every command, and whether the server accepts it. Loaded by FirebaseServer/test/controller/DoorCommandGateTest.ts. The Kotlin client's VoiceDoorStateMapper + VoiceCommandController.gateReason implement the same table; when one side changes, this file is what makes the other side's disagreement visible.",
+  "staleThresholdSeconds": 660,
+  "rows": [
+    { "sensorEventType": "CLOSED", "doorState": "CLOSED", "open": null, "close": "ALREADY_CLOSED" },
+    { "sensorEventType": "OPEN", "doorState": "OPEN", "open": "ALREADY_OPEN", "close": null },
+    { "sensorEventType": "OPEN_MISALIGNED", "doorState": "OPEN", "open": "ALREADY_OPEN", "close": null },
+    { "sensorEventType": "OPENING", "doorState": "MOVING", "open": "DOOR_MOVING", "close": "DOOR_MOVING" },
+    { "sensorEventType": "CLOSING", "doorState": "MOVING", "open": "DOOR_MOVING", "close": "DOOR_MOVING" },
+    { "sensorEventType": "OPENING_TOO_LONG", "doorState": "STUCK", "open": "DOOR_STUCK", "close": null },
+    { "sensorEventType": "CLOSING_TOO_LONG", "doorState": "STUCK", "open": "DOOR_STUCK", "close": null },
+    { "sensorEventType": "ERROR_SENSOR_CONFLICT", "doorState": "UNKNOWN", "open": "DOOR_STATE_UNKNOWN", "close": "DOOR_STATE_UNKNOWN" },
+    { "sensorEventType": "UNKNOWN", "doorState": "UNKNOWN", "open": "DOOR_STATE_UNKNOWN", "close": "DOOR_STATE_UNKNOWN" },
+    { "sensorEventType": null, "doorState": "UNKNOWN", "open": "DOOR_STATE_UNKNOWN", "close": "DOOR_STATE_UNKNOWN" }
+  ]
+}
