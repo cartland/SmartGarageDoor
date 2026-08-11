@@ -41,6 +41,28 @@ import { HTTP_RUNTIME_OPTS } from '../HttpRuntime';
  * actual state. Runs in parallel to `addRemoteButtonCommand` (the toggle the
  * ESP32 polls) and deliberately does NOT replace it.
  *
+ * ## This is for VOICE. Taps keep using the button.
+ *
+ * A spoken sentence carries a direction. "Open the garage door" and "close the
+ * garage door" are different requests, and someone who says one does not mean
+ * the other. That is the entire reason a directional endpoint is worth having,
+ * and voice is the only surface that supplies a direction to check.
+ *
+ * A tap does not. The remote button is a toggle — one press, no direction — and
+ * the phone's tap-to-confirm and the watch's press-and-hold are deliberately
+ * the same shape: they mean "act on the door", and what that does depends on
+ * where the door happens to be. **Those surfaces remain the primary way to work
+ * the door and are not going to be moved onto this endpoint.** The two-tap
+ * confirmation is an "are you sure", not a direction; there is nothing in it
+ * for this gate to judge.
+ *
+ * Pointing these verdicts at a tap would actively break the button. With the
+ * door OPEN, a tap is a perfectly good request — it closes. Asking this
+ * endpoint `{"command":"open"}` in that same moment is correctly refused as
+ * ALREADY_OPEN. The answers differ because the questions differ: "do this
+ * specific thing" versus "do the thing". Only the first has a direction to
+ * validate, so only voice should be asking.
+ *
  * ## It cannot move the door, structurally
  *
  * The device opens the garage by polling `RemoteButtonCommandDatabase` for a

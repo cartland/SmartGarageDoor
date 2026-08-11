@@ -123,6 +123,28 @@ These two states are the only ones where the gate's answer depends on the
 direction for a reason other than "you asked for where it already is", which is
 why they get their own `VoiceDoorState.STUCK` rather than borrowing `OPEN`.
 
+### The server now judges the same table (`server/35`+)
+
+`httpDoorCommand` (`FirebaseServer/src/functions/http/DoorCommand.ts`) answers
+the same question server-side, and is deployed but not yet called by any client.
+It exists **specifically for voice**, because a spoken sentence is the only
+input in this app that names a direction. It is verdict-only today: it has no
+import of the command collection the device polls, so it cannot move the door.
+
+**The button is not moving there, and should not.** The remote is a toggle —
+one press, no direction — so the two-tap confirmation and the watch's hold have
+nothing for a direction gate to judge. Routing them through it would refuse
+valid presses: with the door open a tap is fine (it closes), while `OPEN` as a
+*command* is correctly refused as already-open. Tapping stays on
+`addRemoteButtonCommand` and remains the primary way to work the door.
+
+The decision table is shared rather than copied:
+`wire-contracts/doorCommand/verdict_table.json` is asserted by the server today,
+and pointing this Kotlin gate's tests at the same file is the intended next
+step — that is what would keep the two implementations honest. Note the server
+also judges check-in staleness, which is the gap the watch cannot close for
+itself (see below).
+
 Additional gates, all typed rejections:
 
 - **Staleness**: if `CheckInStalenessManager` says the sensor data is

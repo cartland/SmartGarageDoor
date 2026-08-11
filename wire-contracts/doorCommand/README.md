@@ -5,6 +5,18 @@ last_verified: 2026-08-10
 ---
 # doorCommand fixtures
 
+## Who this endpoint is for
+
+**Voice.** A spoken sentence names a direction — "open the garage door" is not
+"close the garage door" — and that direction is the thing these fixtures judge.
+
+**Not screen taps.** The remote button is a toggle: one press, no direction. The
+phone's tap-to-confirm and the watch's press-and-hold mean "act on the door" and
+keep going through `addRemoteButtonCommand`. They are not migrating here, and
+the table below would refuse valid presses if they did: with the door open, a
+tap is fine (it closes), while `OPEN` as a *command* is correctly refused as
+already-open.
+
 Two kinds of file live here, which is unusual for this directory — read the
 distinction before adding a third.
 
