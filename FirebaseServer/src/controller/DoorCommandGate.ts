@@ -22,18 +22,29 @@ import { SensorEventType } from '../model/SensorEvent';
  * so the whole decision table is unit-testable and the HTTP handler above it
  * stays a thin read-and-answer.
  *
- * ## Why the server has this at all
+ * ## This judges VOICE commands, not button taps
  *
- * The remote button is a TOGGLE: one press, no direction. Everything that has
- * ever decided "should I press it?" has done so on the client — first the
- * two-tap confirmation, then the voice gate. That is backwards for this repo,
- * whose organizing principle is that the server owns interpretation and
- * clients stay simple (see CLAUDE.md § Server-Centric Design). It also means
- * the rule is currently implemented once per platform and can drift: the phone
- * refuses on a stale check-in, the watch has no staleness signal to refuse on.
+ * The remote button is a TOGGLE: one press, no direction. A tap therefore has
+ * nothing for this table to judge — it means "act on the door", and what that
+ * does depends on where the door is. Voice is different, and is the reason
+ * this exists: a spoken sentence names a direction, so there is finally a
+ * request that can be checked against reality before it is sent.
  *
- * Deciding it here fixes both. The client sends what the user asked for and
- * the server answers whether that is a thing the door can do.
+ * Do not point this at the tap-to-confirm button or the watch's hold. Applied
+ * there it would refuse valid presses — with the door OPEN a tap is fine (it
+ * closes), while `OPEN` as a *command* is correctly refused as already-open.
+ * Those surfaces keep going through `addRemoteButtonCommand` unchanged.
+ *
+ * ## Why the SERVER decides it
+ *
+ * The direction rule has always lived on the clients, which is backwards for
+ * this repo — its organizing principle is that the server owns interpretation
+ * and clients stay simple (CLAUDE.md § Server-Centric Design). It also means
+ * the rule is implemented once per platform and can drift: the phone refuses
+ * on a stale check-in, the watch has no staleness signal to refuse on.
+ *
+ * Deciding it here fixes both. The client sends what the user said and the
+ * server answers whether that is a thing the door can do.
  *
  * ## This module cannot press the button
  *
