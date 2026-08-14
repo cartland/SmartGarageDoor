@@ -103,4 +103,6 @@ fun VoiceCommandIgnoreReason.displayText(): String =
             stringResource(R.string.voice_control_ignored_state_unknown)
         VoiceCommandIgnoreReason.DOOR_STATE_CHANGED ->
             stringResource(R.string.voice_control_ignored_state_changed)
+        VoiceCommandIgnoreReason.SERVER_UNREACHABLE ->
+            stringResource(R.string.voice_control_ignored_server_unreachable)
     }

@@ -36,11 +36,13 @@ import com.chriscartland.garage.presentation.ElapsedDuration
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
+import com.chriscartland.garage.testcommon.FakeDoorCommandRepository
 import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeFeatureAllowlistRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
+import com.chriscartland.garage.usecase.CheckDoorCommandUseCase
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
@@ -163,6 +165,10 @@ class HomeViewModelTest {
             pushRemoteButtonUseCase = PushRemoteButtonUseCase(
                 authRepository,
                 remoteButtonRepository,
+            ),
+            checkDoorCommandUseCase = CheckDoorCommandUseCase(
+                authRepository,
+                FakeDoorCommandRepository(),
             ),
             checkInStalenessManager = stalenessManager,
             liveClock = liveClock,

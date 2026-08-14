@@ -51,6 +51,33 @@ class SimulatedVoiceCommandEnvironment(
         _doorState.value = state
     }
 
+    /**
+     * Answers locally and NEVER touches the network — no server exists for a
+     * door that does not exist, and reaching one would give the rehearsal a
+     * dependency the real surface's safety story says it must not have
+     * (`WearSimulatedVoiceViewModelTest.cannotReachTheRealRemoteButton`).
+     *
+     * It re-runs the pretend door's own gate rather than returning a blanket
+     * `null`, so the rehearsal still refuses exactly what the live surface
+     * would refuse at this step. Practising a flow that always says yes at the
+     * final gate would teach the wrong thing about the step that matters most.
+     */
+    override suspend fun confirmWithServer(intent: VoiceIntent): VoiceCommandIgnoreReason? =
+        when (_doorState.value) {
+            VoiceDoorState.MOVING -> VoiceCommandIgnoreReason.DOOR_MOVING
+            VoiceDoorState.UNKNOWN -> VoiceCommandIgnoreReason.DOOR_STATE_UNKNOWN
+            VoiceDoorState.STUCK ->
+                if (intent == VoiceIntent.OPEN) VoiceCommandIgnoreReason.DOOR_STUCK else null
+            VoiceDoorState.OPEN ->
+                if (intent == VoiceIntent.OPEN) VoiceCommandIgnoreReason.DOOR_ALREADY_OPEN else null
+            VoiceDoorState.CLOSED ->
+                if (intent == VoiceIntent.CLOSE) {
+                    VoiceCommandIgnoreReason.DOOR_ALREADY_CLOSED
+                } else {
+                    null
+                }
+        }
+
     override suspend fun pressButton(intent: VoiceIntent): Boolean {
         delay(pressDelayMs)
         transitJob?.cancel()

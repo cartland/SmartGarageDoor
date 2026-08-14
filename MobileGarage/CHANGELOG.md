@@ -15,6 +15,23 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.23.9
+
+- **Voice commands are now confirmed with the server before being sent.** The
+  phone already refused anything the door could not act on; the server is now
+  asked as well, and it additionally judges whether the door has reported in
+  recently. The check can only refuse a command, never allow one the phone
+  would have refused by itself, and an unreachable server refuses rather than
+  guessing.
+
+- Behind the developer flag, as the rest of the phone's voice surface is, so
+  no general user sees a change. The watch is where this matters — it ships
+  there as 0.7.1, because the staleness judgement is one the watch has never
+  been able to make for itself.
+
+- The two-tap button is untouched. It is a toggle with no direction, so there
+  is nothing for a direction gate to judge, and it keeps going the way it has.
+
 ## 2.23.8
 
 - **A stuck door can now be told to close by voice.** A door that starts moving

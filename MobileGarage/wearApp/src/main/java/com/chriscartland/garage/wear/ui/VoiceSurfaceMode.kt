@@ -210,6 +210,10 @@ internal object VoiceStrings {
                 if (live) R.string.voice_live_ignored_state_unknown else R.string.voice_sim_ignored_state_unknown
             VoiceCommandIgnoreReason.DOOR_STATE_CHANGED ->
                 if (live) R.string.voice_live_ignored_state_changed else R.string.voice_sim_ignored_state_changed
+            // Shared wording: this one names no door. It is about the trip to
+            // the server, and the simulation never takes that trip — it is
+            // wired here only so the `when` stays exhaustive.
+            VoiceCommandIgnoreReason.SERVER_UNREACHABLE -> R.string.voice_ignored_server_unreachable
         }
     }
 }

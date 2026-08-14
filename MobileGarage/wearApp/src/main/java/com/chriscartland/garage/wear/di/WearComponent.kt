@@ -21,14 +21,17 @@ import com.chriscartland.garage.data.AuthBridge
 import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkConfigDataSource
+import com.chriscartland.garage.data.NetworkDoorCommandDataSource
 import com.chriscartland.garage.data.NetworkDoorDataSource
 import com.chriscartland.garage.data.coroutines.DefaultDispatcherProvider
 import com.chriscartland.garage.data.ktor.KtorHttpClientFactory
 import com.chriscartland.garage.data.ktor.KtorNetworkButtonDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkConfigDataSource
+import com.chriscartland.garage.data.ktor.KtorNetworkDoorCommandDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkDoorDataSource
 import com.chriscartland.garage.data.repository.CachedServerConfigRepository
 import com.chriscartland.garage.data.repository.FirebaseAuthRepository
+import com.chriscartland.garage.data.repository.NetworkDoorCommandRepository
 import com.chriscartland.garage.data.repository.NetworkDoorRepository
 import com.chriscartland.garage.data.repository.NetworkRemoteButtonRepository
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
@@ -36,9 +39,11 @@ import com.chriscartland.garage.domain.model.AppConfig
 import com.chriscartland.garage.domain.model.VoiceIntentClassifier
 import com.chriscartland.garage.domain.repository.AppLoggerRepository
 import com.chriscartland.garage.domain.repository.AuthRepository
+import com.chriscartland.garage.domain.repository.DoorCommandRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
+import com.chriscartland.garage.usecase.CheckDoorCommandUseCase
 import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
@@ -154,6 +159,7 @@ abstract class WearComponent(
         classifyVoiceIntent: ClassifyVoiceIntentUseCase,
         observeDoorEvents: ObserveDoorEventsUseCase,
         pushRemoteButton: PushRemoteButtonUseCase,
+        checkDoorCommand: CheckDoorCommandUseCase,
         dispatchers: DispatcherProvider,
         appVersion: String,
     ): WearLiveVoiceViewModel =
@@ -161,6 +167,7 @@ abstract class WearComponent(
             classifyVoiceIntent = classifyVoiceIntent,
             observeDoorEvents = observeDoorEvents,
             pushRemoteButton = pushRemoteButton,
+            checkDoorCommand = checkDoorCommand,
             dispatchers = dispatchers,
             appVersion = appVersion,
         )
@@ -196,6 +203,12 @@ abstract class WearComponent(
         authRepository: AuthRepository,
         remoteButtonRepository: RemoteButtonRepository,
     ): PushRemoteButtonUseCase = PushRemoteButtonUseCase(authRepository, remoteButtonRepository)
+
+    @Provides
+    fun provideCheckDoorCommandUseCase(
+        authRepository: AuthRepository,
+        doorCommandRepository: DoorCommandRepository,
+    ): CheckDoorCommandUseCase = CheckDoorCommandUseCase(authRepository, doorCommandRepository)
 
     @Provides
     fun provideFetchCurrentDoorEventUseCase(doorRepository: DoorRepository): FetchCurrentDoorEventUseCase =
@@ -288,5 +301,23 @@ abstract class WearComponent(
             serverConfigRepository = serverConfigRepository,
             authRepository = authRepository,
             remoteButtonPushEnabled = appConfig.remoteButtonPushEnabled,
+        )
+
+    @Provides
+    @WearSingleton
+    fun provideNetworkDoorCommandDataSource(httpClient: HttpClient): NetworkDoorCommandDataSource =
+        KtorNetworkDoorCommandDataSource(httpClient)
+
+    @Provides
+    @WearSingleton
+    fun provideDoorCommandRepository(
+        networkDoorCommandDataSource: NetworkDoorCommandDataSource,
+        serverConfigRepository: ServerConfigRepository,
+        authRepository: AuthRepository,
+    ): DoorCommandRepository =
+        NetworkDoorCommandRepository(
+            networkDoorCommandDataSource = networkDoorCommandDataSource,
+            serverConfigRepository = serverConfigRepository,
+            authRepository = authRepository,
         )
 }

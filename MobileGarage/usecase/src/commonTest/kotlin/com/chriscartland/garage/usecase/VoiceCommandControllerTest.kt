@@ -54,6 +54,15 @@ class VoiceCommandControllerTest {
         val presses = mutableListOf<VoiceIntent>()
         var failNextPress = false
 
+        /** Server-gate answers, scripted. Null = the server allows it. */
+        var serverReason: VoiceCommandIgnoreReason? = null
+        var serverChecks = 0
+
+        override suspend fun confirmWithServer(intent: VoiceIntent): VoiceCommandIgnoreReason? {
+            serverChecks += 1
+            return serverReason
+        }
+
         override suspend fun pressButton(intent: VoiceIntent): Boolean {
             if (pressDelayMs > 0) delay(pressDelayMs)
             presses.add(intent)
@@ -334,6 +343,104 @@ class VoiceCommandControllerTest {
             val ignored = assertIs<VoiceCommandState.Ignored>(controller.state.value)
             assertEquals(VoiceCommandIgnoreReason.DOOR_STUCK, ignored.reason)
             assertTrue(env.presses.isEmpty())
+        }
+
+    // --- The server's second opinion ----------------------------------------
+
+    @Test
+    fun theServerIsAskedBeforeAnythingIsPressed() =
+        runTest {
+            val env = FakeVoiceCommandEnvironment()
+            val controller = createController(env)
+            controller.onMicTap()
+            controller.onTranscript("open the garage door")
+            assertEquals(0, env.serverChecks, "Arming must not ask; only committing does")
+
+            advanceTimeBy(WINDOW)
+            runCurrent()
+            assertEquals(1, env.serverChecks)
+            assertEquals(listOf(VoiceIntent.OPEN), env.presses)
+        }
+
+    /**
+     * The whole point of the third gate: a command that passed everything
+     * local still does not reach the door if the server disagrees. The local
+     * door here says CLOSED, so "open" is locally fine — only the server
+     * refuses it.
+     */
+    @Test
+    fun aServerRefusalStopsACommandTheLocalGateAllowed() =
+        runTest {
+            val env = FakeVoiceCommandEnvironment()
+            env.serverReason = VoiceCommandIgnoreReason.DOOR_ALREADY_OPEN
+            val controller = createController(env)
+            controller.onMicTap()
+            controller.onTranscript("open the garage door")
+            assertIs<VoiceCommandState.Armed>(controller.state.value)
+
+            advanceTimeBy(WINDOW)
+            runCurrent()
+
+            val ignored = assertIs<VoiceCommandState.Ignored>(controller.state.value)
+            assertEquals(VoiceCommandIgnoreReason.DOOR_ALREADY_OPEN, ignored.reason)
+            assertTrue(env.presses.isEmpty(), "A server refusal must not reach the button")
+        }
+
+    /** An unreachable server refuses rather than proceeding on a guess. */
+    @Test
+    fun anUnreachableServerRefusesRatherThanPressing() =
+        runTest {
+            val env = FakeVoiceCommandEnvironment()
+            env.serverReason = VoiceCommandIgnoreReason.SERVER_UNREACHABLE
+            val controller = createController(env)
+            controller.onMicTap()
+            controller.onTranscript("open the garage door")
+            advanceTimeBy(WINDOW)
+            runCurrent()
+
+            val ignored = assertIs<VoiceCommandState.Ignored>(controller.state.value)
+            assertEquals(VoiceCommandIgnoreReason.SERVER_UNREACHABLE, ignored.reason)
+            assertTrue(env.presses.isEmpty())
+        }
+
+    /**
+     * Positive control for the three tests above. Without it, an environment
+     * whose [VoiceCommandEnvironment.confirmWithServer] refused everything
+     * would satisfy every refusal assertion here — and voice would be dead
+     * while the suite stayed green.
+     */
+    @Test
+    fun aServerThatAgreesLetsTheCommandThrough() =
+        runTest {
+            val env = FakeVoiceCommandEnvironment()
+            env.serverReason = null
+            val controller = createController(env)
+            controller.onMicTap()
+            controller.onTranscript("open the garage door")
+            advanceTimeBy(WINDOW)
+            runCurrent()
+
+            assertEquals(listOf(VoiceIntent.OPEN), env.presses)
+            assertEquals(VoiceCommandState.Sent(VoiceIntent.OPEN), controller.state.value)
+        }
+
+    /**
+     * The local gate runs FIRST, so a locally-refused command never reaches the
+     * network. Ordering matters for more than politeness: it keeps the endpoint
+     * off the critical path for the refusals the client can already answer.
+     */
+    @Test
+    fun aLocallyRefusedCommandNeverAsksTheServer() =
+        runTest {
+            val env = FakeVoiceCommandEnvironment()
+            env.door.value = VoiceDoorState.OPEN
+            val controller = createController(env)
+            controller.onMicTap()
+            controller.onTranscript("open the garage door")
+
+            advanceTimeBy(WINDOW)
+            runCurrent()
+            assertEquals(0, env.serverChecks, "Local refusal must short-circuit the round trip")
         }
 
     @Test
