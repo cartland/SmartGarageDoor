@@ -25,9 +25,11 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.domain.model.VoiceIntent
 import com.chriscartland.garage.testcommon.FakeAuthRepository
+import com.chriscartland.garage.testcommon.FakeDoorCommandRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
+import com.chriscartland.garage.usecase.CheckDoorCommandUseCase
 import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
@@ -74,6 +76,7 @@ class WearLiveVoiceViewModelTest {
     private lateinit var authRepository: FakeAuthRepository
     private lateinit var doorRepository: FakeDoorRepository
     private lateinit var remoteButtonRepository: FakeRemoteButtonRepository
+    private lateinit var doorCommandRepository: FakeDoorCommandRepository
 
     @After
     fun tearDown() {
@@ -92,6 +95,7 @@ class WearLiveVoiceViewModelTest {
         authRepository = FakeAuthRepository()
         doorRepository = FakeDoorRepository()
         remoteButtonRepository = FakeRemoteButtonRepository()
+        doorCommandRepository = FakeDoorCommandRepository()
         doorRepository.setCurrentDoorEvent(DoorEvent(doorPosition = doorPosition))
         signIn()
         return WearLiveVoiceViewModel(
@@ -101,6 +105,7 @@ class WearLiveVoiceViewModelTest {
             classifyVoiceIntent = ClassifyVoiceIntentUseCase(RuleBasedVoiceIntentClassifier()),
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
             pushRemoteButton = PushRemoteButtonUseCase(authRepository, remoteButtonRepository),
+            checkDoorCommand = CheckDoorCommandUseCase(authRepository, doorCommandRepository),
             dispatchers = TestDispatcherProvider(testDispatcher),
             appVersion = "wear-test",
         )

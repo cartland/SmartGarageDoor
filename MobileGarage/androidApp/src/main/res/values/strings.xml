@@ -160,6 +160,7 @@
     <string name="voice_control_ignored_already_closed">The door is already closed</string>
     <string name="voice_control_ignored_moving">The door is moving</string>
     <string name="voice_control_ignored_stuck">The door is stuck. You can close it</string>
+    <string name="voice_control_ignored_server_unreachable">Could not reach the server to confirm</string>
     <string name="voice_control_ignored_state_unknown">Door state is unknown</string>
     <string name="voice_control_ignored_state_changed">Door state changed before sending</string>
     <!-- Mic button content descriptions per state. -->

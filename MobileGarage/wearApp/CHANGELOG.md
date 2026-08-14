@@ -14,6 +14,22 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.7.1
+
+- **The watch now checks with the server before sending a spoken command.** It
+  already refused commands the door could not act on; now the server gets the
+  final say too, and it can see one thing the watch never could: whether the
+  door has actually reported in recently. A watch showing a position it heard
+  about an hour ago will no longer act on it.
+
+- This can only ever refuse a command, never allow one the watch would have
+  turned down on its own. If the server cannot be reached the command is
+  refused rather than sent on a guess, which costs nothing in practice: the
+  press was going to the same place a moment later.
+
+- Nothing changes about holding the door to open it. That is a toggle with no
+  direction in it, and it goes the way it always has.
+
 ## 0.7.0
 
 - **You can now tell a stuck door to close.** A door that starts moving and

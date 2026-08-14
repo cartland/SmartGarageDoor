@@ -98,6 +98,7 @@
     <string name="voice_live_ignored_already_closed">The door is already closed</string>
     <string name="voice_live_ignored_moving">The door is moving</string>
     <string name="voice_live_ignored_stuck">The door is stuck. You can close it</string>
+    <string name="voice_ignored_server_unreachable">Could not reach the server to confirm</string>
     <string name="voice_live_ignored_state_unknown">Door state is unknown</string>
     <string name="voice_live_ignored_state_changed">The door changed. Cancelled.</string>
 

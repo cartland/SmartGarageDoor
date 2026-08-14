@@ -29,6 +29,7 @@ import com.chriscartland.garage.data.MessagingBridge
 import com.chriscartland.garage.data.NetworkButtonDataSource
 import com.chriscartland.garage.data.NetworkButtonHealthDataSource
 import com.chriscartland.garage.data.NetworkConfigDataSource
+import com.chriscartland.garage.data.NetworkDoorCommandDataSource
 import com.chriscartland.garage.data.NetworkDoorDataSource
 import com.chriscartland.garage.data.NetworkFeatureAllowlistDataSource
 import com.chriscartland.garage.data.coroutines.DefaultDispatcherProvider
@@ -36,6 +37,7 @@ import com.chriscartland.garage.data.ktor.KtorHttpClientFactory
 import com.chriscartland.garage.data.ktor.KtorNetworkButtonDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkButtonHealthDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkConfigDataSource
+import com.chriscartland.garage.data.ktor.KtorNetworkDoorCommandDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkDoorDataSource
 import com.chriscartland.garage.data.ktor.KtorNetworkFeatureAllowlistDataSource
 import com.chriscartland.garage.data.repository.CachedFeatureAllowlistRepository
@@ -46,6 +48,7 @@ import com.chriscartland.garage.data.repository.FirebaseButtonHealthFcmRepositor
 import com.chriscartland.garage.data.repository.FirebaseDoorFcmRepository
 import com.chriscartland.garage.data.repository.FirebaseDoorResolvedFcmRepository
 import com.chriscartland.garage.data.repository.NetworkButtonHealthRepository
+import com.chriscartland.garage.data.repository.NetworkDoorCommandRepository
 import com.chriscartland.garage.data.repository.NetworkDoorRepository
 import com.chriscartland.garage.data.repository.NetworkRemoteButtonRepository
 import com.chriscartland.garage.data.repository.NetworkSnoozeRepository
@@ -72,6 +75,7 @@ import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.ButtonHealthFcmRepository
 import com.chriscartland.garage.domain.repository.ButtonHealthRepository
 import com.chriscartland.garage.domain.repository.DiagnosticsCountersRepository
+import com.chriscartland.garage.domain.repository.DoorCommandRepository
 import com.chriscartland.garage.domain.repository.DoorFcmRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.DoorResolvedFcmRepository
@@ -90,6 +94,7 @@ import com.chriscartland.garage.usecase.ApplyButtonHealthFcmUseCase
 import com.chriscartland.garage.usecase.BuildAppLogCsvUseCase
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.ChangeTestNotificationTopicUseCase
+import com.chriscartland.garage.usecase.CheckDoorCommandUseCase
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
@@ -350,6 +355,7 @@ abstract class AppComponent(
         deregisterFcm: DeregisterFcmUseCase,
         signInWithGoogle: SignInWithGoogleUseCase,
         pushRemoteButton: PushRemoteButtonUseCase,
+        checkDoorCommand: CheckDoorCommandUseCase,
         checkInStalenessManager: CheckInStalenessManager,
         liveClock: LiveClock,
         computeButtonHealthDisplay: ComputeButtonHealthDisplayUseCase,
@@ -367,6 +373,7 @@ abstract class AppComponent(
             deregisterFcmUseCase = deregisterFcm,
             signInWithGoogleUseCase = signInWithGoogle,
             pushRemoteButtonUseCase = pushRemoteButton,
+            checkDoorCommandUseCase = checkDoorCommand,
             checkInStalenessManager = checkInStalenessManager,
             liveClock = liveClock,
             buttonHealthDisplay = computeButtonHealthDisplay(),
@@ -521,6 +528,12 @@ abstract class AppComponent(
         authRepository: AuthRepository,
         remoteButtonRepository: RemoteButtonRepository,
     ): PushRemoteButtonUseCase = PushRemoteButtonUseCase(authRepository, remoteButtonRepository)
+
+    @Provides
+    fun provideCheckDoorCommandUseCase(
+        authRepository: AuthRepository,
+        doorCommandRepository: DoorCommandRepository,
+    ): CheckDoorCommandUseCase = CheckDoorCommandUseCase(authRepository, doorCommandRepository)
 
     @Provides
     fun provideSnoozeNotificationsUseCase(
@@ -697,6 +710,11 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
+    fun provideNetworkDoorCommandDataSource(httpClient: HttpClient): NetworkDoorCommandDataSource =
+        KtorNetworkDoorCommandDataSource(httpClient)
+
+    @Provides
+    @Singleton
     fun provideNetworkButtonHealthDataSource(httpClient: HttpClient): NetworkButtonHealthDataSource =
         KtorNetworkButtonHealthDataSource(httpClient)
 
@@ -797,6 +815,19 @@ abstract class AppComponent(
             serverConfigRepository = serverConfigRepository,
             authRepository = authRepository,
             remoteButtonPushEnabled = appConfig.remoteButtonPushEnabled,
+        )
+
+    @Provides
+    @Singleton
+    fun provideDoorCommandRepository(
+        networkDoorCommandDataSource: NetworkDoorCommandDataSource,
+        serverConfigRepository: ServerConfigRepository,
+        authRepository: AuthRepository,
+    ): DoorCommandRepository =
+        NetworkDoorCommandRepository(
+            networkDoorCommandDataSource = networkDoorCommandDataSource,
+            serverConfigRepository = serverConfigRepository,
+            authRepository = authRepository,
         )
 
     @Provides

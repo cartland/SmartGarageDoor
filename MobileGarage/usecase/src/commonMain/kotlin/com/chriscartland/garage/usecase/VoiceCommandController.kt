@@ -86,6 +86,21 @@ enum class VoiceCommandIgnoreReason {
 
     /** The door state changed during the cancel window; commit aborted. */
     DOOR_STATE_CHANGED,
+
+    /**
+     * The server could not be reached for its verdict, so the command was
+     * refused rather than sent on an unconfirmed guess.
+     *
+     * Distinct from [DOOR_STATE_UNKNOWN] on purpose: that one means the door
+     * answered and the answer was "I don't know", this one means nobody
+     * answered. They point at different fixes — one waits for the door, the
+     * other checks the network — so they are worded differently.
+     *
+     * Costs little in practice: the press would have gone to the same backend
+     * a moment later, so a server we cannot ask is a press we could not have
+     * delivered anyway.
+     */
+    SERVER_UNREACHABLE,
 }
 
 /**
@@ -173,11 +188,34 @@ sealed interface VoiceCommandState {
  * [RemoteButtonVoiceCommandEnvironment] (real door state in, real
  * remote button press out).
  *
- * Contract: [pressButton] reports failure by returning `false`, never
- * by throwing.
+ * Contract: [pressButton] and [confirmWithServer] report failure by
+ * returning a value, never by throwing.
  */
 interface VoiceCommandEnvironment {
     val doorState: StateFlow<VoiceDoorState>
+
+    /**
+     * A second opinion, asked immediately before pressing: does the SERVER
+     * also think this direction is actionable?
+     *
+     * Returns `null` to proceed, or the reason to refuse. It can only ever
+     * refuse — there is no return value that turns a locally-refused command
+     * into a permitted one — so adding this can never make voice more
+     * permissive than it was, only less.
+     *
+     * A live environment asks the `doorCommand` endpoint, which judges the
+     * same table plus check-in staleness (the thing the watch cannot judge
+     * for itself). It answers a verdict only; the press still goes through
+     * [pressButton] on the existing path.
+     *
+     * Unreachable server means REFUSE, not proceed. That costs little in
+     * practice because the press goes to the same backend a moment later, so
+     * a server we cannot ask is a press we could not have delivered.
+     *
+     * The simulated environment implements this locally and never touches the
+     * network — see [SimulatedVoiceCommandEnvironment].
+     */
+    suspend fun confirmWithServer(intent: VoiceIntent): VoiceCommandIgnoreReason?
 
     suspend fun pressButton(intent: VoiceIntent): Boolean
 }
@@ -340,6 +378,17 @@ class VoiceCommandController(
         // Second gate check: the world may have moved during the window.
         if (gateReason(classification.intent, environment.doorState.value) != null) {
             ignore(VoiceCommandIgnoreReason.DOOR_STATE_CHANGED, transcript, classification)
+            return
+        }
+        // Third gate: the server's opinion of the same question. Additive — it
+        // can refuse but never permit, so a command still has to have passed
+        // everything above. Deliberately runs while the state is still Armed
+        // rather than inventing a fourth visible state: it takes one round
+        // trip, nothing has been sent yet, and leaving it cancellable for that
+        // moment errs in the safe direction.
+        val serverReason = environment.confirmWithServer(classification.intent)
+        if (serverReason != null) {
+            ignore(serverReason, transcript, classification)
             return
         }
         _state.value = VoiceCommandState.Sending(classification.intent)

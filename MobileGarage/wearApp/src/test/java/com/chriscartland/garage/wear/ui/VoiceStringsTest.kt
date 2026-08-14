@@ -59,6 +59,20 @@ class VoiceStringsTest {
     )
 
     /**
+     * Refusals about the trip to the server, which name no door and so read the
+     * same on both surfaces — like the utterance ones, but for a different
+     * reason, so they are listed apart rather than filed under a heading that
+     * would be a lie.
+     *
+     * The simulation can never actually produce these: it answers its own gate
+     * locally and never leaves the watch. They are wired on that surface only
+     * so the `when` in [VoiceStrings.ignoredLine] stays exhaustive.
+     */
+    private val ignoredReasonsAboutTheConnection = listOf(
+        VoiceCommandIgnoreReason.SERVER_UNREACHABLE,
+    )
+
+    /**
      * The two lists above are maintained by hand, which means a new refusal
      * added to the enum lands in neither and escapes both tests silently —
      * they iterate their list, so an absent reason is simply never asserted.
@@ -69,12 +83,30 @@ class VoiceStringsTest {
     @Test
     fun everyRefusalIsClassifiedAsAboutTheDoorOrAboutTheUtterance() {
         assertEquals(
-            "A refusal reason is in neither list, so no test words it. Add it to " +
-                "ignoredReasonsAboutTheDoor if it talks about a door, otherwise to " +
-                "ignoredReasonsAboutTheUtterance.",
+            "A refusal reason is in none of the lists, so no test words it. Add it to " +
+                "ignoredReasonsAboutTheDoor if it talks about a door, " +
+                "ignoredReasonsAboutTheConnection if it talks about reaching the server, " +
+                "otherwise ignoredReasonsAboutTheUtterance.",
             VoiceCommandIgnoreReason.entries.toSet(),
-            (ignoredReasonsAboutTheDoor + ignoredReasonsAboutTheUtterance).toSet(),
+            (
+                ignoredReasonsAboutTheDoor +
+                    ignoredReasonsAboutTheUtterance +
+                    ignoredReasonsAboutTheConnection
+            ).toSet(),
         )
+    }
+
+    /** Naming no door, they read identically on both surfaces. */
+    @Test
+    fun refusalsAboutTheConnectionAreShared() {
+        ignoredReasonsAboutTheConnection.forEach { reason ->
+            assertEquals(
+                "$reason is about the trip to the server, not about a door, so " +
+                    "both surfaces should say the same thing.",
+                VoiceStrings.ignoredLine(reason, VoiceSurfaceMode.Live),
+                VoiceStrings.ignoredLine(reason, VoiceSurfaceMode.Simulated),
+            )
+        }
     }
 
     /**

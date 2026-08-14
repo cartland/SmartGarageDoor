@@ -23,6 +23,7 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.domain.model.VoiceIntent
 import com.chriscartland.garage.testcommon.FakeAuthRepository
+import com.chriscartland.garage.testcommon.FakeDoorCommandRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
@@ -40,10 +41,12 @@ class RemoteButtonVoiceCommandEnvironmentTest {
     private fun environment(
         auth: FakeAuthRepository,
         remote: FakeRemoteButtonRepository,
+        doorCommand: FakeDoorCommandRepository = FakeDoorCommandRepository(),
         createButtonAckToken: () -> String = { "android-test-voice-1" },
     ) = RemoteButtonVoiceCommandEnvironment(
         doorState = MutableStateFlow(VoiceDoorState.CLOSED),
         pushRemoteButton = PushRemoteButtonUseCase(auth, remote),
+        checkDoorCommand = CheckDoorCommandUseCase(auth, doorCommand),
         createButtonAckToken = createButtonAckToken,
     )
 

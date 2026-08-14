@@ -123,13 +123,46 @@ These two states are the only ones where the gate's answer depends on the
 direction for a reason other than "you asked for where it already is", which is
 why they get their own `VoiceDoorState.STUCK` rather than borrowing `OPEN`.
 
-### The server now judges the same table (`server/35`+)
+### The server judges the same table, and the client asks it (`server/35`+)
 
 `httpDoorCommand` (`FirebaseServer/src/functions/http/DoorCommand.ts`) answers
-the same question server-side, and is deployed but not yet called by any client.
-It exists **specifically for voice**, because a spoken sentence is the only
-input in this app that names a direction. It is verdict-only today: it has no
-import of the command collection the device polls, so it cannot move the door.
+the same question server-side. It exists **specifically for voice**, because a
+spoken sentence is the only input in this app that names a direction. It is
+verdict-only: it has no import of the command collection the device polls, so
+it cannot move the door.
+
+**Since Android 2.23.9 / Wear 0.7.1 the voice loop consults it as a third
+gate**, in this order:
+
+1. local gate at arm time
+2. local re-check when the cancel window elapses
+3. **the server's verdict**
+4. press, via the unchanged `addRemoteButtonCommand` path
+
+It is strictly additive. `VoiceCommandEnvironment.confirmWithServer` returns a
+refusal or `null`; there is no return value that turns a locally-refused command
+into a permitted one, so asking can only ever refuse. A locally-refused command
+short-circuits and never makes the round trip.
+
+**An unreachable server refuses** (`SERVER_UNREACHABLE`). That costs little:
+the press targets the same backend a moment later, so a server we cannot ask is
+a press we could not have delivered. The check runs while the state is still
+`Armed`, so it remains cancellable rather than adding a fourth visible state.
+
+**Being signed out proceeds past this gate deliberately.** It is not a fact
+about the door, and reporting it as one would send the user to look at the
+garage instead of their account. The press path's own auth gate refuses without
+any network call and words it as a failed send.
+
+**The watch gains the most.** The server judges check-in staleness, which the
+watch has never been able to judge for itself (`LiveVoiceDoor` passes
+`isCheckInStale = false` because no such signal exists there). A watch with a
+stale check-in now refuses commands that previously went through — the intended
+effect, and the one user-visible behavior change.
+
+The simulated surface implements the same method **locally and never touches
+the network**, so the rehearsal keeps its no-route-to-the-garage property while
+still refusing what the live surface would refuse.
 
 **The button is not moving there, and should not.** The remote is a toggle —
 one press, no direction — so the two-tap confirmation and the watch's hold have

@@ -37,6 +37,7 @@ import com.chriscartland.garage.presentation.SinceStatusMapper
 import com.chriscartland.garage.usecase.ButtonAckToken
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 import com.chriscartland.garage.usecase.ButtonStateMachine
+import com.chriscartland.garage.usecase.CheckDoorCommandUseCase
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
@@ -183,6 +184,7 @@ class DefaultHomeViewModel(
     private val deregisterFcmUseCase: DeregisterFcmUseCase,
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
     private val pushRemoteButtonUseCase: PushRemoteButtonUseCase,
+    private val checkDoorCommandUseCase: CheckDoorCommandUseCase,
     private val checkInStalenessManager: CheckInStalenessManager,
     private val liveClock: LiveClock,
     override val buttonHealthDisplay: StateFlow<ButtonHealthDisplay>,
@@ -276,6 +278,7 @@ class DefaultHomeViewModel(
         environment = RemoteButtonVoiceCommandEnvironment(
             doorState = voiceDoorState,
             pushRemoteButton = pushRemoteButtonUseCase,
+            checkDoorCommand = checkDoorCommandUseCase,
             createButtonAckToken = {
                 // The `-voice` suffix rides in the appVersion slot so server
                 // logs can tell voice presses from manual ones; the server

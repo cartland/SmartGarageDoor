@@ -21,6 +21,7 @@ import androidx.lifecycle.viewModelScope
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.usecase.ButtonAckToken
+import com.chriscartland.garage.usecase.CheckDoorCommandUseCase
 import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
@@ -64,6 +65,7 @@ class WearLiveVoiceViewModel(
     classifyVoiceIntent: ClassifyVoiceIntentUseCase,
     observeDoorEvents: ObserveDoorEventsUseCase,
     pushRemoteButton: PushRemoteButtonUseCase,
+    checkDoorCommand: CheckDoorCommandUseCase,
     dispatchers: DispatcherProvider,
     appVersion: String,
 ) : WearVoiceViewModel(
@@ -88,6 +90,11 @@ class WearLiveVoiceViewModel(
                         ),
                     ),
                 pushRemoteButton = pushRemoteButton,
+                // The watch gains the most from this: the server judges
+                // check-in staleness, which is the one gate the watch has
+                // never been able to apply for itself (LiveVoiceDoor passes
+                // isCheckInStale = false because no such signal exists here).
+                checkDoorCommand = checkDoorCommand,
                 createButtonAckToken = {
                     // The `-voice` marker rides in the appVersion slot so server
                     // logs can tell a spoken press from a held one. The server
