@@ -27,11 +27,14 @@ import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkDoorDataSource
 import com.chriscartland.garage.testcommon.InMemoryLocalDoorDataSource
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -258,6 +261,60 @@ class NetworkDoorRepositoryIntegrationTest {
             assertEquals(emptyList<DoorEvent>(), result.data)
             assertEquals(0, networkDataSource.fetchPageCount)
             assertEquals(0, localDataSource.appendCount)
+        }
+
+    @Test
+    fun leavingTheScreenMidPageDoesNotStrandTheLoadingFlag() =
+        runTest {
+            // Anti-pattern A9 (DATA_CACHING_STRATEGY): the load-more flag
+            // lives in a process-lifetime singleton, but the fetch used to
+            // run on the CALLER's scope with no finally — leaving History
+            // mid-page stranded isLoadingMore=true and the reentrancy
+            // guard then refused every later load-more until a successful
+            // pull-to-refresh. The fetch must survive the caller (ADR-019
+            // externalScope) and the flag must reset on every path.
+            configDataSource.setServerConfigResult(successConfig())
+            networkDataSource.setDoorEventPageResult(
+                NetworkResult.Success(
+                    DoorEventPage(
+                        listOf(DoorEvent(doorPosition = DoorPosition.OPEN, lastChangeTimeSeconds = 300L)),
+                        nextPageToken = "older-1",
+                        prevPageToken = null,
+                        hasMore = true,
+                    ),
+                ),
+            )
+            val repo = createRepository()
+            repo.fetchRecentDoorEvents()
+
+            // Park the older-page fetch mid-flight, then cancel the caller
+            // (the user leaves the screen; viewModelScope dies).
+            val gate = CompletableDeferred<Unit>()
+            networkDataSource.setPageFetchGate(gate)
+            networkDataSource.setNextDoorEventPageResult(
+                NetworkResult.Success(
+                    DoorEventPage(
+                        listOf(DoorEvent(doorPosition = DoorPosition.OPENING, lastChangeTimeSeconds = 100L)),
+                        nextPageToken = null,
+                        prevPageToken = "newer-1",
+                        hasMore = false,
+                    ),
+                ),
+            )
+            val caller = launch { repo.fetchOlderDoorEvents() }
+            runCurrent()
+            assertEquals(true, repo.paginationState.value.isLoadingMore)
+
+            caller.cancel()
+            gate.complete(Unit)
+            runCurrent()
+
+            // The flag is never stranded: History's next load-more works.
+            assertEquals(false, repo.paginationState.value.isLoadingMore)
+            // And the in-flight page still landed — the repository owns
+            // the work on externalScope, so the caller's death doesn't
+            // throw away a completed network round-trip.
+            assertEquals(1, localDataSource.appendCount)
         }
 
     // --- insertDoorEvent ---
