@@ -22,13 +22,15 @@ import com.chriscartland.garage.domain.graph.DataGraph.NodeId
 import com.chriscartland.garage.domain.graph.DataGraph.Sharing
 import com.lemonappdev.konsist.api.Konsist
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
- * Derives the data graph FROM SOURCES and proves it equals the
- * hand-declared [DataGraph] registry (docs/DATA_GRAPH_PLAN.md §6,
- * phase 1 — the parity bridge).
+ * THE data graph: derived from sources, checked, and rendered
+ * (docs/DATA_GRAPH_PLAN.md §6 — end state; there is no hand-declared
+ * registry anymore).
  *
  * What is extracted, and from what:
  *  - INPUT nodes from `@NodeCadence` annotations on repository/manager
@@ -44,25 +46,29 @@ import org.junit.Test
  *    `SharingStarted` literal. A `WhileSubscribed` gate's poll is
  *    resolved as the unique POLL-cadence source in the node's
  *    transitive closure.
+ *  - READERS (the G7 key) from `:viewmodel` constructors: a parameter
+ *    typed as a derived shell class, or typed `StateFlow<output>` and
+ *    NAMED after the node (the injected-value shape,
+ *    `buttonHealthDisplay`). Constructor references are consumption of
+ *    the terminal surface — VM STATE stays out of the graph (G0);
+ *    reader names drop the `Default` prefix (the screen identity).
  *
- * The extracted list runs through the SAME parameterized [DataGraph]
- * checks as the registry, and the parity test pins extracted ==
- * declared on everything both sides model: input (id, cadence) and
- * derived (id, edge set, sharing). While both exist they verify each
- * other — and this closes the previously-open direction (code ⊆
- * registry): an edge in code that the registry misses now fails
- * parity instead of going undetected.
+ * The extracted graph runs through the parameterized [DataGraph]
+ * checks, and the generated `docs/DATA_GRAPH.md` rendering is pinned
+ * byte-exact — a graph change is visible in review as a diff of that
+ * committed file, and CI fails until it is regenerated
+ * (`./scripts/generate-data-graph.sh`).
  *
- * Comment-stripped text parsing follows the honesty-test precedent.
- * Every parser has a positive control below (the vacuous-pass rule),
- * and the parity test is the global control — a parser that returns
- * nothing cannot reproduce the reviewed registry. Scope is exactly the
- * G0 boundary: repository/manager inputs and `stateIn` UseCases are
- * parsed; ViewModels never are.
+ * Comment-stripped text parsing throughout; every parser and rule has
+ * a positive control below (the vacuous-pass rule), and the rendering
+ * pin is the global control — a parser that returns nothing cannot
+ * reproduce the reviewed committed rendering.
  *
  * Local-probe caveat: Konsist reads sources but Gradle tracks the
- * compiled classpath — probe rule changes with `--rerun-tasks`
- * (CLAUDE.md § Konsist).
+ * compiled classpath — and the committed rendering is read at RUNTIME,
+ * so a docs-only edit never re-triggers the task by itself. Probe (and
+ * regenerate) with `--rerun-tasks` (CLAUDE.md § Konsist); CI always
+ * runs fresh.
  */
 class DataGraphExtractionKonsistTest {
     private val scope = Konsist.scopeFromProduction()
@@ -81,6 +87,8 @@ class DataGraphExtractionKonsistTest {
         val fromIds: Set<String>,
         /** "Eagerly", "WhileSubscribed", another literal, or null when none was found. */
         val sharingName: String?,
+        /** The `StateFlow<X>` type argument of the stateIn property, for reader attribution. */
+        val outputType: String? = null,
     )
 
     // ---- extraction from the real sources ----
@@ -141,16 +149,44 @@ class DataGraphExtractionKonsistTest {
                 className = name,
                 fromIds = edgeIds(flowExpr, constructorParams(text, name), inputDeclsByOwner, derivedIdByClass),
                 sharingName = sharingName(text.substring(split)),
+                outputType = STATE_FLOW_PROP
+                    .findAll(flowExpr)
+                    .lastOrNull()
+                    ?.groupValues
+                    ?.get(1)
+                    ?.trim(),
             )
         }
     }
 
-    private fun realExtraction(): Pair<List<DataGraph.Node>, List<String>> {
-        val inputs = extractInputs()
-        return assembleGraph(inputs, extractDeriveds(inputs))
+    private fun extractReaders(deriveds: List<RawDerived>): Map<String, List<String>> {
+        val vmFiles = scope.files.filter { it.path.contains("/viewmodel/src/commonMain/") }
+        require(vmFiles.isNotEmpty()) { "Konsist scope found no viewmodel files — scope misconfigured" }
+        return vmFiles
+            .flatMap { readerPairsIn(stripComments(it.text), deriveds) }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, names) -> names.distinct().sorted() }
     }
 
-    // ---- the real graph, extracted, checked, and pinned to the registry ----
+    /** (derived shell class, reader name) pairs found in one file's class constructors. */
+    private fun readerPairsIn(
+        text: String,
+        deriveds: List<RawDerived>,
+    ): List<Pair<String, String>> =
+        CLASS_WITH_CTOR.findAll(text).toList().flatMap { match ->
+            val cls = match.groupValues[1]
+            namedTypedParams(text, cls).mapNotNull { (paramName, paramType) ->
+                attributeReader(deriveds, paramName, paramType)?.let { it to cls.removePrefix("Default") }
+            }
+        }
+
+    private fun realExtraction(): Pair<List<DataGraph.Node>, List<String>> {
+        val inputs = extractInputs()
+        val deriveds = extractDeriveds(inputs)
+        return assembleGraph(inputs, deriveds, extractReaders(deriveds))
+    }
+
+    // ---- the real graph: extracted, checked, rendered, pinned ----
 
     @Test
     fun `the extracted graph is coherent and problem-free`() {
@@ -161,31 +197,30 @@ class DataGraphExtractionKonsistTest {
         assertEquals(emptyList<NodeId>(), DataGraph.cycleMembers(nodes))
         assertEquals(emptyList<String>(), DataGraph.invalidGates(nodes))
         assertEquals(emptyList<String>(), DataGraph.eagerOverPolls(nodes))
+        assertEquals(emptyList<String>(), DataGraph.sharedRootViolations(nodes))
     }
 
     @Test
-    fun `extraction reproduces the hand-declared registry`() {
-        val (nodes, _) = realExtraction()
+    fun `the committed DATA_GRAPH rendering matches the sources`() {
+        val (nodes, problems) = realExtraction()
+        require(problems.isEmpty()) { "extraction problems (fix before rendering): $problems" }
+        val generated = render(nodes)
 
-        val extractedInputs = nodes
-            .filterIsInstance<DataGraph.Input>()
-            .map { it.id to it.cadence }
-            .toSet()
-        val declaredInputs = DataGraph.nodes
-            .filterIsInstance<DataGraph.Input>()
-            .map { it.id to it.cadence }
-            .toSet()
-        assertEquals(declaredInputs, extractedInputs)
+        val root = mobileGarageRoot()
+        val artifact = File(root, "androidApp/build/reports/data-graph/DATA_GRAPH.md")
+        artifact.parentFile.mkdirs()
+        artifact.writeText(generated)
 
-        val extractedDerived = nodes
-            .filterIsInstance<DataGraph.Derived>()
-            .map { Triple(it.id, it.from.toSet(), it.sharing) }
-            .toSet()
-        val declaredDerived = DataGraph.nodes
-            .filterIsInstance<DataGraph.Derived>()
-            .map { Triple(it.id, it.from.toSet(), it.sharing) }
-            .toSet()
-        assertEquals(declaredDerived, extractedDerived)
+        val committed = File(root, "docs/DATA_GRAPH.md")
+        assertTrue(
+            "docs/DATA_GRAPH.md is missing — run ./scripts/generate-data-graph.sh",
+            committed.exists(),
+        )
+        assertEquals(
+            "docs/DATA_GRAPH.md is out of date — run ./scripts/generate-data-graph.sh",
+            generated,
+            committed.readText(),
+        )
     }
 
     // ---- positive controls: every parser and rule can actually fire ----
@@ -275,6 +310,15 @@ class DataGraphExtractionKonsistTest {
             edgeIds(stripped.substring(0, split), params, owners, emptyMap()),
         )
         assertEquals("Eagerly", sharingName(stripped.substring(split)))
+        // The stateIn property's type argument is the node's output type.
+        assertEquals(
+            "Thing",
+            STATE_FLOW_PROP
+                .findAll(stripped.substring(0, split))
+                .lastOrNull()
+                ?.groupValues
+                ?.get(1),
+        )
     }
 
     @Test
@@ -284,6 +328,32 @@ class DataGraphExtractionKonsistTest {
         assertEquals(setOf("upstream"), edgeIds("upstream().map { it }", params, emptyMap(), derivedIdByClass))
         assertEquals(setOf("upstream"), edgeIds("upstream.status", params, emptyMap(), derivedIdByClass))
         assertEquals(emptySet<String>(), edgeIds("noReferenceHere", params, emptyMap(), derivedIdByClass))
+    }
+
+    @Test
+    fun `reader attribution fires by shell type or by named output value, and only those`() {
+        val deriveds = listOf(
+            RawDerived("ComputeButtonHealthDisplayUseCase", emptySet(), "Eagerly", outputType = "ButtonHealthDisplay"),
+            RawDerived("ComputeEffectiveSnoozeStateUseCase", emptySet(), "Eagerly", outputType = "SnoozeState"),
+        )
+        // Route (a): a constructor parameter typed as the shell class.
+        assertEquals(
+            "ComputeEffectiveSnoozeStateUseCase",
+            attributeReader(deriveds, "anyName", "ComputeEffectiveSnoozeStateUseCase"),
+        )
+        // Route (b): StateFlow<output> AND named after the node.
+        assertEquals(
+            "ComputeButtonHealthDisplayUseCase",
+            attributeReader(deriveds, "buttonHealthDisplay", "StateFlow<ButtonHealthDisplay>"),
+        )
+        // A StateFlow of the output type NOT named after the node is not
+        // attributed (it could be any flow of that domain type).
+        assertNull(attributeReader(deriveds, "someOtherFlow", "StateFlow<ButtonHealthDisplay>"))
+        // An ambiguous output type (two nodes emit it) never attributes.
+        val ambiguous = deriveds + RawDerived("ObserveOtherUseCase", emptySet(), "Eagerly", outputType = "SnoozeState")
+        assertNull(attributeReader(ambiguous, "effectiveSnoozeState", "StateFlow<SnoozeState>"))
+        // An unrelated type is not attributed.
+        assertNull(attributeReader(deriveds, "x", "DispatcherProvider"))
     }
 
     @Test
@@ -314,14 +384,16 @@ class DataGraphExtractionKonsistTest {
     }
 
     @Test
-    fun `assembly resolves a gate to its upstream poll`() {
+    fun `assembly resolves a gate to its upstream poll and attaches readers`() {
         val (nodes, problems) = assembleGraph(
             listOf(RawInput("WearCompanionRepository", "observeWatchAppStatus", Cadence.POLL, "watchCompanion")),
             listOf(RawDerived("ObserveWatchAppStatusUseCase", setOf("watchCompanion"), "WhileSubscribed")),
+            readersByShell = mapOf("ObserveWatchAppStatusUseCase" to listOf("ProfileViewModel")),
         )
         assertEquals(emptyList<String>(), problems)
         val derived = nodes.filterIsInstance<DataGraph.Derived>().single()
         assertEquals(Sharing.Gated(poll = NodeId.WATCH_COMPANION), derived.sharing)
+        assertEquals(listOf("ProfileViewModel"), derived.readBy)
     }
 
     @Test
@@ -329,6 +401,43 @@ class DataGraphExtractionKonsistTest {
         assertEquals("buttonHealthDisplay", derivedNodeId("ComputeButtonHealthDisplayUseCase"))
         assertEquals("watchAppStatus", derivedNodeId("ObserveWatchAppStatusUseCase"))
         assertEquals("somethingNew", derivedNodeId("SomethingNewUseCase"))
+    }
+
+    @Test
+    fun `the rendering is deterministic and complete for a known graph`() {
+        val nodes = listOf(
+            DataGraph.Input(NodeId.CURRENT_DOOR_EVENT, owner = "DoorRepository", cadence = Cadence.PUSH),
+            DataGraph.Derived(
+                id = NodeId.BUTTON_HEALTH_DISPLAY,
+                from = listOf(NodeId.CURRENT_DOOR_EVENT),
+                shell = "ComputeButtonHealthDisplayUseCase",
+                sharing = Sharing.Eager,
+                readBy = listOf("HomeViewModel"),
+            ),
+        )
+        val expected =
+            """
+            <!-- GENERATED from sources by DataGraphExtractionKonsistTest — do not edit.
+                 Regenerate: ./scripts/generate-data-graph.sh
+                 The same test pins this file byte-exact to the code (DATA_GRAPH_PLAN.md §6). -->
+
+            # Shared data graph
+
+            | Node | Kind | Cadence | Declared by | Sharing | Read by |
+            |---|---|---|---|---|---|
+            | `currentDoorEvent` | input | PUSH | `DoorRepository` | — | — |
+            | `buttonHealthDisplay` | derived | — | `ComputeButtonHealthDisplayUseCase` | eager | `HomeViewModel` |
+
+            ```mermaid
+            graph LR
+                currentDoorEvent(["currentDoorEvent · PUSH"])
+                buttonHealthDisplay["buttonHealthDisplay"]
+                HomeViewModel{{"HomeViewModel"}}
+                currentDoorEvent --> buttonHealthDisplay
+                buttonHealthDisplay --> HomeViewModel
+            ```
+            """.trimIndent() + "\n"
+        assertEquals(expected, render(nodes))
     }
 
     // ---- parsers (pure; exercised by the controls above) ----
@@ -361,7 +470,8 @@ class DataGraphExtractionKonsistTest {
 
     private fun sharingName(afterStateIn: String): String? = SHARING.find(afterStateIn)?.groupValues?.get(1)
 
-    private fun constructorParams(
+    /** Constructor parameters as (name, FULL type text, whitespace-normalized, default stripped). */
+    private fun namedTypedParams(
         strippedText: String,
         className: String,
     ): List<Pair<String, String>> {
@@ -383,9 +493,31 @@ class DataGraphExtractionKonsistTest {
             }
         }
         return splitTopLevel(strippedText.substring(open + 1, end)).mapNotNull { raw ->
-            PARAM.find(raw.trim())?.let { it.groupValues[1] to it.groupValues[2] }
+            var param = raw.trim()
+            for (modifier in listOf("override", "private", "protected", "internal", "val", "var")) {
+                param = param.removePrefix("$modifier ").trim()
+            }
+            val colon = param.indexOf(':')
+            if (colon < 0) return@mapNotNull null
+            val name = param.substring(0, colon).trim()
+            if (!name.matches(Regex("""[A-Za-z0-9_]+"""))) return@mapNotNull null
+            val type = param
+                .substring(colon + 1)
+                .substringBefore('=')
+                .trim()
+                .replace(Regex("""\s+"""), " ")
+            name to type
         }
     }
+
+    /** Constructor parameters as (name, base type without generics) — the edge-matching shape. */
+    private fun constructorParams(
+        strippedText: String,
+        className: String,
+    ): List<Pair<String, String>> =
+        namedTypedParams(strippedText, className).map { (name, type) ->
+            name to type.substringBefore('<').trim()
+        }
 
     private fun splitTopLevel(s: String): List<String> {
         val parts = mutableListOf<String>()
@@ -446,11 +578,27 @@ class DataGraphExtractionKonsistTest {
             .removeSuffix("UseCase")
             .replaceFirstChar { it.lowercaseChar() }
 
+    /** The derived shell class this constructor parameter reads, or null (see the control for the rules). */
+    private fun attributeReader(
+        deriveds: List<RawDerived>,
+        paramName: String,
+        paramType: String,
+    ): String? {
+        deriveds.firstOrNull { it.className == paramType }?.let { return it.className }
+        val outputArg = STATE_FLOW_PARAM.find(paramType)?.groupValues?.get(1) ?: return null
+        return deriveds
+            .filter { it.outputType == outputArg }
+            .singleOrNull()
+            ?.takeIf { derivedNodeId(it.className) == paramName }
+            ?.className
+    }
+
     // ---- assembly (pure; controls call it with doctored raw lists) ----
 
     private fun assembleGraph(
         inputs: List<RawInput>,
         deriveds: List<RawDerived>,
+        readersByShell: Map<String, List<String>> = emptyMap(),
     ): Pair<List<DataGraph.Node>, List<String>> {
         val problems = mutableListOf<String>()
 
@@ -479,9 +627,9 @@ class DataGraphExtractionKonsistTest {
             DataGraph.Derived(
                 id = id,
                 from = raw.fromIds.mapNotNull { toNodeId(it, "edge of ${raw.className}") }.sortedBy { it.name },
-                transform = EXTRACTED_TRANSFORM,
                 shell = raw.className,
                 sharing = Sharing.Eager,
+                readBy = readersByShell[raw.className].orEmpty(),
             )
         }
         val draftGraph = inputNodes + eagerDrafts
@@ -520,6 +668,62 @@ class DataGraphExtractionKonsistTest {
         return (inputNodes + derivedNodes) to problems
     }
 
+    // ---- rendering (pure; pinned to docs/DATA_GRAPH.md) ----
+
+    private fun render(nodes: List<DataGraph.Node>): String {
+        val ordered = nodes.sortedBy { it.id.ordinal }
+        val inputs = ordered.filterIsInstance<DataGraph.Input>()
+        val deriveds = ordered.filterIsInstance<DataGraph.Derived>()
+        val readers = deriveds.flatMap { it.readBy }.distinct().sorted()
+        return buildString {
+            appendLine("<!-- GENERATED from sources by DataGraphExtractionKonsistTest — do not edit.")
+            appendLine("     Regenerate: ./scripts/generate-data-graph.sh")
+            appendLine("     The same test pins this file byte-exact to the code (DATA_GRAPH_PLAN.md §6). -->")
+            appendLine()
+            appendLine("# Shared data graph")
+            appendLine()
+            appendLine("| Node | Kind | Cadence | Declared by | Sharing | Read by |")
+            appendLine("|---|---|---|---|---|---|")
+            inputs.forEach { appendLine("| `${it.id.id}` | input | ${it.cadence} | `${it.owner}` | — | — |") }
+            deriveds.forEach { d ->
+                val sharing = when (val s = d.sharing) {
+                    is Sharing.Eager -> "eager"
+                    is Sharing.Gated -> "gated on `${s.poll.id}`"
+                }
+                val readBy = if (d.readBy.isEmpty()) "—" else d.readBy.joinToString(", ") { "`$it`" }
+                appendLine("| `${d.id.id}` | derived | — | `${d.shell}` | $sharing | $readBy |")
+            }
+            appendLine()
+            appendLine("```mermaid")
+            appendLine("graph LR")
+            inputs.forEach { appendLine("    ${it.id.id}([\"${it.id.id} · ${it.cadence}\"])") }
+            deriveds.forEach { appendLine("    ${it.id.id}[\"${it.id.id}\"]") }
+            readers.forEach { appendLine("    $it{{\"$it\"}}") }
+            deriveds.forEach { d ->
+                val poll = (d.sharing as? Sharing.Gated)?.poll
+                d.from.forEach { from ->
+                    if (from == poll) {
+                        appendLine("    ${from.id} -. poll, gated .-> ${d.id.id}")
+                    } else {
+                        appendLine("    ${from.id} --> ${d.id.id}")
+                    }
+                }
+                d.readBy.forEach { reader -> appendLine("    ${d.id.id} --> $reader") }
+            }
+            appendLine("```")
+        }
+    }
+
+    /** Walk up from the test working directory to the Gradle root (the dir holding docs/DATA_GRAPH_PLAN.md). */
+    private fun mobileGarageRoot(): File {
+        var dir: File? = File(System.getProperty("user.dir")).absoluteFile
+        while (dir != null) {
+            if (File(dir, "docs/DATA_GRAPH_PLAN.md").exists()) return dir
+            dir = dir.parentFile
+        }
+        error("could not locate the MobileGarage root from ${System.getProperty("user.dir")}")
+    }
+
     /** Remove block + line comments so prose cannot create (or hide) a node or an edge. */
     private fun stripComments(text: String): String =
         text
@@ -537,10 +741,9 @@ class DataGraphExtractionKonsistTest {
         val ANNOTATION = Regex("""@NodeCadence\s*\(([^)]*)\)""")
         val DECLARATION = Regex("""\b(val|fun)\s+([A-Za-z0-9_]+)""")
         val CLASS_NAME = Regex("""\bclass\s+([A-Za-z0-9_]+)""")
+        val CLASS_WITH_CTOR = Regex("""\bclass\s+([A-Za-z0-9_]+)\s*\(""")
         val SHARING = Regex("""SharingStarted\s*\.\s*([A-Za-z]+)""")
-        val PARAM = Regex("""^(?:private\s+)?(?:val\s+|var\s+)?([A-Za-z0-9_]+)\s*:\s*([A-Za-z0-9_.]+)""")
-
-        /** Transforms are not extracted (scheduled for deletion with the registry's strings). */
-        const val EXTRACTED_TRANSFORM = "extracted-from-source"
+        val STATE_FLOW_PROP = Regex("""val\s+[A-Za-z0-9_]+\s*:\s*StateFlow<([^<>]+)>""")
+        val STATE_FLOW_PARAM = Regex("""^StateFlow<\s*([A-Za-z0-9_.]+)\s*>$""")
     }
 }

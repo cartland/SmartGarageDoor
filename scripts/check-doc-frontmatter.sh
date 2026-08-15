@@ -68,6 +68,10 @@ should_skip() {
         # Generated iOS snapshot gallery (same generated-artifact class as the
         # Android gallery above).
         */SnapshotTests/SCREENSHOT_GALLERY.md) return 0 ;;
+        # Generated data-graph rendering (pinned byte-exact to sources by
+        # DataGraphExtractionKonsistTest; regenerate-dont-edit, so no hand
+        # front-matter). Same generated-artifact class as the galleries above.
+        */docs/DATA_GRAPH.md) return 0 ;;
         # iOS snapshot-generation DerivedData (gitignored; holds SPM checkouts'
         # own README/docc markdown). Analogous to the */build/* skip above.
         */.derivedData-snapshots/*) return 0 ;;
