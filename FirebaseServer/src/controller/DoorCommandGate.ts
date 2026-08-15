@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { SensorEventType } from '../model/SensorEvent';
+import { SensorEvent, SensorEventType } from '../model/SensorEvent';
 
 /**
  * Whether a directional door command ("open" / "close") is actionable right
@@ -195,7 +195,22 @@ export interface DoorCommandVerdict {
  * @param nowSeconds server time, passed in so the decision stays pure
  */
 export function judgeDoorCommand(input: {
-  event: { type?: string; checkInTimestampSeconds?: number } | null | undefined;
+  /**
+   * A door READING, or null when there is none.
+   *
+   * Deliberately typed as the full {@link SensorEvent} rather than a loose
+   * `{ type?, checkInTimestampSeconds? }`: every property of that loose shape
+   * was optional, which made the stored WRAPPER document structurally
+   * assignable to it. That is exactly how this function came to be fed a
+   * document instead of a reading, and it type-checked. `SensorEvent` has
+   * required members the wrapper does not, so the same mistake is now a
+   * compile error rather than a silent `undefined`.
+   *
+   * The reads below stay defensive anyway — this is untrusted Firestore data,
+   * and the static type is a guard against the WRONG VALUE being passed, not a
+   * promise about the contents of the right one.
+   */
+  event: SensorEvent | null | undefined;
   command: DoorCommand;
   nowSeconds: number;
   staleThresholdSeconds?: number;

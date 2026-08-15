@@ -21,6 +21,27 @@ import { getSnoozeStatus, submitSnoozeNotificationsRequest } from '../../src/con
 import { DATABASE as SnoozeNotificationsDatabase } from '../../src/database/SnoozeNotificationsDatabase';
 import { DATABASE as SensorEventDatabase } from '../../src/database/SensorEventDatabase';
 import { SnoozeStatus } from '../../src/model/SnoozeRequest';
+import { SensorEventType } from '../../src/model/SensorEvent';
+import { SensorEventDocument } from '../../src/model/SensorEventDocument';
+
+/**
+ * A stored document carrying one reading, in the shape production writes.
+ *
+ * These fixtures used to be `{ currentEvent: { timestampSeconds: '12345' } }`
+ * — a lone STRING field where `EventUpdates` writes a complete `SensorEvent`
+ * with a NUMERIC timestamp. Nothing depended on the difference (the code under
+ * test runs `parseInt`, which accepts either), but an unfaithful fixture is
+ * how `httpDoorCommand` shipped broken in server/35, so they now mirror what
+ * Firestore really holds.
+ */
+const documentWithEventAt = (timestampSeconds: number): SensorEventDocument => ({
+  currentEvent: {
+    type: SensorEventType.Open,
+    timestampSeconds,
+    message: '',
+    checkInTimestampSeconds: timestampSeconds,
+  },
+});
 
 describe('SnoozeNotifications', () => {
   afterEach(() => {
@@ -36,7 +57,7 @@ describe('SnoozeNotifications', () => {
     });
 
     it('should return NONE when there is no snooze request', async () => {
-      const currentEvent = { currentEvent: { timestampSeconds: '12345' } };
+      const currentEvent = documentWithEventAt(12345);
       sinon.stub(SensorEventDatabase, 'getCurrent').resolves(currentEvent);
       sinon.stub(SnoozeNotificationsDatabase, 'get').resolves(null);
       const params = { buildTimestamp: 'test' };
@@ -45,7 +66,7 @@ describe('SnoozeNotifications', () => {
     });
 
     it('should return EXPIRED when the snooze request is expired', async () => {
-      const currentEvent = { currentEvent: { timestampSeconds: '12345' } };
+      const currentEvent = documentWithEventAt(12345);
       const snoozeRequest = {
         snoozeEndTimeSeconds: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
         currentEventTimestampSeconds: 12345,
@@ -58,7 +79,7 @@ describe('SnoozeNotifications', () => {
     });
 
     it('should return ACTIVE when there is an active snooze request', async () => {
-      const currentEvent = { currentEvent: { timestampSeconds: '12345' } };
+      const currentEvent = documentWithEventAt(12345);
       const snoozeRequest = {
         snoozeEndTimeSeconds: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         currentEventTimestampSeconds: 12345,
@@ -79,7 +100,7 @@ describe('SnoozeNotifications', () => {
     // return NONE so the notification check (OldDataFCM) falls through
     // to the normal 15-min stuck-open path. See docs/SNOOZE_BEHAVIOR.md.
     it('should return NONE when the snooze record is future-dated but the current event has advanced', async () => {
-      const currentEvent = { currentEvent: { timestampSeconds: '99999' } }; // newer event
+      const currentEvent = documentWithEventAt(99999); // newer event
       const snoozeRequest = {
         snoozeEndTimeSeconds: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         currentEventTimestampSeconds: 12345,                         // older event
@@ -94,7 +115,7 @@ describe('SnoozeNotifications', () => {
 
   describe('submitSnoozeNotificationsRequest', () => {
     it('should return an error when the snooze event timestamp does not match the current event timestamp', async () => {
-      const currentEvent = { currentEvent: { timestampSeconds: '12345' } };
+      const currentEvent = documentWithEventAt(12345);
       sinon.stub(SensorEventDatabase, 'getCurrent').resolves(currentEvent);
       const params = {
         buildTimestamp: 'test',
@@ -107,7 +128,7 @@ describe('SnoozeNotifications', () => {
     });
 
     it('should return an error for an invalid snooze duration', async () => {
-      const currentEvent = { currentEvent: { timestampSeconds: '12345' } };
+      const currentEvent = documentWithEventAt(12345);
       sinon.stub(SensorEventDatabase, 'getCurrent').resolves(currentEvent);
       const params = {
         buildTimestamp: 'test',
@@ -120,7 +141,7 @@ describe('SnoozeNotifications', () => {
     });
 
     it('should successfully create a snooze request with a valid duration', async () => {
-      const currentEvent = { currentEvent: { timestampSeconds: '12345' } };
+      const currentEvent = documentWithEventAt(12345);
       const snoozeRequest = {
         snoozeEndTimeSeconds: Math.floor(Date.now() / 1000) + 3600,
         currentEventTimestampSeconds: 12345,

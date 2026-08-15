@@ -306,12 +306,29 @@ describe('handleNextEvent (pure handler core)', () => {
 
     expect(result.kind).to.equal('ok');
     expect(fakeDB.saved).to.have.lengthOf(1);
-    expect(fakeDB.saved[0]).to.deep.equal([BUILD_TIMESTAMP, newEvent]);
+    // The WRAPPER, the way EventUpdates writes it. This used to assert the
+    // bare event, which is a document no reader can interpret — including the
+    // door-status endpoint and the FCM path. The old assertion was pinning the
+    // bug rather than the behavior.
+    expect(fakeDB.saved[0]).to.deep.equal([
+      BUILD_TIMESTAMP,
+      { buildTimestamp: BUILD_TIMESTAMP, previousEvent: null, currentEvent: newEvent },
+    ]);
   });
 
   it('passes sensor-snapshot values through to the interpreter as strings + parsed timestamp', async () => {
     const stub = sinon.stub(EventInterpreter, 'getNewEventOrNull').returns(null);
-    fakeDB.seed(BUILD_TIMESTAMP, { some: 'old' });
+    // Seeded in the shape production stores. The old fixture was a bare
+    // `{ some: 'old' }` and the assertion below expected that same object to
+    // reach the interpreter — which is the server/35 bug in miniature: the
+    // interpreter takes a SensorEvent, so it was being handed a document.
+    const oldReading = {
+      type: SensorEventType.Open,
+      timestampSeconds: 7,
+      message: '',
+      checkInTimestampSeconds: 7,
+    };
+    fakeDB.seed(BUILD_TIMESTAMP, { currentEvent: oldReading });
 
     await handleNextEvent({
       query: {
@@ -325,7 +342,8 @@ describe('handleNextEvent (pure handler core)', () => {
 
     expect(stub.calledOnce).to.be.true;
     const [oldEvent, snapshot, ts] = stub.firstCall.args;
-    expect(oldEvent).to.deep.equal({ some: 'old' });
+    // The READING out of the document, not the document.
+    expect(oldEvent).to.deep.equal(oldReading);
     expect(snapshot).to.deep.equal({ sensorA: 'open', sensorB: 'closed', timestampSeconds: 0 });
     expect(ts).to.equal(42);
   });

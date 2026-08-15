@@ -16,7 +16,7 @@
 
 import { TimeSeriesDatabase, EventPage, PageDirection, TimestampCursor } from './TimeSeriesDatabase';
 import { SensorEvent } from '../model/SensorEvent';
-import { readCurrentEvent } from '../model/SensorEventDocument';
+import { SensorEventDocument, readCurrentEvent } from '../model/SensorEventDocument';
 
 export { EventPage, PageDirection, TimestampCursor } from './TimeSeriesDatabase';
 
@@ -37,7 +37,18 @@ export const COLLECTION_ALL = 'eventsAll';
 
 export interface SensorEventDatabase {
   save(buildTimestamp: string, data: any): Promise<void>;
-  getCurrent(buildTimestamp: string): Promise<any>;
+  /**
+   * The stored WRAPPER document, not a door reading.
+   *
+   * Typed as {@link SensorEventDocument} rather than `any` so that handing it
+   * to something expecting a {@link SensorEvent} fails to compile. That is not
+   * hypothetical: `httpDoorCommand` passed this straight to the decision gate
+   * for the whole of server/35 and refused every spoken command, because
+   * `.type` on the wrapper is `undefined` and reads exactly like a door that
+   * has never reported. Use {@link SensorEventDerivedReads.getCurrentEvent}
+   * when you want the reading.
+   */
+  getCurrent(buildTimestamp: string): Promise<SensorEventDocument>;
   updateCurrentWithMatchingCurrentEventTimestamp(buildTimestamp: string, matchingCurrent: any): Promise<any>;
   deleteAllBefore(cutoffTimestampSeconds: number, dryRun: boolean): Promise<number>;
   getLatestN(n: number): Promise<any>;

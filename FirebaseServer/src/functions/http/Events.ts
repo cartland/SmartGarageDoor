@@ -23,6 +23,7 @@ import { DATABASE as SensorEventDatabase, EventPage, TimestampCursor, PageDirect
 import { SensorSnapshot } from '../../model/SensorSnapshot';
 
 import { getNewEventOrNull } from '../../controller/EventInterpreter';
+import { CURRENT_EVENT_KEY, PREVIOUS_EVENT_KEY, readCurrentEvent } from '../../model/SensorEventDocument';
 import { HandlerResult, ok, err } from '../HandlerResult';
 import { HTTP_RUNTIME_OPTS } from '../HttpRuntime';
 
@@ -289,10 +290,25 @@ export async function handleNextEvent(input: {
   if (input.query && TIMESTAMP_SECONDS_PARAM_KEY in input.query) {
     timestampSeconds = parseInt(String(input.query[TIMESTAMP_SECONDS_PARAM_KEY]));
   }
-  const oldEvent = await SensorEventDatabase.getCurrent(buildTimestamp);
+  // Both lines below were wrong until the `getCurrent` return type was
+  // tightened, in the same two ways `httpDoorCommand` was: the WRAPPER was
+  // passed where a reading was expected (`getNewEventOrNull` takes a
+  // `SensorEvent`, so `.type` on the wrapper read as undefined), and the new
+  // event was saved BARE, which writes a document no reader can interpret --
+  // including the door-status endpoint and the FCM path. Dormant rather than
+  // harmful only because `nextEvent` was pulled from production exports in
+  // 2026-05-14; it survives as a manually-callable utility, and a utility that
+  // corrupts `eventsCurrent` when run is not worth keeping in that state.
+  // Written the way `EventUpdates.updateWithParams` writes it.
+  const oldDocument = await SensorEventDatabase.getCurrent(buildTimestamp);
+  const oldEvent = readCurrentEvent(oldDocument);
   const newEvent = getNewEventOrNull(oldEvent, sensorSnapshot, timestampSeconds);
   if (newEvent !== null) {
-    await SensorEventDatabase.save(buildTimestamp, newEvent);
+    await SensorEventDatabase.save(buildTimestamp, {
+      [BUILD_TIMESTAMP_PARAM_KEY]: buildTimestamp,
+      [PREVIOUS_EVENT_KEY]: oldEvent,
+      [CURRENT_EVENT_KEY]: newEvent,
+    });
   }
   data[OLD_EVENT_KEY] = oldEvent;
   data[NEW_EVENT_KEY] = newEvent;

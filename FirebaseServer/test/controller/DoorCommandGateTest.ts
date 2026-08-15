@@ -33,7 +33,7 @@ import {
   projectDoorState,
   rejectionFor,
 } from '../../src/controller/DoorCommandGate';
-import { SensorEventType } from '../../src/model/SensorEvent';
+import { SensorEvent, SensorEventType } from '../../src/model/SensorEvent';
 
 interface VerdictRow {
   sensorEventType: string | null;
@@ -52,6 +52,21 @@ const TABLE = JSON.parse(
 const NOW = 1_700_000_000;
 /** A check-in recent enough that staleness never enters into it. */
 const FRESH = NOW - 5;
+
+/**
+ * A reading in a shape Firestore can really hold but `SensorEvent` does not
+ * describe — no check-in, an empty document, a type from a firmware newer
+ * than this server.
+ *
+ * `judgeDoorCommand` takes a `SensorEvent` so that a stored DOCUMENT cannot be
+ * passed where a reading belongs; that is the mistake that made every spoken
+ * command fail for the whole of server/35, and it type-checked because the
+ * parameter used to be a shape whose fields were all optional. The cast here
+ * is therefore the point rather than a workaround: it marks each of these
+ * fixtures as deliberately malformed, and it is exactly the set of shapes the
+ * runtime reads defensively for.
+ */
+const storedShape = (event: unknown): SensorEvent => event as SensorEvent;
 
 describe('DoorCommandGate', () => {
   describe('the shared verdict table', () => {
@@ -97,10 +112,10 @@ describe('DoorCommandGate', () => {
   describe('staleness', () => {
     it('forces UNKNOWN even when the reported position is clean', () => {
       const verdict = judgeDoorCommand({
-        event: {
+        event: storedShape({
           type: SensorEventType.Closed,
           checkInTimestampSeconds: NOW - CHECK_IN_STALE_THRESHOLD_SECONDS - 1,
-        },
+        }),
         command: DoorCommand.Open,
         nowSeconds: NOW,
       });
@@ -116,10 +131,10 @@ describe('DoorCommandGate', () => {
       // The other half of the boundary. Without it, a gate that called
       // everything stale would pass the test above.
       const verdict = judgeDoorCommand({
-        event: {
+        event: storedShape({
           type: SensorEventType.Closed,
           checkInTimestampSeconds: NOW - CHECK_IN_STALE_THRESHOLD_SECONDS + 1,
-        },
+        }),
         command: DoorCommand.Open,
         nowSeconds: NOW,
       });
@@ -129,7 +144,7 @@ describe('DoorCommandGate', () => {
 
     it('treats a missing check-in as stale rather than fresh', () => {
       const verdict = judgeDoorCommand({
-        event: { type: SensorEventType.Closed },
+        event: storedShape({ type: SensorEventType.Closed }),
         command: DoorCommand.Open,
         nowSeconds: NOW,
       });
@@ -142,7 +157,7 @@ describe('DoorCommandGate', () => {
   describe('judgeDoorCommand', () => {
     it('reports the whole basis of the decision, not just the answer', () => {
       const verdict = judgeDoorCommand({
-        event: { type: SensorEventType.OpeningTooLong, checkInTimestampSeconds: FRESH },
+        event: storedShape({ type: SensorEventType.OpeningTooLong, checkInTimestampSeconds: FRESH }),
         command: DoorCommand.Close,
         nowSeconds: NOW,
       });
@@ -158,7 +173,7 @@ describe('DoorCommandGate', () => {
     });
 
     it('refuses to open a stuck door it would let you close', () => {
-      const stuck = { type: SensorEventType.ClosingTooLong, checkInTimestampSeconds: FRESH };
+      const stuck = storedShape({ type: SensorEventType.ClosingTooLong, checkInTimestampSeconds: FRESH });
       expect(judgeDoorCommand({ event: stuck, command: DoorCommand.Close, nowSeconds: NOW }).accepted)
         .to.be.true;
       const opening = judgeDoorCommand({ event: stuck, command: DoorCommand.Open, nowSeconds: NOW });
@@ -170,7 +185,11 @@ describe('DoorCommandGate', () => {
       // TimeSeriesDatabase.getCurrent answers `{}` for a missing document, so
       // both shapes reach the gate in practice.
       [null, {}].forEach((event) => {
-        const verdict = judgeDoorCommand({ event, command: DoorCommand.Close, nowSeconds: NOW });
+        const verdict = judgeDoorCommand({
+          event: storedShape(event),
+          command: DoorCommand.Close,
+          nowSeconds: NOW,
+        });
         expect(verdict.doorState).to.equal(DoorGateState.Unknown);
         expect(verdict.sensorEventType).to.equal(null);
         expect(verdict.accepted).to.be.false;
@@ -179,7 +198,7 @@ describe('DoorCommandGate', () => {
 
     it('projects an unrecognized type from a future firmware to UNKNOWN', () => {
       const verdict = judgeDoorCommand({
-        event: { type: 'SOMETHING_NEW', checkInTimestampSeconds: FRESH },
+        event: storedShape({ type: 'SOMETHING_NEW', checkInTimestampSeconds: FRESH }),
         command: DoorCommand.Close,
         nowSeconds: NOW,
       });
