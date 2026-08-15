@@ -14,6 +14,16 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.7.2
+
+- **Settings are in a more useful order.** Your account first, then the app
+  version and the update button, then everything else. The two things worth
+  opening settings for are now both answered without scrolling.
+
+- The simulated voice rehearsal moved to the bottom. It is a practice run
+  rather than a control, and it now sits as far from the door screen's real
+  microphone as the app can put it.
+
 ## 0.7.1
 
 - **The watch now checks with the server before sending a spoken command.** It

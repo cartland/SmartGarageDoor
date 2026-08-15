@@ -53,6 +53,21 @@ import com.chriscartland.garage.wear.R
  * The watch's settings: who you are signed in as, which build is running, and a
  * way to the Play Store.
  *
+ * ## The order of the sections is deliberate
+ *
+ * Account, then app version and its update button, then everything else. It
+ * runs from the things a person opens settings *needing* to the things they
+ * open settings *curious about*: on a screen this small, "which account is
+ * operating my garage" and "am I on the current build" are the two questions
+ * worth a swipe, and both are answered without scrolling.
+ *
+ * The simulated-voice rehearsal is deliberately last. It is the only item here
+ * that is a toy rather than an answer, and the bottom of the list is both the
+ * least prominent slot and the furthest one from the door screen's real mic —
+ * which is the property that matters most about where it sits. Anything added
+ * later that is a diagnostic or a demo belongs beside it, below the update
+ * section, not above.
+ *
  * ## Why this is a scrolling list and not a centred column
  *
  * The previous version was a `Column` with `Arrangement.Center`, which is the
@@ -153,33 +168,6 @@ fun WearSettingsScreen(
                     transformation = SurfaceTransformation(transformSpec),
                     modifier = Modifier.transformedHeight(this, transformSpec),
                 ) {
-                    Text(text = stringResource(R.string.settings_voice))
-                }
-            }
-            // The rehearsal lives HERE, not next to the door, and that placement
-            // is the point: the mic on the door screen is the real one, so the
-            // pretend one must never sit where a hand reaching for the real
-            // control might find it. Settings is a place you go on purpose.
-            item {
-                Button(
-                    onClick = onSimulatedVoiceClick,
-                    transformation = SurfaceTransformation(transformSpec),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .transformedHeight(this, transformSpec),
-                    label = {
-                        Text(text = stringResource(R.string.settings_simulated_voice))
-                    },
-                    secondaryLabel = {
-                        Text(text = stringResource(R.string.voice_sim_subtitle))
-                    },
-                )
-            }
-            item {
-                ListSubHeader(
-                    transformation = SurfaceTransformation(transformSpec),
-                    modifier = Modifier.transformedHeight(this, transformSpec),
-                ) {
                     Text(text = stringResource(R.string.settings_version))
                 }
             }
@@ -212,6 +200,47 @@ fun WearSettingsScreen(
                     transformation = SurfaceTransformation(transformSpec),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .transformedHeight(this, transformSpec),
+                    label = {
+                        Text(text = stringResource(R.string.settings_check_for_update))
+                    },
+                )
+            }
+            // Discovered by trying, not by asking first — see WearStoreLink for
+            // why a pre-check gives the wrong answer on Android 11+. It stays
+            // directly under the button that produced it: it is that button's
+            // answer, not a section of its own, and a reader who has to scroll
+            // past an unrelated heading to find out why nothing happened has
+            // been told too late.
+            if (storeUnavailable) {
+                item {
+                    Text(
+                        text = stringResource(R.string.settings_store_unavailable),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+            item {
+                ListSubHeader(
+                    transformation = SurfaceTransformation(transformSpec),
+                    modifier = Modifier.transformedHeight(this, transformSpec),
+                ) {
+                    Text(text = stringResource(R.string.settings_voice))
+                }
+            }
+            // The rehearsal lives HERE, not next to the door, and that placement
+            // is the point: the mic on the door screen is the real one, so the
+            // pretend one must never sit where a hand reaching for the real
+            // control might find it. Settings is a place you go on purpose, and
+            // the bottom of settings is the furthest from the door it can be.
+            item {
+                Button(
+                    onClick = onSimulatedVoiceClick,
+                    transformation = SurfaceTransformation(transformSpec),
+                    modifier = Modifier
+                        .fillMaxWidth()
                         // The fix for "the last row is clipped by the round
                         // corners", in the library's own words: this modifier
                         // exists "to ensure that, when a list item is at the top
@@ -226,30 +255,21 @@ fun WearSettingsScreen(
                         // list. The value is Material 3's recommendation for a
                         // Button in this position (0.23 of screen height), not a
                         // number of ours.
+                        //
+                        // It belongs to whichever item is LAST, so it moved here
+                        // when this section did. Leaving it on the update button
+                        // would have been inert — a middle item's request is
+                        // ignored — and this row would be the one clipped.
                         .minimumVerticalContentPadding(
                             ButtonDefaults.minimumVerticalListContentPadding,
                         ).transformedHeight(this, transformSpec),
                     label = {
-                        Text(text = stringResource(R.string.settings_check_for_update))
+                        Text(text = stringResource(R.string.settings_simulated_voice))
+                    },
+                    secondaryLabel = {
+                        Text(text = stringResource(R.string.voice_sim_subtitle))
                     },
                 )
-            }
-            // Discovered by trying, not by asking first — see WearStoreLink for
-            // why a pre-check gives the wrong answer on Android 11+. No
-            // reserved slot is needed here (unlike the old centred column):
-            // appending to a top-anchored list moves nothing above it.
-            if (storeUnavailable) {
-                item {
-                    Text(
-                        text = stringResource(R.string.settings_store_unavailable),
-                        modifier = Modifier.minimumVerticalContentPadding(
-                            ButtonDefaults.minimumVerticalListContentPadding,
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        textAlign = TextAlign.Center,
-                    )
-                }
             }
         }
     }
