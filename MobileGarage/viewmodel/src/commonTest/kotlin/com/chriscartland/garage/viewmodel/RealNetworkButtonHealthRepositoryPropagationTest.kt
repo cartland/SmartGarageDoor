@@ -40,6 +40,7 @@ import com.chriscartland.garage.testcommon.FakeNetworkButtonHealthDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.FakeStatusSnapshotStore
+import com.chriscartland.garage.testcommon.FakeUserScopedCache
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 import com.chriscartland.garage.usecase.CheckDoorCommandUseCase
@@ -137,6 +138,7 @@ class RealNetworkButtonHealthRepositoryPropagationTest {
             serverConfigRepository = CachedServerConfigRepository(configDs, "key", externalScope),
             authRepository = authRepo,
             statusSnapshotStore = FakeStatusSnapshotStore(),
+            userScopedCache = FakeUserScopedCache(),
             appClock = AppClock { 0L },
             externalScope = externalScope,
         )

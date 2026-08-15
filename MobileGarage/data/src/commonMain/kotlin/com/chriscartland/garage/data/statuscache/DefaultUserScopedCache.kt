@@ -17,19 +17,48 @@
 
 package com.chriscartland.garage.data.statuscache
 
+import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.repository.UserScopedCache
 
 /**
  * [UserScopedCache] over the status-snapshot store: clears the
  * [userScopedKeys] set (DI passes [StatusCacheKeys.CLEARED_ON_SIGN_OUT])
- * when the sign-out manager fires. Never throws — [StatusSnapshotStore.clear]
- * swallows storage failures.
+ * when the sign-out manager fires, then runs every registered in-memory
+ * reset in the same transition (DATA_CACHING_STRATEGY P8). Never throws
+ * — [StatusSnapshotStore.clear] swallows storage failures, and each
+ * reset is individually guarded so one failing reset cannot skip the
+ * others.
  */
 class DefaultUserScopedCache(
     private val statusSnapshotStore: StatusSnapshotStore,
     private val userScopedKeys: Set<StatusCacheKey>,
 ) : UserScopedCache {
+    // Registration happens during the single-threaded DI construction
+    // pass; the sign-out manager can only fire afterwards (it collects
+    // an auth flow owned by an already-constructed repository), so
+    // register and clear never actually contend. `toList()` in the
+    // clear still snapshots defensively.
+    private val inMemoryResets = mutableListOf<Pair<String, suspend () -> Unit>>()
+
+    override fun registerInMemoryReset(
+        name: String,
+        reset: suspend () -> Unit,
+    ) {
+        inMemoryResets.add(name to reset)
+        Logger.d { "UserScopedCache: registered in-memory reset `$name`" }
+    }
+
     override suspend fun clearUserScopedEntries() {
         statusSnapshotStore.clear(userScopedKeys)
+        inMemoryResets.toList().forEach { (name, reset) ->
+            try {
+                reset()
+                Logger.i { "UserScopedCache: in-memory reset `$name` done" }
+            } catch (t: Throwable) {
+                // Never-throws contract; a failing reset must not skip
+                // the remaining ones or break the sign-out transition.
+                Logger.e(t) { "UserScopedCache: in-memory reset `$name` failed" }
+            }
+        }
     }
 }

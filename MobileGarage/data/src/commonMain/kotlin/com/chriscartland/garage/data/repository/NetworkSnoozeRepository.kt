@@ -32,6 +32,7 @@ import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.SnoozeDoorEventBridge
 import com.chriscartland.garage.domain.repository.SnoozeRepository
+import com.chriscartland.garage.domain.repository.UserScopedCache
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
@@ -83,6 +84,7 @@ class NetworkSnoozeRepository(
     private val authRepository: AuthRepository,
     private val statusSnapshotStore: StatusSnapshotStore,
     private val snoozeDoorEventBridge: SnoozeDoorEventBridge,
+    private val userScopedCache: UserScopedCache,
     private val snoozeNotificationsOption: Boolean,
     private val currentTimeSeconds: () -> Long,
     private val externalScope: CoroutineScope,
@@ -127,6 +129,23 @@ class NetworkSnoozeRepository(
 
     init {
         snoozeDoorEventBridge.register(::onDoorEventReceived)
+        // Sign-out clears memory and disk, or it clears nothing
+        // (DATA_CACHING_STRATEGY P8). Without this, the surviving
+        // `lastFetchedAtSeconds` suppressed the next session's
+        // revalidation for up to the fetch TTL, and the old session's
+        // snooze state stayed visible in the singleton. `Loading` is
+        // the honest post-sign-out value (we don't know this user's
+        // snooze yet); `hydrated` is already complete, so no writer
+        // can deadlock on the sentinel. The generation bump discards
+        // any in-flight GET from the old session.
+        userScopedCache.registerInMemoryReset("snoozeState") {
+            writeMutex.withLock {
+                _snoozeState.value = SnoozeState.Loading
+                lastFetchedAtSeconds = null
+                acceptGeneration += 1
+            }
+            Logger.i { "snoozeState <- Loading (source=sign-out reset)" }
+        }
         externalScope.launch {
             hydrate()
             // Same TTL gate as the screen-entry revalidate — ONE freshness

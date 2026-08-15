@@ -795,6 +795,7 @@ abstract class NativeComponent(
         authRepository: AuthRepository,
         statusSnapshotStore: StatusSnapshotStore,
         snoozeDoorEventBridge: SnoozeDoorEventBridge,
+        userScopedCache: UserScopedCache,
         appConfig: AppConfig,
         applicationScope: CoroutineScope,
     ): SnoozeRepository =
@@ -804,6 +805,7 @@ abstract class NativeComponent(
             authRepository = authRepository,
             statusSnapshotStore = statusSnapshotStore,
             snoozeDoorEventBridge = snoozeDoorEventBridge,
+            userScopedCache = userScopedCache,
             snoozeNotificationsOption = appConfig.snoozeNotificationsOption,
             currentTimeSeconds = { Clock.System.now().toEpochMilliseconds() / 1000 },
             externalScope = applicationScope,
@@ -836,6 +838,7 @@ abstract class NativeComponent(
         serverConfigRepository: ServerConfigRepository,
         authRepository: AuthRepository,
         statusSnapshotStore: StatusSnapshotStore,
+        userScopedCache: UserScopedCache,
         appClock: AppClock,
         applicationScope: CoroutineScope,
     ): ButtonHealthRepository =
@@ -844,6 +847,7 @@ abstract class NativeComponent(
             serverConfigRepository = serverConfigRepository,
             authRepository = authRepository,
             statusSnapshotStore = statusSnapshotStore,
+            userScopedCache = userScopedCache,
             appClock = appClock,
             externalScope = applicationScope,
         )

@@ -33,6 +33,7 @@ import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.repository.AuthRepository
 import com.chriscartland.garage.domain.repository.ButtonHealthRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
+import com.chriscartland.garage.domain.repository.UserScopedCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -83,6 +84,7 @@ class NetworkButtonHealthRepository(
     private val serverConfigRepository: ServerConfigRepository,
     private val authRepository: AuthRepository,
     private val statusSnapshotStore: StatusSnapshotStore,
+    private val userScopedCache: UserScopedCache,
     private val appClock: AppClock,
     private val externalScope: CoroutineScope,
 ) : ButtonHealthRepository {
@@ -102,6 +104,18 @@ class NetworkButtonHealthRepository(
 
     init {
         externalScope.launch { hydrateFromSnapshot() }
+        // Sign-out clears memory and disk, or it clears nothing
+        // (DATA_CACHING_STRATEGY P8). Without this, the previous
+        // session's verdict rendered instantly from this singleton
+        // after sign-out → sign-in, because the disk-tier clear never
+        // touched the in-memory StateFlow.
+        userScopedCache.registerInMemoryReset("buttonHealth") {
+            writeMutex.withLock {
+                _buttonHealth.value = LoadingResult.Loading(null)
+                currentIsDiskSeed = false
+            }
+            Logger.i { "buttonHealth <- Loading(null) (source=sign-out reset)" }
+        }
     }
 
     override suspend fun fetchButtonHealth(): AppResult<ButtonHealth, ButtonHealthError> =

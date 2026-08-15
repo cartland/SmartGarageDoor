@@ -194,6 +194,11 @@ class AppStartupTest {
             authRepository = FakeAuthRepository(),
             userScopedCache = object : UserScopedCache {
                 override suspend fun clearUserScopedEntries() = Unit
+
+                override fun registerInMemoryReset(
+                    name: String,
+                    reset: suspend () -> Unit,
+                ) = Unit
             },
             scope = scope.backgroundScope,
             dispatcher = ioDispatcher,

@@ -32,9 +32,17 @@ import kotlin.test.assertEquals
 
 private class RecordingUserScopedCache : UserScopedCache {
     var clearCount = 0
+    val registeredResets = mutableListOf<String>()
 
     override suspend fun clearUserScopedEntries() {
         clearCount++
+    }
+
+    override fun registerInMemoryReset(
+        name: String,
+        reset: suspend () -> Unit,
+    ) {
+        registeredResets.add(name)
     }
 }
 
