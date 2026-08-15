@@ -1,0 +1,27 @@
+# Data-graph node exemptions (DataGraphExtractionKonsistTest, C1 sweep).
+#
+# The sweep enumerates every parameterless flow-typed member of a :domain or
+# :usecase interface — the universe of things that COULD be @NodeCadence input
+# nodes — and fails on any that is neither annotated nor listed here. This is
+# what makes the graph fail-closed: an unannotated flow is a decision someone
+# has to write down, never a silent hole.
+#
+# Format: `OwnerInterface.declaration | reason` — the reason is mandatory.
+# Parameterized flow funs (e.g. `countKey(key)`) are excluded by construction:
+# a keyed stream cannot be an app-wide node.
+#
+# Stale entries FAIL the build (declaration deleted, or annotated since), so
+# this list cannot accumulate. Every entry is an adjudication, not a waiver.
+
+# A preference cell per Setting<T> instance — keyed by instance the way
+# countKey is keyed by argument; not one app-wide value.
+Setting.flow | per-setting preference cell, keyed by Setting instance
+
+# Cold per-subscriber Room query feeding one diagnostic list screen; not
+# shared hot state (contrast recentDoorEvents, which is an always-on
+# repo-owned StateFlow precisely so screens share one value).
+AppLoggerRepository.getAll | cold per-subscriber Room stream for the diagnostics list
+
+# Construction-time wiring: each voice surface passes its OWN projection of a
+# VM-owned StateFlow (G0 sink side). The value never exists app-wide.
+VoiceCommandEnvironment.doorState | per-surface wiring of a VM-owned projection (G0 sink)

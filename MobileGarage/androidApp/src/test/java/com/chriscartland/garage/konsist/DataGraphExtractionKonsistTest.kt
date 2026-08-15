@@ -37,10 +37,16 @@ import com.chriscartland.garage.konsist.DataGraphExtraction.declsByOwner
 import com.chriscartland.garage.konsist.DataGraphExtraction.derivedNodeId
 import com.chriscartland.garage.konsist.DataGraphExtraction.directInputPairsIn
 import com.chriscartland.garage.konsist.DataGraphExtraction.edgeIds
+import com.chriscartland.garage.konsist.DataGraphExtraction.illegalStateIns
+import com.chriscartland.garage.konsist.DataGraphExtraction.interfaceFlowMembers
+import com.chriscartland.garage.konsist.DataGraphExtraction.nodeSweepProblems
+import com.chriscartland.garage.konsist.DataGraphExtraction.orphanConduits
+import com.chriscartland.garage.konsist.DataGraphExtraction.parseNodeExemptions
 import com.chriscartland.garage.konsist.DataGraphExtraction.readerPairsIn
 import com.chriscartland.garage.konsist.DataGraphExtraction.render
 import com.chriscartland.garage.konsist.DataGraphExtraction.sharingName
 import com.chriscartland.garage.konsist.DataGraphExtraction.stripComments
+import com.chriscartland.garage.konsist.DataGraphExtraction.unreadDeriveds
 import com.lemonappdev.konsist.api.Konsist
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -93,6 +99,19 @@ import java.io.File
  * byte-exact — a graph change is visible in review as a diff of that
  * committed file, and CI fails until it is regenerated
  * (`./scripts/generate-data-graph.sh`).
+ *
+ * DISCOVERY IS PAIRED WITH EXHAUSTIVENESS — the fail-closed layer. An
+ * extractor alone is complete only for what matches it; the byte-pin
+ * catches drift but not absence. So every discovery rule here has a
+ * sweep over an enumerable universe:
+ *  - C1: every parameterless flow-typed member of a :domain/:usecase
+ *    INTERFACE is a node or a reasoned entry in
+ *    `data-graph-node-exemptions.txt` (stale entries fail).
+ *  - C2: `stateIn` may live only in :usecase commonMain (where derived
+ *    extraction reads it) — :viewmodel only on `viewModelScope` (G0
+ *    sink), repositories never (ADR-022 always-on collectors).
+ *  - C5: a derived node nobody reads or a conduit nobody injects FAILS
+ *    instead of silently vanishing from the rendering.
  *
  * Comment-stripped text parsing throughout; every parser and rule has
  * a positive control below (the vacuous-pass rule), and the rendering
@@ -193,7 +212,7 @@ class DataGraphExtractionKonsistTest {
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, names) -> names.distinct().sorted() }
         return InputConsumption(
-            conduitInputs = conduits.filterKeys { it in conduitReaders },
+            conduitInputs = conduits,
             conduitReaders = conduitReaders,
             directReaders = directPairs
                 .groupBy({ it.first }, { it.second })
@@ -233,7 +252,7 @@ class DataGraphExtractionKonsistTest {
 
     @Test
     fun `the extracted graph is coherent and problem-free`() {
-        val (nodes, problems, _) = realExtraction()
+        val (nodes, problems, consumption) = realExtraction()
         assertEquals(emptyList<String>(), problems)
         assertEquals(emptyList<NodeId>(), DataGraph.missingNodes(nodes))
         assertEquals(emptyList<NodeId>(), DataGraph.duplicateIds(nodes))
@@ -241,6 +260,66 @@ class DataGraphExtractionKonsistTest {
         assertEquals(emptyList<String>(), DataGraph.invalidGates(nodes))
         assertEquals(emptyList<String>(), DataGraph.eagerOverPolls(nodes))
         assertEquals(emptyList<String>(), DataGraph.sharedRootViolations(nodes))
+        // C5: nothing extracted may dangle unread — a derived node or a
+        // conduit nobody injects is dead code or an extraction miss.
+        assertEquals(emptyList<String>(), unreadDeriveds(nodes))
+        assertEquals(
+            emptyList<String>(),
+            orphanConduits(consumption.conduitInputs, consumption.conduitReaders),
+        )
+    }
+
+    // ---- fail-closed sweeps: discovery paired with exhaustiveness ----
+
+    @Test
+    fun `every flow declared at the graph boundary is a node or a reasoned exemption`() {
+        // C1. The extractor only sees what carries @NodeCadence; this
+        // sweep enumerates what COULD carry it — every parameterless
+        // flow-typed member of a :domain or :usecase interface — and
+        // demands each be a node or an exemption with a reason. Without
+        // it the graph is "what we remembered to annotate", and an
+        // unannotated repository StateFlow is not a violation but a
+        // silent hole (paginationState was exactly that).
+        val files = scope.files.filter { isInputHome(it.path) }
+        val members = files.flatMap { interfaceFlowMembers(stripComments(it.text)) }
+        require(members.isNotEmpty()) { "no flow-typed interface members found — sweep parser misconfigured" }
+        val annotated = files
+            .flatMap { annotationSites(stripComments(it.text)) }
+            .map { it.ownerType to it.declarationName }
+            .toSet()
+        val exemptions = parseNodeExemptions(nodeExemptionsFile().readText())
+        val (missing, stale) = nodeSweepProblems(members, annotated, exemptions.keys)
+        assertEquals(
+            "unannotated flow at the graph boundary — add @NodeCadence or a reasoned entry " +
+                "in data-graph-node-exemptions.txt",
+            emptyList<String>(),
+            missing,
+        )
+        assertEquals(
+            "stale node exemption — the declaration is gone or is now a node; remove the entry",
+            emptyList<String>(),
+            stale,
+        )
+    }
+
+    @Test
+    fun `stateIn stays inside the usecase layer`() {
+        // C2. Derived-node extraction reads stateIn holders in :usecase
+        // commonMain — so an app-scoped stateIn anywhere else is a shared
+        // derivation the graph cannot see. :viewmodel may stateIn only on
+        // viewModelScope (G0: VM state is a sink); repositories use
+        // ADR-022 always-on collectors, never stateIn.
+        val sweptModules = listOf(
+            "/data/src/commonMain/",
+            "/data-local/src/commonMain/",
+            "/domain/src/commonMain/",
+            "/presentation-model/src/commonMain/",
+            "/viewmodel/src/commonMain/",
+        )
+        val swept = scope.files.filter { file -> sweptModules.any(file.path::contains) }
+        require(swept.isNotEmpty()) { "stateIn sweep found no shared-module files — scope misconfigured" }
+        val violations = swept.flatMap { illegalStateIns(it.path, stripComments(it.text)) }
+        assertEquals(emptyList<String>(), violations)
     }
 
     @Test
@@ -552,6 +631,94 @@ class DataGraphExtractionKonsistTest {
         val unreferenced = vmText.replace("checkInStalenessManager.isCheckInStale", "0")
         assertEquals(emptyList<Pair<String, String>>(), directInputPairsIn(unreferenced, decls))
     }
+
+    // ---- positive controls for the fail-closed sweeps ----
+
+    @Test
+    fun `the flow-member universe sees interfaces and only interfaces`() {
+        val text = stripComments(
+            """
+            interface DoorRepository {
+                val currentDoorEvent: StateFlow<DoorEvent?>
+                fun observeWatchAppStatus(): Flow<WatchAppStatus>
+                fun countKey(key: String): Flow<Long>
+                suspend fun fetchCurrentDoorEvent(): AppResult<DoorEvent, FetchError>
+            }
+            class NetworkDoorRepository : DoorRepository {
+                override val currentDoorEvent: StateFlow<DoorEvent?> = someFlow
+            }
+            """.trimIndent(),
+        )
+        // The val and the parameterless fun are universe members; the keyed
+        // fun, the non-flow fun, and the class override are not.
+        assertEquals(
+            listOf(
+                "DoorRepository" to "currentDoorEvent",
+                "DoorRepository" to "observeWatchAppStatus",
+            ),
+            interfaceFlowMembers(text),
+        )
+    }
+
+    @Test
+    fun `the node sweep can fail both ways, and exemptions demand reasons`() {
+        val members = listOf("Repo" to "annotated", "Repo" to "forgotten", "Repo" to "excused")
+        val annotated = setOf("Repo" to "annotated")
+        val (missing, stale) = nodeSweepProblems(members, annotated, setOf("Repo.excused", "Repo.gone"))
+        assertEquals(listOf("Repo.forgotten"), missing)
+        assertEquals(listOf("Repo.gone"), stale)
+        // An annotated member's leftover exemption is stale too.
+        val (_, nowANode) = nodeSweepProblems(members, annotated, setOf("Repo.annotated"))
+        assertEquals(listOf("Repo.annotated"), nowANode)
+        // Parsing: comments and blanks ignored; a reason is mandatory.
+        assertEquals(
+            mapOf("A.b" to "keyed stream"),
+            parseNodeExemptions("# header\n\nA.b | keyed stream\n"),
+        )
+        val noReason = runCatching { parseNodeExemptions("A.b") }
+        assertTrue("an exemption without a reason must be rejected", noReason.isFailure)
+    }
+
+    @Test
+    fun `stateIn placement rules fire per module`() {
+        val appScoped = "val x = flow.stateIn(scope = applicationScope, started = SharingStarted.Eagerly, initialValue = y)"
+        val vmScoped = "val x = flow.stateIn(scope = viewModelScope, started = SharingStarted.Eagerly, initialValue = y)"
+        // :usecase is the legal home, whatever the scope.
+        assertEquals(emptyList<String>(), illegalStateIns("/usecase/src/commonMain/X.kt", appScoped))
+        // Repositories and the other shared modules: never.
+        assertEquals(1, illegalStateIns("/data/src/commonMain/X.kt", appScoped).size)
+        assertEquals(1, illegalStateIns("/domain/src/commonMain/X.kt", vmScoped).size)
+        // :viewmodel: only on viewModelScope (a G0 sink).
+        assertEquals(emptyList<String>(), illegalStateIns("/viewmodel/src/commonMain/X.kt", vmScoped))
+        assertEquals(1, illegalStateIns("/viewmodel/src/commonMain/X.kt", appScoped).size)
+        // No stateIn, no violation.
+        assertEquals(emptyList<String>(), illegalStateIns("/data/src/commonMain/X.kt", "val x = 1"))
+    }
+
+    @Test
+    fun `orphan conduits and unread deriveds are named, not dropped`() {
+        assertEquals(
+            listOf("ObserveIdleUseCase: conduit no ViewModel injects"),
+            orphanConduits(
+                conduitInputs = mapOf("ObserveIdleUseCase" to setOf("x"), "ObserveReadUseCase" to setOf("y")),
+                conduitReaders = mapOf("ObserveReadUseCase" to listOf("HomeViewModel")),
+            ),
+        )
+        val unread = DataGraph.Derived(
+            id = NodeId.WATCH_APP_STATUS,
+            from = emptyList(),
+            shell = "ObserveWatchAppStatusUseCase",
+            sharing = Sharing.Eager,
+            readBy = emptyList(),
+        )
+        assertEquals(
+            listOf("watchAppStatus: derived node no ViewModel reads"),
+            unreadDeriveds(listOf(unread)),
+        )
+        assertEquals(emptyList<String>(), unreadDeriveds(listOf(unread.copy(readBy = listOf("ProfileViewModel")))))
+    }
+
+    private fun nodeExemptionsFile(): File = File(mobileGarageRoot(), "data-graph-node-exemptions.txt")
 
     /** Walk up from the test working directory to the Gradle root (the dir holding docs/DATA_GRAPH_PLAN.md). */
     private fun mobileGarageRoot(): File {

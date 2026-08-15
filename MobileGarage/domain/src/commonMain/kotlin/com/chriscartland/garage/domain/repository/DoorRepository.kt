@@ -4,19 +4,19 @@ import com.chriscartland.garage.domain.graph.DataGraph.Cadence
 import com.chriscartland.garage.domain.graph.NodeCadence
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
-import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.PaginationState
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 interface DoorRepository {
-    /** Observation: current door position derived from latest event. */
-    val currentDoorPosition: Flow<DoorPosition>
-
     /**
      * Observation: current door event owned as a [StateFlow] (ADR-022 —
      * state-y). Backed by an always-on collector over the local Room flow.
+     *
+     * There is deliberately NO `currentDoorPosition` sibling: position is a
+     * pure projection of this node (`doorPosition ?: UNKNOWN`), and a second
+     * repo flow of the same row would be a second root for the graph's G7
+     * rule to chase. `ObserveDoorEventsUseCase.position()` owns the map.
      */
     @NodeCadence(Cadence.PUSH)
     val currentDoorEvent: StateFlow<DoorEvent?>
@@ -35,7 +35,10 @@ interface DoorRepository {
     /**
      * Observation: pagination cursor for [recentDoorEvents] (ADR-022 — state-y,
      * repo-owned). Drives the history screen's "load more" affordance.
+     * USER_ACTION: it changes only when a fetch the app initiated completes
+     * (initial page or an explicit "load more"), never behind the app's back.
      */
+    @NodeCadence(Cadence.USER_ACTION)
     val paginationState: StateFlow<PaginationState>
 
     suspend fun fetchBuildTimestampCached(): String?

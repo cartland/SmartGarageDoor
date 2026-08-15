@@ -24,18 +24,14 @@ import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorEventPage
-import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.PaginationState
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class NetworkDoorRepository(
@@ -45,13 +41,6 @@ class NetworkDoorRepository(
     private val recentEventCount: Int,
     private val externalScope: CoroutineScope,
 ) : DoorRepository {
-    override val currentDoorPosition: Flow<DoorPosition>
-        get() =
-            localDoorDataSource.currentDoorEvent
-                .map {
-                    it?.doorPosition ?: DoorPosition.UNKNOWN
-                }.distinctUntilChanged()
-
     // ADR-022: repository-owned StateFlow backed by an always-on collector
     // over the Room flow. `stateIn(WhileSubscribed(5s))` is explicitly banned
     // — it causes Room queries to restart and drops subscribers' state on a

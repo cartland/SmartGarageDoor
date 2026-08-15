@@ -52,4 +52,30 @@ class ObserveDoorEventsUseCaseTest {
 
             assertEquals(events, useCase.recent().first())
         }
+
+    // position() owns the event→position projection (the repo deliberately
+    // has no second flow of the same row — see DoorRepository's KDoc).
+
+    @Test
+    fun positionProjectsTheCurrentEvent() =
+        runTest {
+            val repo = FakeDoorRepository()
+            val useCase = ObserveDoorEventsUseCase(repo)
+
+            repo.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.CLOSED))
+            assertEquals(DoorPosition.CLOSED, useCase.position().first())
+
+            repo.setCurrentDoorEvent(DoorEvent(doorPosition = DoorPosition.OPENING))
+            assertEquals(DoorPosition.OPENING, useCase.position().first())
+        }
+
+    @Test
+    fun positionIsUnknownWhenThereIsNoEventOrNoPosition() =
+        runTest {
+            val repo = FakeDoorRepository()
+            val useCase = ObserveDoorEventsUseCase(repo)
+
+            // FakeDoorRepository seeds DoorEvent() — a position-less event.
+            assertEquals(DoorPosition.UNKNOWN, useCase.position().first())
+        }
 }

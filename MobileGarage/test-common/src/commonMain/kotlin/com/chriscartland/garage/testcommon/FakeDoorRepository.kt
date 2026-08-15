@@ -19,21 +19,17 @@ package com.chriscartland.garage.testcommon
 
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
-import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.PaginationState
 import com.chriscartland.garage.domain.repository.DoorRepository
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 class FakeDoorRepository : DoorRepository {
     private val _currentDoorEvent = MutableStateFlow<DoorEvent?>(DoorEvent())
     private val _recentDoorEvents = MutableStateFlow<List<DoorEvent>>(emptyList())
-    private val _currentDoorPosition = MutableStateFlow(DoorPosition.UNKNOWN)
     private val _paginationState = MutableStateFlow(PaginationState.Initial)
 
-    override val currentDoorPosition: Flow<DoorPosition> = _currentDoorPosition
     override val currentDoorEvent: StateFlow<DoorEvent?> = _currentDoorEvent
     override val recentDoorEvents: StateFlow<List<DoorEvent>> = _recentDoorEvents
     override val paginationState: StateFlow<PaginationState> = _paginationState
@@ -56,7 +52,6 @@ class FakeDoorRepository : DoorRepository {
 
     fun setCurrentDoorEvent(event: DoorEvent) {
         _currentDoorEvent.value = event
-        _currentDoorPosition.value = event.doorPosition ?: DoorPosition.UNKNOWN
     }
 
     fun setRecentDoorEvents(events: List<DoorEvent>) {
@@ -80,7 +75,6 @@ class FakeDoorRepository : DoorRepository {
 
     override suspend fun insertDoorEvent(doorEvent: DoorEvent) {
         _currentDoorEvent.value = doorEvent
-        _currentDoorPosition.value = doorEvent.doorPosition ?: DoorPosition.UNKNOWN
     }
 
     override suspend fun fetchCurrentDoorEvent(): AppResult<DoorEvent, FetchError> {

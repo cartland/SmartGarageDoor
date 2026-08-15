@@ -115,7 +115,7 @@ class NetworkDoorRepositoryIntegrationTest {
             repo.fetchCurrentDoorEvent()
 
             assertEquals(event, repo.currentDoorEvent.first())
-            assertEquals(DoorPosition.CLOSED, repo.currentDoorPosition.first())
+            assertEquals(DoorPosition.CLOSED, repo.currentDoorEvent.first()?.doorPosition)
         }
 
     @Test
@@ -318,9 +318,12 @@ class NetworkDoorRepositoryIntegrationTest {
         }
 
     // --- insertDoorEvent ---
+    // (Position is a projection of currentDoorEvent owned by
+    // ObserveDoorEventsUseCase.position() — projection coverage lives in
+    // ObserveDoorEventsUseCaseTest, where the map now is.)
 
     @Test
-    fun insertDoorEventUpdatesLocalAndPosition() =
+    fun insertDoorEventUpdatesLocal() =
         runTest {
             val event = DoorEvent(
                 doorPosition = DoorPosition.OPENING,
@@ -331,28 +334,6 @@ class NetworkDoorRepositoryIntegrationTest {
             repo.insertDoorEvent(event)
 
             assertEquals(event, repo.currentDoorEvent.first())
-            assertEquals(DoorPosition.OPENING, repo.currentDoorPosition.first())
-        }
-
-    // --- currentDoorPosition ---
-
-    @Test
-    fun currentDoorPositionDefaultsToUnknown() =
-        runTest {
-            val repo = createRepository()
-            assertEquals(DoorPosition.UNKNOWN, repo.currentDoorPosition.first())
-        }
-
-    @Test
-    fun currentDoorPositionTracksInsertedEvents() =
-        runTest {
-            val repo = createRepository()
-
-            repo.insertDoorEvent(DoorEvent(doorPosition = DoorPosition.CLOSED))
-            assertEquals(DoorPosition.CLOSED, repo.currentDoorPosition.first())
-
-            repo.insertDoorEvent(DoorEvent(doorPosition = DoorPosition.OPENING))
-            assertEquals(DoorPosition.OPENING, repo.currentDoorPosition.first())
         }
 
     // --- fetchBuildTimestampCached ---
