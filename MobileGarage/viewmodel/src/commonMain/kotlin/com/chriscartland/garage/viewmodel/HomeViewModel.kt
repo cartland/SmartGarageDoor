@@ -204,7 +204,10 @@ class DefaultHomeViewModel(
         )
     override val currentDoorEvent: StateFlow<LoadingResult<DoorEvent?>> = _currentDoorEvent
 
-    private val checkInStale = MutableStateFlow(false)
+    // ADR-022 pass-through: the manager's StateFlow IS the state; a
+    // reference cannot drift and needs no seed (this was a
+    // MutableStateFlow(false) mirror + collector until the T1 widening).
+    private val checkInStale: StateFlow<Boolean> = checkInStalenessManager.isCheckInStale
 
     // The whole door-status surface as ONE derived node (G7,
     // docs/DATA_GRAPH_PLAN.md): a single combine + a single pure
@@ -277,11 +280,6 @@ class DefaultHomeViewModel(
 
     init {
         Logger.d { "init" }
-        viewModelScope.launch(dispatchers.io) {
-            checkInStalenessManager.isCheckInStale.collect {
-                checkInStale.value = it
-            }
-        }
         viewModelScope.launch(dispatchers.io) {
             observeDoorEvents.current().collect {
                 Logger.d { "currentDoorEvent collect: $it" }

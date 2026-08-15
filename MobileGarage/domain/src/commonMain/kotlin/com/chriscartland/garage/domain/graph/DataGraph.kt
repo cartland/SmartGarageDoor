@@ -179,8 +179,9 @@ object DataGraph {
         Input(NodeId.NOW_EPOCH_SECONDS, owner = "DefaultLiveClock", cadence = Cadence.CLOCK),
         // A derivation implemented as manager-owned state (doorEvent +
         // clock -> stale flag). Listed as an Input because that is the
-        // shape of the code today; DATA_CACHING_STRATEGY T1 tracks
-        // widening it. Cadence is CLOCK because ticks drive the writes.
+        // shape of the code (the manager owns the MutableStateFlow and
+        // exposes StateFlow since the T1 widening; consumers pass the
+        // reference through). Cadence is CLOCK: ticks drive the writes.
         Input(NodeId.IS_CHECK_IN_STALE, owner = "CheckInStalenessManager", cadence = Cadence.CLOCK),
         // Owner is the interface: the polling impl is per-platform
         // (Play Services on Android; Unavailable elsewhere).

@@ -111,16 +111,14 @@ class DefaultDoorHistoryViewModel(
         )
     override val recentDoorEvents: StateFlow<LoadingResult<List<DoorEvent>>> = _recentDoorEvents
 
-    private val _isCheckInStale = MutableStateFlow(false)
-    override val isCheckInStale: StateFlow<Boolean> = _isCheckInStale
+    // ADR-022 pass-through: the manager's StateFlow IS the state; a
+    // reference cannot drift and needs no seed (this was a
+    // MutableStateFlow(false) mirror + collector — the recurring
+    // History-tab wrong-first-frame in DATA_CACHING_STRATEGY T1).
+    override val isCheckInStale: StateFlow<Boolean> = checkInStalenessManager.isCheckInStale
 
     init {
         Logger.d { "init" }
-        viewModelScope.launch(dispatchers.io) {
-            checkInStalenessManager.isCheckInStale.collect {
-                _isCheckInStale.value = it
-            }
-        }
         viewModelScope.launch(dispatchers.io) {
             observeDoorEvents.recent().collect {
                 Logger.d { "recentDoorEvents collect: $it" }

@@ -24,8 +24,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -53,8 +53,15 @@ class CheckInStalenessManager(
 ) {
     private val staleFlow = MutableStateFlow(false)
 
-    /** Observable staleness. ViewModel collects this. */
-    val isCheckInStale: Flow<Boolean> = staleFlow
+    /**
+     * Observable staleness. [StateFlow], not a plain flow
+     * (DATA_CACHING_STRATEGY P3 / T1, ADR-015 amendment): this status
+     * always has a value, and narrowing it destroyed `.value` — which
+     * forced every consumer into a default-seeded mirror that rendered
+     * a wrong first frame on each fresh screen entry. Consumers pass
+     * the reference through (ADR-022); a pass-through cannot drift.
+     */
+    val isCheckInStale: StateFlow<Boolean> = staleFlow
 
     /** Last-known check-in time, kept up-to-date by the reactive collector. */
     private val lastCheckInTime = MutableStateFlow<Long?>(null)
