@@ -55,8 +55,8 @@ class CheckInStalenessManagerTest {
      * Following the FcmRegistrationManagerTest pattern: dispatcher is built
      * from `testScheduler` so it shares the scheduler with `backgroundScope`.
      */
-    private fun TestScope.createManager(clock: FakeClock): CheckInStalenessManager =
-        CheckInStalenessManager(
+    private fun TestScope.createManager(clock: FakeClock): DefaultCheckInStalenessManager =
+        DefaultCheckInStalenessManager(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
             logAppEvent = LogAppEventUseCase(logger, FakeDiagnosticsCountersRepository()),
             scope = backgroundScope,

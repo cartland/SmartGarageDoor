@@ -33,28 +33,24 @@ import kotlinx.coroutines.launch
 /**
  * App-scoped manager for door check-in staleness (ADR-015, ADR-017).
  *
- * Computes whether the last door check-in is older than [thresholdSeconds].
- * Re-evaluates on every door event change (reactive) AND on a fixed
- * interval (in case clock time passes the threshold without new events).
+ * Computes whether the last door check-in is older than
+ * [CHECK_IN_STALE_THRESHOLD_SECONDS]. Re-evaluates on every door event
+ * change (reactive) AND on a fixed interval (in case clock time passes
+ * the threshold without new events).
  *
- * Logs transitions: emits [AppLoggerKeys.EXCEEDED_EXPECTED_TIME_WITHOUT_FCM]
- * when becoming stale, [AppLoggerKeys.TIME_WITHOUT_FCM_IN_EXPECTED_RANGE]
- * when becoming fresh (skipping the initial fresh emission).
+ * An INTERFACE with a `Default*` implementation, per the repo's
+ * "no concrete class for testability" rule and mirroring [LiveClock],
+ * the other ViewModel-visible ADR-015 manager. A screen ViewModel needs
+ * only the observable [isCheckInStale] boolean; before the split, every
+ * ViewModel test had to construct the real manager with five
+ * collaborators (an `ObserveDoorEventsUseCase` over a repository, a
+ * `LogAppEventUseCase` over two more, a scope, a dispatcher, and a
+ * clock) to obtain it. The interface is the seam that keeps that
+ * lifecycle machinery out of tests that only care about the flag.
  *
- * [start] is idempotent — calling twice doesn't create duplicate jobs.
- * Status is observable via [isCheckInStale].
+ * Status is observable via [isCheckInStale]; [start] owns the jobs.
  */
-class CheckInStalenessManager(
-    private val observeDoorEvents: ObserveDoorEventsUseCase,
-    private val logAppEvent: LogAppEventUseCase,
-    private val scope: CoroutineScope,
-    private val dispatcher: CoroutineDispatcher,
-    private val clock: AppClock,
-    private val thresholdSeconds: Long = CHECK_IN_STALE_THRESHOLD_SECONDS,
-    private val intervalMillis: Long = STALE_CHECK_INTERVAL_MS,
-) {
-    private val staleFlow = MutableStateFlow(false)
-
+interface CheckInStalenessManager {
     /**
      * Observable staleness. [StateFlow], not a plain flow
      * (DATA_CACHING_STRATEGY P3 / T1, ADR-015 amendment): this status
@@ -64,17 +60,54 @@ class CheckInStalenessManager(
      * the reference through (ADR-022); a pass-through cannot drift.
      */
     @NodeCadence(Cadence.CLOCK)
-    val isCheckInStale: StateFlow<Boolean> = staleFlow
+    val isCheckInStale: StateFlow<Boolean>
+
+    /**
+     * Start staleness evaluation. Idempotent — calling twice doesn't
+     * create duplicate jobs. Typically called from `AppStartup`.
+     */
+    fun start()
+
+    companion object {
+        /**
+         * 11 minutes — matches the previous OldLastCheckInBanner threshold.
+         * Lives on the interface because it is part of the contract: the
+         * presentation layer documents the same threshold
+         * (`CheckInStatusMapper.STALE_THRESHOLD_SECONDS`), and the server's
+         * `doorCommand` gate mirrors it.
+         */
+        const val CHECK_IN_STALE_THRESHOLD_SECONDS = 11L * 60
+
+        /** Re-evaluate staleness every 30 seconds (catches clock drift past threshold). */
+        const val STALE_CHECK_INTERVAL_MS = 30_000L
+    }
+}
+
+/**
+ * The real manager: owns the reactive + periodic evaluation jobs and
+ * logs [AppLoggerKeys.EXCEEDED_EXPECTED_TIME_WITHOUT_FCM] /
+ * [AppLoggerKeys.TIME_WITHOUT_FCM_IN_EXPECTED_RANGE] on transitions
+ * (skipping the initial fresh emission).
+ */
+class DefaultCheckInStalenessManager(
+    private val observeDoorEvents: ObserveDoorEventsUseCase,
+    private val logAppEvent: LogAppEventUseCase,
+    private val scope: CoroutineScope,
+    private val dispatcher: CoroutineDispatcher,
+    private val clock: AppClock,
+    private val thresholdSeconds: Long = CheckInStalenessManager.CHECK_IN_STALE_THRESHOLD_SECONDS,
+    private val intervalMillis: Long = CheckInStalenessManager.STALE_CHECK_INTERVAL_MS,
+) : CheckInStalenessManager {
+    private val staleFlow = MutableStateFlow(false)
+
+    override val isCheckInStale: StateFlow<Boolean> = staleFlow
 
     /** Last-known check-in time, kept up-to-date by the reactive collector. */
     private val lastCheckInTime = MutableStateFlow<Long?>(null)
 
     private val jobs = mutableListOf<Job>()
 
-    /**
-     * Start staleness evaluation. Idempotent — if already running, this is a no-op.
-     */
-    fun start() {
+    override fun start() {
         if (jobs.any { it.isActive }) {
             Logger.d { "CheckInStalenessManager: already running" }
             return
@@ -111,13 +144,5 @@ class CheckInStalenessManager(
         if (checkInTimeSeconds == null) return false
         val age = clock.nowEpochSeconds() - checkInTimeSeconds
         return age > thresholdSeconds
-    }
-
-    companion object {
-        /** 11 minutes — matches the previous OldLastCheckInBanner threshold. */
-        const val CHECK_IN_STALE_THRESHOLD_SECONDS = 11L * 60
-
-        /** Re-evaluate staleness every 30 seconds (catches clock drift past threshold). */
-        const val STALE_CHECK_INTERVAL_MS = 30_000L
     }
 }

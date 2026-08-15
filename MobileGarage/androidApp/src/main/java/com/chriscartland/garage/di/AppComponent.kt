@@ -100,6 +100,7 @@ import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
 import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
 import com.chriscartland.garage.usecase.ComputeEffectiveSnoozeStateUseCase
+import com.chriscartland.garage.usecase.DefaultCheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.DefaultReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.DefaultRegisterFcmUseCase
@@ -956,7 +957,7 @@ abstract class AppComponent(
         dispatchers: DispatcherProvider,
         appClock: AppClock,
     ): CheckInStalenessManager =
-        CheckInStalenessManager(
+        DefaultCheckInStalenessManager(
             observeDoorEvents = observeDoorEvents,
             logAppEvent = logAppEvent,
             scope = applicationScope,

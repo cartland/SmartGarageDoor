@@ -39,6 +39,7 @@ import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import com.chriscartland.garage.usecase.AppStartup
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
+import com.chriscartland.garage.usecase.DefaultCheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.DoorResolvedFcmSubscriptionManager
 import com.chriscartland.garage.usecase.FcmRegistrationManager
@@ -79,7 +80,7 @@ class AppStartupTest {
     }
 
     private fun createStalenessManager(scope: TestScope): CheckInStalenessManager =
-        CheckInStalenessManager(
+        DefaultCheckInStalenessManager(
             observeDoorEvents = ObserveDoorEventsUseCase(FakeDoorRepository()),
             logAppEvent = LogAppEventUseCase(FakeAppLoggerRepository(), FakeDiagnosticsCountersRepository()),
             scope = scope.backgroundScope,
