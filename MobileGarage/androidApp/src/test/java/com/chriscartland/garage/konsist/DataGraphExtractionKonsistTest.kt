@@ -17,9 +17,7 @@
 package com.chriscartland.garage.konsist
 
 import com.chriscartland.garage.domain.graph.DataGraph
-import com.chriscartland.garage.domain.graph.DataGraph.Cadence
 import com.chriscartland.garage.domain.graph.DataGraph.NodeId
-import com.chriscartland.garage.domain.graph.DataGraph.Sharing
 import com.chriscartland.garage.konsist.DataGraphExtraction.ANNOTATION
 import com.chriscartland.garage.konsist.DataGraphExtraction.InputConsumption
 import com.chriscartland.garage.konsist.DataGraphExtraction.RawDerived
@@ -28,9 +26,9 @@ import com.chriscartland.garage.konsist.DataGraphExtraction.STATE_FLOW_PROP
 import com.chriscartland.garage.konsist.DataGraphExtraction.STATE_IN
 import com.chriscartland.garage.konsist.DataGraphExtraction.annotationSites
 import com.chriscartland.garage.konsist.DataGraphExtraction.assembleGraph
-import com.chriscartland.garage.konsist.DataGraphExtraction.attributeReader
 import com.chriscartland.garage.konsist.DataGraphExtraction.className
 import com.chriscartland.garage.konsist.DataGraphExtraction.conduitEntry
+import com.chriscartland.garage.konsist.DataGraphExtraction.conduitMethodReadsIn
 import com.chriscartland.garage.konsist.DataGraphExtraction.conduitPairsIn
 import com.chriscartland.garage.konsist.DataGraphExtraction.constructorParams
 import com.chriscartland.garage.konsist.DataGraphExtraction.declsByOwner
@@ -39,9 +37,11 @@ import com.chriscartland.garage.konsist.DataGraphExtraction.directInputPairsIn
 import com.chriscartland.garage.konsist.DataGraphExtraction.edgeIds
 import com.chriscartland.garage.konsist.DataGraphExtraction.illegalStateIns
 import com.chriscartland.garage.konsist.DataGraphExtraction.interfaceFlowMembers
+import com.chriscartland.garage.konsist.DataGraphExtraction.managerFromIds
 import com.chriscartland.garage.konsist.DataGraphExtraction.nodeSweepProblems
 import com.chriscartland.garage.konsist.DataGraphExtraction.orphanConduits
 import com.chriscartland.garage.konsist.DataGraphExtraction.parseNodeExemptions
+import com.chriscartland.garage.konsist.DataGraphExtraction.parseSharedRootExemptions
 import com.chriscartland.garage.konsist.DataGraphExtraction.readerPairsIn
 import com.chriscartland.garage.konsist.DataGraphExtraction.render
 import com.chriscartland.garage.konsist.DataGraphExtraction.sharingName
@@ -49,7 +49,6 @@ import com.chriscartland.garage.konsist.DataGraphExtraction.stripComments
 import com.chriscartland.garage.konsist.DataGraphExtraction.unreadDeriveds
 import com.lemonappdev.konsist.api.Konsist
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -58,9 +57,9 @@ import java.io.File
  * THE data graph: derived from sources, checked, and rendered
  * (docs/DATA_GRAPH_PLAN.md §6 — end state; there is no hand-declared
  * registry anymore). The pure parsers/assembly/rendering live in
- * [DataGraphExtraction]; this class owns the Konsist-scope
- * orchestration, the checks, the rendering pin, and the positive
- * controls.
+ * [DataGraphExtraction], their positive controls in
+ * [DataGraphExtractionControlsTest]; this class owns the Konsist-scope
+ * orchestration, the checks, and the rendering pin.
  *
  * What is extracted, and from what:
  *  - INPUT nodes from `@NodeCadence` annotations on repository/manager
@@ -82,17 +81,23 @@ import java.io.File
  *    `buttonHealthDisplay`). Constructor references are consumption of
  *    the terminal surface — VM STATE stays out of the graph (G0);
  *    reader names drop the `Default` prefix (the screen identity).
- *  - INPUT CONSUMPTION, so no observed input renders as isolated: the
- *    ADR-022 pass-through CONDUITS (`Observe*` UseCase classes — not
- *    stateIn holders — whose body references an input declaration)
- *    plus the ViewModels injecting them, and DIRECT reads (a VM
+ *  - INPUT CONSUMPTION, method-precise (C4/C6): the ADR-022
+ *    pass-through CONDUITS (`Observe*` UseCase classes — not stateIn
+ *    holders — whose body references an input declaration), resolved
+ *    PER METHOD so `current()` and `position()` are two routes to one
+ *    root; the ViewModels injecting them; and DIRECT reads (a VM
  *    constructor parameter typed as an input owner whose declaration
- *    the VM references). Action UseCases reading `.value` at act time
- *    are deliberately NOT conduits — the same reasoning as stateIn
- *    seeds: an act-time read is not reactive observation. An input
- *    with no reader at all (e.g. the server config, consumed by the
- *    data layer as fetch plumbing) renders with a footnote, not an
- *    invented edge.
+ *    the VM references). Every consumption becomes a
+ *    `DataGraph.ScreenRead` — the G7 read-path check's input. Action
+ *    UseCases reading `.value` at act time are deliberately NOT
+ *    conduits — the same reasoning as stateIn seeds: an act-time read
+ *    is not reactive observation. An input with no reader at all
+ *    (e.g. the server config, consumed by the data layer as fetch
+ *    plumbing) renders with a footnote, not an invented edge.
+ *  - MANAGER EDGES (C3): an ADR-015 manager file's impl classes are
+ *    parsed the same way, and what they collect becomes the input's
+ *    `Input.from` — a CLOCK manager cannot launder a PUSH upstream
+ *    past G7's per-root clock exemption.
  *
  * The extracted graph runs through the parameterized [DataGraph]
  * checks, and the generated `docs/DATA_GRAPH.md` rendering is pinned
@@ -114,9 +119,10 @@ import java.io.File
  *    instead of silently vanishing from the rendering.
  *
  * Comment-stripped text parsing throughout; every parser and rule has
- * a positive control below (the vacuous-pass rule), and the rendering
- * pin is the global control — a parser that returns nothing cannot
- * reproduce the reviewed committed rendering.
+ * a positive control in [DataGraphExtractionControlsTest] (the
+ * vacuous-pass rule), and the rendering pin is the global control — a
+ * parser that returns nothing cannot reproduce the reviewed committed
+ * rendering.
  *
  * Local-probe caveat: Konsist reads sources but Gradle tracks the
  * compiled classpath — and the committed rendering is read at RUNTIME,
@@ -191,32 +197,83 @@ class DataGraphExtractionKonsistTest {
             .mapValues { (_, names) -> names.distinct().sorted() }
     }
 
-    private fun extractConduits(inputs: List<RawInput>): Map<String, Set<String>> {
+    private fun extractConduits(inputs: List<RawInput>): List<DataGraphExtraction.Conduit> {
         val inputOwners = inputs.map { it.ownerType }.toSet()
         val decls = declsByOwner(inputs)
         return scope.files
             .filter { it.path.contains("/usecase/src/commonMain/") }
             .mapNotNull { conduitEntry(stripComments(it.text), inputOwners, decls) }
-            .toMap()
+            .sortedBy { it.className }
+    }
+
+    /**
+     * C3: enrich manager-declared inputs with their extracted reactive
+     * upstream. A `:usecase` file that declares more than one input AND
+     * collects upstream cannot be attributed file-level — that is a
+     * problem to report, not to guess through.
+     */
+    private fun enrichManagerFrom(
+        inputs: List<RawInput>,
+        conduits: List<DataGraphExtraction.Conduit>,
+    ): Pair<List<RawInput>, List<String>> {
+        val decls = declsByOwner(inputs)
+        val problems = mutableListOf<String>()
+        val fromByOwner = mutableMapOf<String, Set<String>>()
+        scope.files
+            .filter { it.path.contains("/usecase/src/commonMain/") }
+            .filter { it.text.contains("@NodeCadence") }
+            .forEach { file ->
+                val text = stripComments(file.text)
+                val sites = annotationSites(text)
+                if (sites.isEmpty()) return@forEach
+                val own = sites.map { it.nodeId }.toSet()
+                val from = managerFromIds(text, conduits, decls, own)
+                if (from.isEmpty()) return@forEach
+                if (sites.size > 1) {
+                    problems.add(
+                        "${file.path}: declares ${sites.size} inputs and collects upstream — " +
+                            "manager edges cannot be attributed file-level; split the file",
+                    )
+                    return@forEach
+                }
+                fromByOwner[sites.single().ownerType] = from
+            }
+        return inputs.map { raw ->
+            fromByOwner[raw.ownerType]?.let { raw.copy(fromIds = it) } ?: raw
+        } to problems
     }
 
     private fun extractInputConsumption(
         inputs: List<RawInput>,
-        conduits: Map<String, Set<String>>,
+        conduits: List<DataGraphExtraction.Conduit>,
     ): InputConsumption {
         val decls = declsByOwner(inputs)
         val vmFiles = vmFiles()
-        val viaPairs = vmFiles.flatMap { conduitPairsIn(stripComments(it.text), conduits.keys) }
-        val directPairs = vmFiles.flatMap { directInputPairsIn(stripComments(it.text), decls) }
-        val conduitReaders = viaPairs
+        val conduitNames = conduits.map { it.className }.toSet()
+        val conduitReaders = vmFiles
+            .flatMap { conduitPairsIn(stripComments(it.text), conduitNames) }
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, names) -> names.distinct().sorted() }
+        val reads = vmFiles
+            .flatMap { file ->
+                val text = stripComments(file.text)
+                conduitMethodReadsIn(text, conduits).map { (screen, route, id) ->
+                    Triple(screen, route, id)
+                } +
+                    directInputPairsIn(text, decls).map { (id, screen) ->
+                        // Route = the node's own id: two direct reads of
+                        // different nodes over one root stay two flows.
+                        Triple(screen, id, id)
+                    }
+            }.mapNotNull { (screen, route, id) ->
+                NodeId.entries
+                    .firstOrNull { it.id == id }
+                    ?.let { DataGraph.ScreenRead(screen, route, it) }
+            }.distinct()
         return InputConsumption(
-            conduitInputs = conduits,
+            conduits = conduits,
             conduitReaders = conduitReaders,
-            directReaders = directPairs
-                .groupBy({ it.first }, { it.second })
-                .mapValues { (_, names) -> names.distinct().sorted() },
+            reads = reads,
         )
     }
 
@@ -226,11 +283,23 @@ class DataGraphExtractionKonsistTest {
             .also { require(it.isNotEmpty()) { "Konsist scope found no viewmodel files — scope misconfigured" } }
 
     private fun realExtraction(): Extraction {
-        val inputs = extractInputs()
+        val rawInputs = extractInputs()
+        val conduits = extractConduits(rawInputs)
+        val (inputs, managerProblems) = enrichManagerFrom(rawInputs, conduits)
         val deriveds = extractDeriveds(inputs)
         val (nodes, problems) = assembleGraph(inputs, deriveds, extractReaders(deriveds))
-        return Extraction(nodes, problems, extractInputConsumption(inputs, extractConduits(inputs)))
+        return Extraction(nodes, managerProblems + problems, extractInputConsumption(inputs, conduits))
     }
+
+    /** Every read for G7: the consumption's input reads plus the derived-node reads from `readBy`. */
+    private fun allReads(
+        nodes: List<DataGraph.Node>,
+        consumption: InputConsumption,
+    ): List<DataGraph.ScreenRead> =
+        consumption.reads +
+            nodes.filterIsInstance<DataGraph.Derived>().flatMap { d ->
+                d.readBy.map { screen -> DataGraph.ScreenRead(screen, d.id.id, d.id) }
+            }
 
     // ---- the real graph: extracted, checked, rendered, pinned ----
 
@@ -259,13 +328,39 @@ class DataGraphExtractionKonsistTest {
         assertEquals(emptyList<NodeId>(), DataGraph.cycleMembers(nodes))
         assertEquals(emptyList<String>(), DataGraph.invalidGates(nodes))
         assertEquals(emptyList<String>(), DataGraph.eagerOverPolls(nodes))
-        assertEquals(emptyList<String>(), DataGraph.sharedRootViolations(nodes))
         // C5: nothing extracted may dangle unread — a derived node or a
         // conduit nobody injects is dead code or an extraction miss.
         assertEquals(emptyList<String>(), unreadDeriveds(nodes))
         assertEquals(
             emptyList<String>(),
-            orphanConduits(consumption.conduitInputs, consumption.conduitReaders),
+            orphanConduits(consumption.conduits, consumption.conduitReaders),
+        )
+    }
+
+    @Test
+    fun `every shared-root finding is fixed or adjudicated`() {
+        // C4 = G7 over every read: derived nodes, conduit methods, and
+        // direct injections alike. A screen observing one root through
+        // two independent flows can render two projections of the same
+        // instant one frame apart; each such finding is either collapsed
+        // into one derivation or exempted WITH ITS REASONING in
+        // data-graph-shared-root-exemptions.txt (stale entries fail).
+        val (nodes, problems, consumption) = realExtraction()
+        require(problems.isEmpty()) { "extraction problems: $problems" }
+        val reads = allReads(nodes, consumption)
+        require(reads.isNotEmpty()) { "no screen reads extracted — reader parsers misconfigured" }
+        val findings = DataGraph.sharedRootFindings(nodes, reads)
+        val exemptions = parseSharedRootExemptions(sharedRootExemptionsFile().readText())
+        assertEquals(
+            "unadjudicated shared-root finding — collapse the reads into one derivation " +
+                "or add a reasoned entry in data-graph-shared-root-exemptions.txt",
+            emptyList<String>(),
+            findings.filterNot { it.key in exemptions.keys }.map { it.toString() },
+        )
+        assertEquals(
+            "stale shared-root exemption — the finding no longer exists; remove the entry",
+            emptyList<String>(),
+            (exemptions.keys - findings.map { it.key }.toSet()).sorted(),
         )
     }
 
@@ -345,380 +440,9 @@ class DataGraphExtractionKonsistTest {
         )
     }
 
-    // ---- positive controls: every parser and rule can actually fire ----
-
-    @Test
-    fun `annotation parsing extracts owner, cadence, and id override — but never from comments`() {
-        val text = stripComments(
-            """
-            interface WearCompanionRepository {
-                // prose mentioning @NodeCadence(Cadence.CLOCK) must not count
-                @NodeCadence(Cadence.POLL, id = "watchCompanion")
-                fun observeWatchAppStatus(): Flow<WatchAppStatus>
-            }
-            """.trimIndent(),
-        )
-        assertEquals(
-            listOf(RawInput("WearCompanionRepository", "observeWatchAppStatus", Cadence.POLL, "watchCompanion")),
-            annotationSites(text),
-        )
-    }
-
-    @Test
-    fun `the nearest preceding type is the owner`() {
-        // The LiveClock file shape: annotated interface declaration,
-        // un-annotated override in a sibling class — one site, owned by
-        // the interface.
-        val text =
-            """
-            interface LiveClock {
-                @NodeCadence(Cadence.CLOCK)
-                val nowEpochSeconds: StateFlow<Long>
-            }
-            class DefaultLiveClock : LiveClock {
-                override val nowEpochSeconds: StateFlow<Long> = someFlow
-            }
-            """.trimIndent()
-        assertEquals(
-            listOf(RawInput("LiveClock", "nowEpochSeconds", Cadence.CLOCK, "nowEpochSeconds")),
-            annotationSites(text),
-        )
-    }
-
-    @Test
-    fun `edges come from the flow expression, never the stateIn seed`() {
-        val stripped = stripComments(
-            """
-            class ComputeThingUseCase(
-                thingRepository: ThingRepository,
-                otherRepository: OtherRepository,
-                liveClock: LiveClock,
-                applicationScope: CoroutineScope,
-            ) {
-                private val state: StateFlow<Thing> =
-                    combine(
-                        thingRepository.thing,
-                        liveClock
-                            .nowEpochSeconds,
-                    ) { t, now -> ThingLogic.compute(t, now) }
-                        .stateIn(
-                            scope = applicationScope,
-                            started = SharingStarted.Eagerly,
-                            initialValue = otherRepository.other.value,
-                        )
-            }
-            """.trimIndent(),
-        )
-        val params = constructorParams(stripped, "ComputeThingUseCase")
-        assertEquals(
-            listOf(
-                "thingRepository" to "ThingRepository",
-                "otherRepository" to "OtherRepository",
-                "liveClock" to "LiveClock",
-                "applicationScope" to "CoroutineScope",
-            ),
-            params,
-        )
-        val split = STATE_IN.find(stripped)!!.range.first
-        val owners = mapOf(
-            "ThingRepository" to listOf("thing" to "thingNode"),
-            "OtherRepository" to listOf("other" to "otherNode"),
-            "LiveClock" to listOf("nowEpochSeconds" to "nowEpochSeconds"),
-        )
-        // The multiline `liveClock\n.nowEpochSeconds` reference counts;
-        // the seed-only `otherRepository.other` does not.
-        assertEquals(
-            setOf("thingNode", "nowEpochSeconds"),
-            edgeIds(stripped.substring(0, split), params, owners, emptyMap()),
-        )
-        assertEquals("Eagerly", sharingName(stripped.substring(split)))
-        // The stateIn property's type argument is the node's output type.
-        assertEquals(
-            "Thing",
-            STATE_FLOW_PROP
-                .findAll(stripped.substring(0, split))
-                .lastOrNull()
-                ?.groupValues
-                ?.get(1),
-        )
-    }
-
-    @Test
-    fun `a derived reading another derived is an edge, including via invoke`() {
-        val params = listOf("upstream" to "ObserveUpstreamUseCase")
-        val derivedIdByClass = mapOf("ObserveUpstreamUseCase" to "upstream")
-        assertEquals(setOf("upstream"), edgeIds("upstream().map { it }", params, emptyMap(), derivedIdByClass))
-        assertEquals(setOf("upstream"), edgeIds("upstream.status", params, emptyMap(), derivedIdByClass))
-        assertEquals(emptySet<String>(), edgeIds("noReferenceHere", params, emptyMap(), derivedIdByClass))
-    }
-
-    @Test
-    fun `reader attribution fires by shell type or by named output value, and only those`() {
-        val deriveds = listOf(
-            RawDerived("ComputeButtonHealthDisplayUseCase", emptySet(), "Eagerly", outputType = "ButtonHealthDisplay"),
-            RawDerived("ComputeEffectiveSnoozeStateUseCase", emptySet(), "Eagerly", outputType = "SnoozeState"),
-        )
-        // Route (a): a constructor parameter typed as the shell class.
-        assertEquals(
-            "ComputeEffectiveSnoozeStateUseCase",
-            attributeReader(deriveds, "anyName", "ComputeEffectiveSnoozeStateUseCase"),
-        )
-        // Route (b): StateFlow<output> AND named after the node.
-        assertEquals(
-            "ComputeButtonHealthDisplayUseCase",
-            attributeReader(deriveds, "buttonHealthDisplay", "StateFlow<ButtonHealthDisplay>"),
-        )
-        // A StateFlow of the output type NOT named after the node is not
-        // attributed (it could be any flow of that domain type).
-        assertNull(attributeReader(deriveds, "someOtherFlow", "StateFlow<ButtonHealthDisplay>"))
-        // An ambiguous output type (two nodes emit it) never attributes.
-        val ambiguous = deriveds + RawDerived("ObserveOtherUseCase", emptySet(), "Eagerly", outputType = "SnoozeState")
-        assertNull(attributeReader(ambiguous, "effectiveSnoozeState", "StateFlow<SnoozeState>"))
-        // An unrelated type is not attributed.
-        assertNull(attributeReader(deriveds, "x", "DispatcherProvider"))
-    }
-
-    @Test
-    fun `assembly rejects DERIVED cadence, unknown ids, gateless polls, and missing sharing`() {
-        val (_, derivedCadence) = assembleGraph(
-            listOf(RawInput("X", "x", Cadence.DERIVED, "authState")),
-            emptyList(),
-        )
-        assertTrue(derivedCadence.any { it.contains("DERIVED is not a declarable cadence") })
-
-        val (_, unknownId) = assembleGraph(
-            listOf(RawInput("X", "x", Cadence.PUSH, "notANode")),
-            emptyList(),
-        )
-        assertTrue(unknownId.any { it.contains("no NodeId has id `notANode`") })
-
-        val (_, gateless) = assembleGraph(
-            listOf(RawInput("SnoozeRepository", "snoozeState", Cadence.USER_ACTION, "snoozeState")),
-            listOf(RawDerived("ComputeEffectiveSnoozeStateUseCase", setOf("snoozeState"), "WhileSubscribed")),
-        )
-        assertTrue(gateless.any { it.contains("WhileSubscribed with no POLL-cadence source upstream") })
-
-        val (_, noSharing) = assembleGraph(
-            emptyList(),
-            listOf(RawDerived("ComputeEffectiveSnoozeStateUseCase", emptySet(), null)),
-        )
-        assertTrue(noSharing.any { it.contains("no SharingStarted literal") })
-    }
-
-    @Test
-    fun `assembly resolves a gate to its upstream poll and attaches readers`() {
-        val (nodes, problems) = assembleGraph(
-            listOf(RawInput("WearCompanionRepository", "observeWatchAppStatus", Cadence.POLL, "watchCompanion")),
-            listOf(RawDerived("ObserveWatchAppStatusUseCase", setOf("watchCompanion"), "WhileSubscribed")),
-            readersByShell = mapOf("ObserveWatchAppStatusUseCase" to listOf("ProfileViewModel")),
-        )
-        assertEquals(emptyList<String>(), problems)
-        val derived = nodes.filterIsInstance<DataGraph.Derived>().single()
-        assertEquals(Sharing.Gated(poll = NodeId.WATCH_COMPANION), derived.sharing)
-        assertEquals(listOf("ProfileViewModel"), derived.readBy)
-    }
-
-    @Test
-    fun `the derived-id naming convention resolves each shell shape`() {
-        assertEquals("buttonHealthDisplay", derivedNodeId("ComputeButtonHealthDisplayUseCase"))
-        assertEquals("watchAppStatus", derivedNodeId("ObserveWatchAppStatusUseCase"))
-        assertEquals("somethingNew", derivedNodeId("SomethingNewUseCase"))
-    }
-
-    @Test
-    fun `the rendering is deterministic and complete for a known graph`() {
-        val nodes = listOf(
-            DataGraph.Input(NodeId.CURRENT_DOOR_EVENT, owner = "DoorRepository", cadence = Cadence.PUSH),
-            DataGraph.Derived(
-                id = NodeId.BUTTON_HEALTH_DISPLAY,
-                from = listOf(NodeId.CURRENT_DOOR_EVENT),
-                shell = "ComputeButtonHealthDisplayUseCase",
-                sharing = Sharing.Eager,
-                readBy = listOf("HomeViewModel"),
-            ),
-        )
-        val consumption = InputConsumption(
-            conduitInputs = mapOf("ObserveDoorEventsUseCase" to setOf("currentDoorEvent")),
-            conduitReaders = mapOf("ObserveDoorEventsUseCase" to listOf("HistoryViewModel")),
-            directReaders = mapOf("currentDoorEvent" to listOf("HomeViewModel")),
-        )
-        val expected =
-            """
-            <!-- GENERATED from sources by DataGraphExtractionKonsistTest — do not edit.
-                 Regenerate: ./scripts/generate-data-graph.sh
-                 The same test pins this file byte-exact to the code (DATA_GRAPH_PLAN.md §6). -->
-
-            # Shared data graph
-
-            | Node | Kind | Cadence | Declared by | Sharing | Read by |
-            |---|---|---|---|---|---|
-            | `currentDoorEvent` | input | PUSH | `DoorRepository` | — | via `ObserveDoorEventsUseCase`, `HomeViewModel` |
-            | `buttonHealthDisplay` | derived | — | `ComputeButtonHealthDisplayUseCase` | eager | `HomeViewModel` |
-
-            Screens observe inputs through the listed `Observe*` pass-throughs (ADR-022)
-            or direct manager injection. An input with no outgoing edge in the diagram is
-            consumed at action time inside the data layer (fetch plumbing), not observed.
-
-            ```mermaid
-            graph LR
-                currentDoorEvent(["currentDoorEvent · PUSH"])
-                buttonHealthDisplay["buttonHealthDisplay"]
-                ObserveDoorEventsUseCase[["ObserveDoorEventsUseCase"]]
-                HistoryViewModel{{"HistoryViewModel"}}
-                HomeViewModel{{"HomeViewModel"}}
-                currentDoorEvent --> ObserveDoorEventsUseCase
-                ObserveDoorEventsUseCase --> HistoryViewModel
-                currentDoorEvent --> HomeViewModel
-                currentDoorEvent --> buttonHealthDisplay
-                buttonHealthDisplay --> HomeViewModel
-            ```
-            """.trimIndent() + "\n"
-        assertEquals(expected, render(nodes, consumption))
-    }
-
-    @Test
-    fun `conduits are Observe pass-throughs that reference an input — nothing else qualifies`() {
-        val decls = mapOf("DoorRepository" to listOf("currentDoorEvent" to "currentDoorEvent"))
-        val passThrough =
-            """
-            class ObserveDoorEventsUseCase(
-                private val doorRepository: DoorRepository,
-            ) {
-                fun current(): StateFlow<DoorEvent?> = doorRepository.currentDoorEvent
-            }
-            """.trimIndent()
-        assertEquals(
-            "ObserveDoorEventsUseCase" to setOf("currentDoorEvent"),
-            conduitEntry(passThrough, emptySet(), decls),
-        )
-        // An action UseCase reading `.value` is not observation — the
-        // Observe prefix is the filter.
-        val action = passThrough.replace("ObserveDoorEventsUseCase", "FetchDoorEventsUseCase")
-        assertNull(conduitEntry(action, emptySet(), decls))
-        // An Observe class that references no input exposes nothing.
-        val idle = "class ObserveIdleUseCase(\n    private val other: OtherThing,\n) { fun x() = other.y }"
-        assertNull(conduitEntry(idle, emptySet(), decls))
-        // A stateIn holder is a derived node, never a conduit.
-        val derived = passThrough.replace(
-            "doorRepository.currentDoorEvent",
-            "doorRepository.currentDoorEvent.stateIn(s)",
-        )
-        assertNull(conduitEntry(derived, emptySet(), decls))
-    }
-
-    @Test
-    fun `input consumption pairs fire for conduit injection and direct owner reads`() {
-        val decls = mapOf("CheckInStalenessManager" to listOf("isCheckInStale" to "isCheckInStale"))
-        val vmText =
-            """
-            class DefaultHomeViewModel(
-                observeDoorEvents: ObserveDoorEventsUseCase,
-                private val checkInStalenessManager: CheckInStalenessManager,
-                private val other: SomethingElse,
-            ) {
-                val stale = checkInStalenessManager.isCheckInStale
-            }
-            """.trimIndent()
-        assertEquals(
-            listOf("ObserveDoorEventsUseCase" to "HomeViewModel"),
-            conduitPairsIn(vmText, setOf("ObserveDoorEventsUseCase")),
-        )
-        assertEquals(
-            listOf("isCheckInStale" to "HomeViewModel"),
-            directInputPairsIn(vmText, decls),
-        )
-        // An owner injected but never referenced yields no direct edge.
-        val unreferenced = vmText.replace("checkInStalenessManager.isCheckInStale", "0")
-        assertEquals(emptyList<Pair<String, String>>(), directInputPairsIn(unreferenced, decls))
-    }
-
-    // ---- positive controls for the fail-closed sweeps ----
-
-    @Test
-    fun `the flow-member universe sees interfaces and only interfaces`() {
-        val text = stripComments(
-            """
-            interface DoorRepository {
-                val currentDoorEvent: StateFlow<DoorEvent?>
-                fun observeWatchAppStatus(): Flow<WatchAppStatus>
-                fun countKey(key: String): Flow<Long>
-                suspend fun fetchCurrentDoorEvent(): AppResult<DoorEvent, FetchError>
-            }
-            class NetworkDoorRepository : DoorRepository {
-                override val currentDoorEvent: StateFlow<DoorEvent?> = someFlow
-            }
-            """.trimIndent(),
-        )
-        // The val and the parameterless fun are universe members; the keyed
-        // fun, the non-flow fun, and the class override are not.
-        assertEquals(
-            listOf(
-                "DoorRepository" to "currentDoorEvent",
-                "DoorRepository" to "observeWatchAppStatus",
-            ),
-            interfaceFlowMembers(text),
-        )
-    }
-
-    @Test
-    fun `the node sweep can fail both ways, and exemptions demand reasons`() {
-        val members = listOf("Repo" to "annotated", "Repo" to "forgotten", "Repo" to "excused")
-        val annotated = setOf("Repo" to "annotated")
-        val (missing, stale) = nodeSweepProblems(members, annotated, setOf("Repo.excused", "Repo.gone"))
-        assertEquals(listOf("Repo.forgotten"), missing)
-        assertEquals(listOf("Repo.gone"), stale)
-        // An annotated member's leftover exemption is stale too.
-        val (_, nowANode) = nodeSweepProblems(members, annotated, setOf("Repo.annotated"))
-        assertEquals(listOf("Repo.annotated"), nowANode)
-        // Parsing: comments and blanks ignored; a reason is mandatory.
-        assertEquals(
-            mapOf("A.b" to "keyed stream"),
-            parseNodeExemptions("# header\n\nA.b | keyed stream\n"),
-        )
-        val noReason = runCatching { parseNodeExemptions("A.b") }
-        assertTrue("an exemption without a reason must be rejected", noReason.isFailure)
-    }
-
-    @Test
-    fun `stateIn placement rules fire per module`() {
-        val appScoped = "val x = flow.stateIn(scope = applicationScope, started = SharingStarted.Eagerly, initialValue = y)"
-        val vmScoped = "val x = flow.stateIn(scope = viewModelScope, started = SharingStarted.Eagerly, initialValue = y)"
-        // :usecase is the legal home, whatever the scope.
-        assertEquals(emptyList<String>(), illegalStateIns("/usecase/src/commonMain/X.kt", appScoped))
-        // Repositories and the other shared modules: never.
-        assertEquals(1, illegalStateIns("/data/src/commonMain/X.kt", appScoped).size)
-        assertEquals(1, illegalStateIns("/domain/src/commonMain/X.kt", vmScoped).size)
-        // :viewmodel: only on viewModelScope (a G0 sink).
-        assertEquals(emptyList<String>(), illegalStateIns("/viewmodel/src/commonMain/X.kt", vmScoped))
-        assertEquals(1, illegalStateIns("/viewmodel/src/commonMain/X.kt", appScoped).size)
-        // No stateIn, no violation.
-        assertEquals(emptyList<String>(), illegalStateIns("/data/src/commonMain/X.kt", "val x = 1"))
-    }
-
-    @Test
-    fun `orphan conduits and unread deriveds are named, not dropped`() {
-        assertEquals(
-            listOf("ObserveIdleUseCase: conduit no ViewModel injects"),
-            orphanConduits(
-                conduitInputs = mapOf("ObserveIdleUseCase" to setOf("x"), "ObserveReadUseCase" to setOf("y")),
-                conduitReaders = mapOf("ObserveReadUseCase" to listOf("HomeViewModel")),
-            ),
-        )
-        val unread = DataGraph.Derived(
-            id = NodeId.WATCH_APP_STATUS,
-            from = emptyList(),
-            shell = "ObserveWatchAppStatusUseCase",
-            sharing = Sharing.Eager,
-            readBy = emptyList(),
-        )
-        assertEquals(
-            listOf("watchAppStatus: derived node no ViewModel reads"),
-            unreadDeriveds(listOf(unread)),
-        )
-        assertEquals(emptyList<String>(), unreadDeriveds(listOf(unread.copy(readBy = listOf("ProfileViewModel")))))
-    }
-
     private fun nodeExemptionsFile(): File = File(mobileGarageRoot(), "data-graph-node-exemptions.txt")
+
+    private fun sharedRootExemptionsFile(): File = File(mobileGarageRoot(), "data-graph-shared-root-exemptions.txt")
 
     /** Walk up from the test working directory to the Gradle root (the dir holding docs/DATA_GRAPH_PLAN.md). */
     private fun mobileGarageRoot(): File {

@@ -115,10 +115,71 @@ class DataGraphTest {
             derived(NodeId.BUTTON_HEALTH_DISPLAY, from = listOf(NodeId.CURRENT_DOOR_EVENT), readBy = listOf("Screen")),
             derived(NodeId.EFFECTIVE_SNOOZE_STATE, from = listOf(NodeId.CURRENT_DOOR_EVENT), readBy = listOf("Screen")),
         )
-        assertEquals(
-            listOf("Screen reads buttonHealthDisplay + effectiveSnoozeState over a shared non-clock root"),
-            DataGraph.sharedRootViolations(doctored),
+        val reads = listOf(
+            DataGraph.ScreenRead("Screen", "buttonHealthDisplay", NodeId.BUTTON_HEALTH_DISPLAY),
+            DataGraph.ScreenRead("Screen", "effectiveSnoozeState", NodeId.EFFECTIVE_SNOOZE_STATE),
         )
+        val finding = DataGraph.sharedRootFindings(doctored, reads).single()
+        assertEquals("Screen | currentDoorEvent", finding.key)
+        assertEquals(listOf("buttonHealthDisplay", "effectiveSnoozeState"), finding.routes)
+    }
+
+    @Test
+    fun sharedRootCheckSeesADerivedNextToItsOwnInput() {
+        // The pre-C4 blind spot: a screen reading a derived node AND one
+        // of that node's inputs is the same one-frame hazard as two
+        // derived siblings — the diamond must fire.
+        val doctored = listOf(
+            push,
+            derived(NodeId.BUTTON_HEALTH_DISPLAY, from = listOf(NodeId.CURRENT_DOOR_EVENT), readBy = listOf("Screen")),
+        )
+        val reads = listOf(
+            DataGraph.ScreenRead("Screen", "buttonHealthDisplay", NodeId.BUTTON_HEALTH_DISPLAY),
+            DataGraph.ScreenRead("Screen", "ObserveDoorEventsUseCase.current", NodeId.CURRENT_DOOR_EVENT),
+        )
+        assertEquals(
+            "Screen | currentDoorEvent",
+            DataGraph.sharedRootFindings(doctored, reads).single().key,
+        )
+    }
+
+    @Test
+    fun sharedRootCheckSeesTheSameInputReadTwice() {
+        // Two independent flows of one id (a StateFlow pass-through and a
+        // mapped projection) emit separately — two routes, one root.
+        val doctored = listOf<DataGraph.Node>(push)
+        val reads = listOf(
+            DataGraph.ScreenRead("Screen", "ObserveDoorEventsUseCase.current", NodeId.CURRENT_DOOR_EVENT),
+            DataGraph.ScreenRead("Screen", "ObserveDoorEventsUseCase.position", NodeId.CURRENT_DOOR_EVENT),
+        )
+        assertEquals(
+            listOf("ObserveDoorEventsUseCase.current", "ObserveDoorEventsUseCase.position"),
+            DataGraph.sharedRootFindings(doctored, reads).single().routes,
+        )
+        // One route only — no finding.
+        assertEquals(emptyList(), DataGraph.sharedRootFindings(doctored, reads.take(1)))
+    }
+
+    @Test
+    fun aManagerInputCannotLaunderItsUpstreamPastTheClockExemption() {
+        // isCheckInStale's shape: a CLOCK-cadence manager input whose
+        // impl collects a PUSH input. The CLOCK exemption is per ROOT —
+        // the manager's own tick is exempt, its upstream is not.
+        val manager = Input(
+            NodeId.IS_CHECK_IN_STALE,
+            owner = "CheckInStalenessManager",
+            cadence = Cadence.CLOCK,
+            from = listOf(NodeId.CURRENT_DOOR_EVENT),
+        )
+        val doctored = listOf(manager, push)
+        val reads = listOf(
+            DataGraph.ScreenRead("Screen", "isCheckInStale", NodeId.IS_CHECK_IN_STALE),
+            DataGraph.ScreenRead("Screen", "ObserveDoorEventsUseCase.current", NodeId.CURRENT_DOOR_EVENT),
+        )
+        val finding = DataGraph.sharedRootFindings(doctored, reads).single()
+        assertEquals("Screen | currentDoorEvent", finding.key)
+        // And sourcesOf counts the manager itself plus its upstream.
+        assertEquals(setOf(manager, push), DataGraph.sourcesOf(manager, doctored))
     }
 
     @Test
@@ -151,7 +212,30 @@ class DataGraphTest {
                 readBy = listOf("S"),
             ),
         )
-        assertEquals(emptyList(), DataGraph.sharedRootViolations(doctored))
+        val reads = listOf(
+            DataGraph.ScreenRead("S", "buttonHealthDisplay", NodeId.BUTTON_HEALTH_DISPLAY),
+            DataGraph.ScreenRead("S", "watchAppStatus", NodeId.WATCH_APP_STATUS),
+            DataGraph.ScreenRead("S", "nowEpochSeconds", NodeId.NOW_EPOCH_SECONDS),
+        )
+        assertEquals(emptyList(), DataGraph.sharedRootFindings(doctored, reads))
+    }
+
+    @Test
+    fun aManagerFromEdgeParticipatesInCycleDetection() {
+        val manager = Input(
+            NodeId.IS_CHECK_IN_STALE,
+            owner = "M",
+            cadence = Cadence.CLOCK,
+            from = listOf(NodeId.BUTTON_HEALTH_DISPLAY),
+        )
+        val doctored = listOf(
+            manager,
+            derived(NodeId.BUTTON_HEALTH_DISPLAY, from = listOf(NodeId.IS_CHECK_IN_STALE)),
+        )
+        assertEquals(
+            listOf(NodeId.BUTTON_HEALTH_DISPLAY, NodeId.IS_CHECK_IN_STALE),
+            DataGraph.cycleMembers(doctored),
+        )
     }
 
     @Test

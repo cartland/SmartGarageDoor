@@ -144,11 +144,23 @@ object DataGraph {
         val cadence: Cadence
     }
 
-    /** A node that is written to. [owner] is the class holding the MutableStateFlow. */
+    /**
+     * A node that is written to. [owner] is the class holding the
+     * MutableStateFlow. [from] is the reactive upstream an ADR-015
+     * manager's implementation collects (extracted from its class body) —
+     * `isCheckInStale` re-evaluates on every `currentDoorEvent`, so
+     * rendering it as a bare root would launder a PUSH edge past the G7
+     * shared-root rule. [cadence] describes the node's SELF-driven half
+     * (the periodic tick that makes the manager more than a derivation);
+     * root analysis counts the node itself AND everything in [from].
+     * Lifecycle coupling (a user-scoped cache clearing on sign-out) is
+     * NOT an edge — edges are value derivations, not lifetime triggers.
+     */
     data class Input(
         override val id: NodeId,
         val owner: String,
         override val cadence: Cadence,
+        val from: List<NodeId> = emptyList(),
     ) : Node
 
     /**
@@ -156,7 +168,8 @@ object DataGraph {
      * the `stateIn` (rule G1's policy shell); [from] is extracted from
      * the flow expression feeding that `stateIn`. [readBy] names the
      * screen ViewModels that observe it (extracted from their
-     * constructors) — the G7 shared-root check keys on it.
+     * constructors) — it feeds the rendering and becomes a [ScreenRead]
+     * for the G7 [sharedRootFindings] check.
      */
     data class Derived(
         override val id: NodeId,
@@ -174,8 +187,10 @@ object DataGraph {
     ): Node? = nodes.firstOrNull { it.id == id }
 
     /**
-     * Every [Input] transitively upstream of [start]. Iterative (a
-     * cycle cannot overflow it; [cycleMembers] reports cycles).
+     * Every [Input] transitively upstream of [start] — including, for a
+     * manager input with [Input.from], the input itself AND its
+     * upstream roots. Iterative (a cycle cannot overflow it;
+     * [cycleMembers] reports cycles).
      */
     fun sourcesOf(
         start: Node,
@@ -190,7 +205,10 @@ object DataGraph {
             val node = stack.removeLast()
             if (!seen.add(node.id)) continue
             when (node) {
-                is Input -> sources.add(node)
+                is Input -> {
+                    sources.add(node)
+                    node.from.mapNotNull { byId[it] }.forEach(stack::addLast)
+                }
                 is Derived -> node.from.mapNotNull { byId[it] }.forEach(stack::addLast)
             }
         }
@@ -224,15 +242,18 @@ object DataGraph {
      */
     fun cycleMembers(nodes: List<Node>): List<NodeId> {
         val byId = nodes.associateBy { it.id }
-        val remainingDeps = nodes.associate { node ->
-            node.id to when (node) {
-                is Input -> mutableSetOf<NodeId>()
-                is Derived -> node.from.filter(byId::containsKey).toMutableSet()
+        val fromOf = { node: Node ->
+            when (node) {
+                is Input -> node.from
+                is Derived -> node.from
             }
         }
+        val remainingDeps = nodes.associate { node ->
+            node.id to fromOf(node).filter(byId::containsKey).toMutableSet()
+        }
         val dependents = mutableMapOf<NodeId, MutableList<NodeId>>()
-        nodes.filterIsInstance<Derived>().forEach { d ->
-            d.from.forEach { dependents.getOrPut(it) { mutableListOf() }.add(d.id) }
+        nodes.forEach { node ->
+            fromOf(node).forEach { dependents.getOrPut(it) { mutableListOf() }.add(node.id) }
         }
         val ready = ArrayDeque(remainingDeps.filterValues { it.isEmpty() }.keys)
         val resolved = mutableSetOf<NodeId>()
@@ -290,26 +311,62 @@ object DataGraph {
             }.sorted()
 
     /**
-     * G7 mechanized: two derived nodes read by the same screen over a
-     * shared non-clock root emit independently, so the screen can
-     * render them one frame apart. Collapse them into one derivation.
-     * [Cadence.CLOCK] roots are exempt (ticks that change nothing
-     * dedup away). Empty = conformant.
+     * One reactive consumption of a graph node by a screen ViewModel.
+     * [route] names the path — a conduit method (`"current"`,
+     * `"position"`), a derived node's id, an input's own manager
+     * (`"isCheckInStale"`), or `"direct"` — so two independent flows of
+     * the same root are two reads even when they carry the same id.
      */
-    fun sharedRootViolations(nodes: List<Node>): List<String> {
-        val derived = nodes.filterIsInstance<Derived>()
-        return derived
-            .flatMap { d -> d.readBy.map { screen -> screen to d } }
-            .groupBy({ it.first }, { it.second })
-            .flatMap { (screen, readers) ->
-                readers
-                    .flatMap { a -> readers.map { b -> a to b } }
-                    .filter { (a, b) -> a.id < b.id }
-                    .filter { (a, b) ->
-                        sourcesOf(a, nodes)
-                            .intersect(sourcesOf(b, nodes))
-                            .any { it.cadence != Cadence.CLOCK }
-                    }.map { (a, b) -> "$screen reads ${a.id.id} + ${b.id.id} over a shared non-clock root" }
-            }.sorted()
+    data class ScreenRead(
+        val screen: String,
+        val route: String,
+        val node: NodeId,
+    )
+
+    /**
+     * One G7 finding: [screen] observes [root] through two or more
+     * independent flows ([routes]), so it can render two projections of
+     * the same instant one frame apart. The remedy is to collapse them
+     * into one derivation — or an adjudicated exemption keyed on [key].
+     */
+    data class SharedRootFinding(
+        val screen: String,
+        val root: NodeId,
+        val routes: List<String>,
+    ) {
+        val key: String get() = "$screen | ${root.id}"
+
+        override fun toString(): String = "$key | via ${routes.joinToString(" + ")}"
+    }
+
+    /**
+     * G7 mechanized over EVERY screen read — derived nodes, conduit
+     * methods, and direct input reads alike (the pre-C4 form paired
+     * only Derived×Derived, which missed a screen reading a derived
+     * node next to one of that node's own inputs). A root reached
+     * through ≥2 distinct routes into one screen is a finding.
+     * [Cadence.CLOCK] roots are exempt (ticks that change nothing
+     * dedup away) — the exemption is per ROOT, so a CLOCK-cadence
+     * manager input with a PUSH upstream no longer launders that
+     * upstream. Empty = conformant.
+     */
+    fun sharedRootFindings(
+        nodes: List<Node>,
+        reads: List<ScreenRead>,
+    ): List<SharedRootFinding> {
+        val byId = nodes.associateBy { it.id }
+        return reads
+            .distinct()
+            .flatMap { read ->
+                val node = byId[read.node] ?: return@flatMap emptyList()
+                sourcesOf(node, nodes)
+                    .filter { it.cadence != Cadence.CLOCK }
+                    .map { root -> Triple(read.screen, root.id, read.route) }
+            }.distinct()
+            .groupBy({ it.first to it.second }, { it.third })
+            .filterValues { it.size >= 2 }
+            .map { (screenRoot, routes) ->
+                SharedRootFinding(screenRoot.first, screenRoot.second, routes.sorted())
+            }.sortedBy { it.key }
     }
 }

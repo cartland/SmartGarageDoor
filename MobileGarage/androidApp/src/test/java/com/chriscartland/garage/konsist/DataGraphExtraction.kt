@@ -38,6 +38,7 @@ internal object DataGraphExtraction {
     private val FLOW_VAL = Regex("""\bval\s+([A-Za-z0-9_]+)\s*:\s*(?:StateFlow|SharedFlow|Flow)<""")
     private val FLOW_FUN = Regex("""\bfun\s+([A-Za-z0-9_]+)\s*\(\s*\)\s*:\s*(?:StateFlow|SharedFlow|Flow)<""")
     private val DECLARATION = Regex("""\b(val|fun)\s+([A-Za-z0-9_]+)""")
+    private val FUN_DECL = Regex("""\bfun\s+([A-Za-z0-9_]+)\s*\(""")
     private val CLASS_NAME = Regex("""\bclass\s+([A-Za-z0-9_]+)""")
     private val CLASS_WITH_CTOR = Regex("""\bclass\s+([A-Za-z0-9_]+)\s*\(""")
     private val SHARING = Regex("""SharingStarted\s*\.\s*([A-Za-z]+)""")
@@ -50,6 +51,8 @@ internal object DataGraphExtraction {
         val declarationName: String,
         val cadence: Cadence,
         val nodeId: String,
+        /** Extracted reactive upstream (ADR-015 manager impls only) — see [managerFromIds]. */
+        val fromIds: Set<String> = emptySet(),
     )
 
     data class RawDerived(
@@ -64,15 +67,20 @@ internal object DataGraphExtraction {
     /** How the inputs reach the screens: reactive pass-through conduits and direct injections. */
     data class InputConsumption(
         /**
-         * Conduit class -> the input node ids it exposes — ALL extracted
-         * conduits, unfiltered: one without a reader fails [orphanConduits]
-         * rather than silently vanishing from the graph.
+         * ALL extracted conduits, unfiltered: one without a reader fails
+         * [orphanConduits] rather than silently vanishing from the graph.
          */
-        val conduitInputs: Map<String, Set<String>>,
-        /** Conduit class -> the ViewModels injecting it. */
+        val conduits: List<Conduit>,
+        /** Conduit class -> the ViewModels injecting it (the diagram's class-level edges). */
         val conduitReaders: Map<String, List<String>>,
-        /** Input node id -> ViewModels injecting the owner and referencing the declaration. */
-        val directReaders: Map<String, List<String>>,
+        /**
+         * Every method-precise reactive input consumption by a screen:
+         * conduit-method reads (route `"Conduit.method"`) and direct
+         * injections (route = the node's own id, so two direct reads of
+         * different nodes over one root stay two flows). Derived-node
+         * reads are appended by the orchestration from `readBy`.
+         */
+        val reads: List<DataGraph.ScreenRead>,
     )
 
     // ---- parsers ----
@@ -238,23 +246,108 @@ internal object DataGraphExtraction {
     }
 
     /**
+     * An ADR-022 pass-through, method-precise: each fun of the conduit
+     * mapped to the input node ids its body references. Method-level
+     * resolution is what keeps the graph honest about granularity —
+     * injecting `ObserveDoorEventsUseCase` does not mean reading every
+     * door value; calling `.paginationState()` does.
+     */
+    data class Conduit(
+        val className: String,
+        val methods: Map<String, Set<String>>,
+    ) {
+        val inputs: Set<String> get() = methods.values.flatten().toSet()
+    }
+
+    /**
      * One file's conduit entry, or null. A conduit is an ADR-022
      * pass-through: an `Observe*` class (never a stateIn holder, never
      * an input owner) whose body references an input declaration. The
      * `Observe` prefix is the reactive-observation filter — action
      * UseCases read `.value` at act time, which is not observation.
+     * Each fun's ids come from its own body slice (fun header to the
+     * next fun), so `current()` and `paginationState()` resolve to
+     * different nodes; `operator fun invoke` is the method `invoke`.
      */
     fun conduitEntry(
         strippedText: String,
         inputOwners: Set<String>,
         declsByOwner: Map<String, List<Pair<String, String>>>,
-    ): Pair<String, Set<String>>? {
+    ): Conduit? {
         val name = className(strippedText) ?: return null
         if (!name.startsWith("Observe") || name in inputOwners) return null
         if (STATE_IN.containsMatchIn(strippedText)) return null
-        val ids = referencedInputIds(strippedText, constructorParams(strippedText, name), declsByOwner)
-        return if (ids.isEmpty()) null else name to ids
+        val params = constructorParams(strippedText, name)
+        val funMatches = FUN_DECL.findAll(strippedText).toList()
+        val methods = funMatches
+            .mapIndexedNotNull { i, match ->
+                val bodyEnd = funMatches.getOrNull(i + 1)?.range?.first ?: strippedText.length
+                val body = strippedText.substring(match.range.first, bodyEnd)
+                val ids = referencedInputIds(body, params, declsByOwner)
+                if (ids.isEmpty()) null else match.groupValues[1] to ids
+            }.toMap()
+        return if (methods.isEmpty()) null else Conduit(name, methods)
     }
+
+    /**
+     * Method-precise conduit reads in one file's class constructors:
+     * (reader, "Conduit.method", input node id) for every conduit
+     * method the class actually calls. The route string is what lets
+     * two reads of the SAME id count as two flows (G7's [ScreenRead]).
+     */
+    fun conduitMethodReadsIn(
+        text: String,
+        conduits: List<Conduit>,
+    ): List<Triple<String, String, String>> {
+        val byName = conduits.associateBy { it.className }
+        return CLASS_WITH_CTOR
+            .findAll(text)
+            .toList()
+            .flatMap { match ->
+                val cls = match.groupValues[1]
+                constructorParams(text, cls).flatMap { (paramName, paramType) ->
+                    val conduit = byName[paramType] ?: return@flatMap emptyList()
+                    conduit.methods.flatMap { (method, ids) ->
+                        if (methodRefRegex(paramName, method).containsMatchIn(text)) {
+                            ids.map { Triple(cls.removePrefix("Default"), "${conduit.className}.$method", it) }
+                        } else {
+                            emptyList()
+                        }
+                    }
+                }
+            }.distinct()
+    }
+
+    /** `param.method` for a named method; `param(` for `invoke` (the operator call). */
+    private fun methodRefRegex(
+        param: String,
+        method: String,
+    ): Regex =
+        if (method == "invoke") {
+            Regex("""(^|[^A-Za-z0-9_])${Regex.escape(param)}\s*\(""")
+        } else {
+            referenceRegex(param, method)
+        }
+
+    /**
+     * The reactive upstream collected by an ADR-015 manager file's
+     * implementation classes: direct input references plus conduit-
+     * method references, minus the file's own declared ids. This is
+     * what stops a manager from laundering a PUSH edge — its input
+     * node carries the extracted `from`. Lifecycle coupling (caches
+     * clearing on sign-out) is deliberately NOT extracted: only value
+     * reads through inputs and conduits count.
+     */
+    fun managerFromIds(
+        strippedText: String,
+        conduits: List<Conduit>,
+        declsByOwner: Map<String, List<Pair<String, String>>>,
+        ownIds: Set<String>,
+    ): Set<String> =
+        (
+            directInputPairsIn(strippedText, declsByOwner).map { it.first } +
+                conduitMethodReadsIn(strippedText, conduits).map { it.third }
+        ).toSet() - ownIds
 
     /** (derived shell class, reader name) pairs found in one file's class constructors. */
     fun readerPairsIn(
@@ -341,6 +434,25 @@ internal object DataGraphExtraction {
             }
 
     /**
+     * `Screen | root | reason` entries for adjudicated G7 findings;
+     * the key half (`Screen | root`) matches [DataGraph.SharedRootFinding.key].
+     * Same contract as [parseNodeExemptions]: comments and blanks
+     * ignored, a reason is mandatory, stale entries fail the build.
+     */
+    fun parseSharedRootExemptions(text: String): Map<String, String> =
+        text
+            .lines()
+            .map { it.substringBefore('#').trim() }
+            .filter { it.isNotEmpty() }
+            .associate { line ->
+                val parts = line.split('|').map { it.trim() }
+                require(parts.size == 3 && parts.all { it.isNotEmpty() }) {
+                    "shared-root exemption `$line` is not `Screen | root | reason` — every exemption states why"
+                }
+                "${parts[0]} | ${parts[1]}" to parts[2]
+            }
+
+    /**
      * The C1 verdict: universe members that are neither `@NodeCadence`
      * nodes nor exempted (missing), and exemption entries that no longer
      * name an unannotated member (stale — the declaration was deleted or
@@ -405,9 +517,12 @@ internal object DataGraphExtraction {
 
     /** C5: extracted conduits no ViewModel injects — dead code or an extraction miss, never silence. */
     fun orphanConduits(
-        conduitInputs: Map<String, Set<String>>,
+        conduits: List<Conduit>,
         conduitReaders: Map<String, List<String>>,
-    ): List<String> = (conduitInputs.keys - conduitReaders.keys).sorted().map { "$it: conduit no ViewModel injects" }
+    ): List<String> =
+        (conduits.map { it.className }.toSet() - conduitReaders.keys)
+            .sorted()
+            .map { "$it: conduit no ViewModel injects" }
 
     /** C5: derived nodes no screen reads — dead code or an extraction miss, never silence. */
     fun unreadDeriveds(nodes: List<DataGraph.Node>): List<String> =
@@ -454,7 +569,16 @@ internal object DataGraphExtraction {
                 return@mapNotNull null
             }
             toNodeId(raw.nodeId, "input ${raw.ownerType}.${raw.declarationName}")
-                ?.let { DataGraph.Input(it, owner = raw.ownerType, cadence = raw.cadence) }
+                ?.let { id ->
+                    DataGraph.Input(
+                        id = id,
+                        owner = raw.ownerType,
+                        cadence = raw.cadence,
+                        from = raw.fromIds
+                            .mapNotNull { toNodeId(it, "manager edge of ${raw.ownerType}") }
+                            .sortedBy { it.name },
+                    )
+                }
         }
 
         val eagerDrafts = deriveds.mapNotNull { raw ->
@@ -529,11 +653,26 @@ internal object DataGraphExtraction {
             appendLine()
             renderTable(inputs, deriveds, consumption)
             appendLine()
-            appendLine("Screens observe inputs through the listed `Observe*` pass-throughs (ADR-022)")
-            appendLine("or direct manager injection. An input with no outgoing edge in the diagram is")
-            appendLine("consumed at action time inside the data layer (fetch plumbing), not observed.")
+            appendLine("**Cadence** — what makes a value change. `USER_ACTION`: written only when")
+            appendLine("the user or the app explicitly acts (a tap, a fetch). `PUSH`:")
+            appendLine("server-initiated (FCM), can land at any time. `POLL`: a fixed-interval")
+            appendLine("collection loop, the only cadence that justifies gating. `CLOCK`: an")
+            appendLine("always-on tick.")
+            appendLine()
+            appendLine("**Read by** — the screens that reactively observe each value, with the")
+            appendLine("conduit method in parentheses (`direct` = an injected manager or value).")
+            appendLine("A dash means no screen observes it: the value feeds a derived node (see")
+            appendLine("diagram) or is consumed at action time inside the data layer.")
+            appendLine("`DiagnosticsViewModel` reads no graph nodes; Wear wires a subset of the")
+            appendLine("inputs and none of the derived nodes.")
             appendLine()
             renderMermaid(inputs, deriveds, consumption)
+            appendLine()
+            appendLine("**Diagram legend** — `([x])` input (cadence-labeled) · `[x]` derived")
+            appendLine("(`stateIn` UseCase) · `[[X]]` conduit (ADR-022 pass-through) · `{{X}}`")
+            appendLine("screen ViewModel · `-. reacts .->` a manager's reactive upstream ·")
+            appendLine("`-. poll, gated .->` a gated poll. Conduit → ViewModel edges are")
+            appendLine("class-level; the table's Read by column is the per-value truth.")
         }
     }
 
@@ -545,7 +684,7 @@ internal object DataGraphExtraction {
         appendLine("| Node | Kind | Cadence | Declared by | Sharing | Read by |")
         appendLine("|---|---|---|---|---|---|")
         inputs.forEach { i ->
-            val readBy = inputReadBy(i.id.id, consumption)
+            val readBy = inputReadBy(i.id.id, consumption.reads)
             appendLine("| `${i.id.id}` | input | ${i.cadence} | `${i.owner}` | — | $readBy |")
         }
         deriveds.forEach { d ->
@@ -558,17 +697,28 @@ internal object DataGraphExtraction {
         }
     }
 
+    /**
+     * Method-precise readers of one input: `HomeViewModel (current,
+     * position)` names the conduit methods; `direct` is an injected
+     * manager or value. The diagram's conduit edges stay class-level,
+     * so this column is where per-value consumption is stated.
+     */
     private fun inputReadBy(
         id: String,
-        consumption: InputConsumption,
+        reads: List<DataGraph.ScreenRead>,
     ): String {
-        val via = consumption.conduitInputs.keys
-            .sorted()
-            .filter { id in consumption.conduitInputs.getValue(it) }
-            .map { "via `$it`" }
-        val direct = consumption.directReaders[id].orEmpty().map { "`$it`" }
-        val all = via + direct
-        return if (all.isEmpty()) "—" else all.joinToString(", ")
+        val mine = reads.filter { it.node.id == id }
+        if (mine.isEmpty()) return "—"
+        return mine
+            .groupBy { it.screen }
+            .toSortedMap()
+            .map { (screen, screenReads) ->
+                val routes = screenReads
+                    .map { read -> if (read.route == id) "direct" else read.route.substringAfter('.') }
+                    .distinct()
+                    .sorted()
+                "`$screen` (${routes.joinToString(", ")})"
+            }.joinToString(", ")
     }
 
     private fun StringBuilder.renderMermaid(
@@ -576,29 +726,37 @@ internal object DataGraphExtraction {
         deriveds: List<DataGraph.Derived>,
         consumption: InputConsumption,
     ) {
-        val conduits = consumption.conduitInputs.keys.sorted()
+        val conduits = consumption.conduits.sortedBy { it.className }
         val readers = (
             deriveds.flatMap { it.readBy } +
                 consumption.conduitReaders.values.flatten() +
-                consumption.directReaders.values.flatten()
+                consumption.reads.map { it.screen }
         ).distinct().sorted()
         appendLine("```mermaid")
         appendLine("graph LR")
         inputs.forEach { appendLine("    ${it.id.id}([\"${it.id.id} · ${it.cadence}\"])") }
         deriveds.forEach { appendLine("    ${it.id.id}[\"${it.id.id}\"]") }
-        conduits.forEach { appendLine("    $it[[\"$it\"]]") }
+        conduits.forEach { appendLine("    ${it.className}[[\"${it.className}\"]]") }
         readers.forEach { appendLine("    $it{{\"$it\"}}") }
         conduits.forEach { conduit ->
-            consumption.conduitInputs
-                .getValue(conduit)
-                .sorted()
-                .forEach { appendLine("    $it --> $conduit") }
+            conduit.inputs.sorted().forEach { appendLine("    $it --> ${conduit.className}") }
             // An orphan conduit (no readers) is a build failure via
             // orphanConduits; orEmpty keeps that failure attributed there.
-            consumption.conduitReaders[conduit].orEmpty().forEach { appendLine("    $conduit --> $it") }
+            consumption.conduitReaders[conduit.className].orEmpty().forEach {
+                appendLine("    ${conduit.className} --> $it")
+            }
         }
-        consumption.directReaders.keys.sorted().forEach { id ->
-            consumption.directReaders.getValue(id).forEach { appendLine("    $id --> $it") }
+        // Direct reads (route == the node's own id) — conduit reads are
+        // already drawn class-level above.
+        consumption.reads
+            .filter { it.route == it.node.id }
+            .map { it.node.id to it.screen }
+            .distinct()
+            .sortedWith(compareBy({ it.first }, { it.second }))
+            .forEach { (id, screen) -> appendLine("    $id --> $screen") }
+        // A manager input's reactive upstream (Input.from).
+        inputs.forEach { input ->
+            input.from.forEach { appendLine("    ${it.id} -. reacts .-> ${input.id.id}") }
         }
         deriveds.forEach { d ->
             val poll = (d.sharing as? Sharing.Gated)?.poll
