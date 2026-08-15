@@ -319,6 +319,26 @@ object DataGraph {
             }.sorted()
 
     /**
+     * [Sharing.Eager]'s stated precondition, mechanized: an Eager node
+     * may not have a [Cadence.POLL] source in its transitive closure —
+     * eager collection would keep the poll running for the whole
+     * process, which is exactly what gating exists to prevent
+     * (DATA_GRAPH_PLAN.md §2). Empty = conformant.
+     */
+    fun eagerOverPolls(nodes: List<Node> = this.nodes): List<String> =
+        nodes
+            .filterIsInstance<Derived>()
+            .filter { it.sharing == Sharing.Eager }
+            .mapNotNull { d ->
+                val polls = sourcesOf(d, nodes).filter { it.cadence == Cadence.POLL }
+                if (polls.isEmpty()) {
+                    null
+                } else {
+                    "${d.id.id}: Eager over poll ${polls.joinToString("+") { it.id.id }}"
+                }
+            }.sorted()
+
+    /**
      * G7 mechanized: two derived nodes read by the same screen over a
      * shared non-clock root emit independently, so the screen can
      * render them one frame apart. Collapse them into one derivation.

@@ -67,6 +67,11 @@ class DataGraphTest {
     }
 
     @Test
+    fun noEagerNodeKeepsAPollRunning() {
+        assertEquals(emptyList(), DataGraph.eagerOverPolls())
+    }
+
+    @Test
     fun theRegistryIsNotEmpty() {
         // Scope sanity: every check above passes vacuously on an empty
         // node list, so pin that the real registry has substance.
@@ -154,6 +159,20 @@ class DataGraphTest {
         assertEquals(
             listOf("Screen reads buttonHealthDisplay + effectiveSnoozeState over a shared non-clock root"),
             DataGraph.sharedRootViolations(doctored),
+        )
+    }
+
+    @Test
+    fun eagerOverPollCheckCanFail() {
+        // An Eager derived node over a POLL source would keep the poll
+        // running for the whole process.
+        val doctored = listOf(
+            poll,
+            derived(NodeId.WATCH_APP_STATUS, from = listOf(NodeId.WATCH_COMPANION)),
+        )
+        assertEquals(
+            listOf("watchAppStatus: Eager over poll watchCompanion"),
+            DataGraph.eagerOverPolls(doctored),
         )
     }
 

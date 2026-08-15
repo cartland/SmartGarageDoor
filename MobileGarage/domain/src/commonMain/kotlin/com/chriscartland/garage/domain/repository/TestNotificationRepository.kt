@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.domain.repository
 
+import com.chriscartland.garage.domain.graph.DataGraph.Cadence
+import com.chriscartland.garage.domain.graph.NodeCadence
 import com.chriscartland.garage.domain.model.TestNotificationSandboxState
 import com.chriscartland.garage.domain.model.TestNotificationTopic
 import kotlinx.coroutines.flow.StateFlow
@@ -39,6 +41,7 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface TestNotificationRepository {
     /** Observable sandbox state (current topic + whether currently subscribed). */
+    @NodeCadence(Cadence.USER_ACTION, id = "testNotificationSandbox")
     val state: StateFlow<TestNotificationSandboxState>
 
     /** Get-or-generate the current personal topic. Does not change subscription. */

@@ -1,5 +1,7 @@
 package com.chriscartland.garage.domain.repository
 
+import com.chriscartland.garage.domain.graph.DataGraph.Cadence
+import com.chriscartland.garage.domain.graph.NodeCadence
 import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.FetchError
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface SnoozeRepository {
     /** Observation: the authoritative snooze state as an owned [StateFlow]. */
+    @NodeCadence(Cadence.USER_ACTION)
     val snoozeState: StateFlow<SnoozeState>
 
     /**

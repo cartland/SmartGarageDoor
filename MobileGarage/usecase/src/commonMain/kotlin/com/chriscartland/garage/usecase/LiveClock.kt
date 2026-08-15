@@ -19,6 +19,8 @@ package com.chriscartland.garage.usecase
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.coroutines.AppClock
+import com.chriscartland.garage.domain.graph.DataGraph.Cadence
+import com.chriscartland.garage.domain.graph.NodeCadence
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -55,6 +57,7 @@ interface LiveClock {
      * Current wall-clock time as epoch seconds, ticking on the configured
      * cadence. Always emits the most recent value to new subscribers.
      */
+    @NodeCadence(Cadence.CLOCK)
     val nowEpochSeconds: StateFlow<Long>
 
     /**

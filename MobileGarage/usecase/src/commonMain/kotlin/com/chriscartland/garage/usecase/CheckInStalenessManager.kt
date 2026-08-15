@@ -19,6 +19,8 @@ package com.chriscartland.garage.usecase
 
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.coroutines.AppClock
+import com.chriscartland.garage.domain.graph.DataGraph.Cadence
+import com.chriscartland.garage.domain.graph.NodeCadence
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -61,6 +63,7 @@ class CheckInStalenessManager(
      * a wrong first frame on each fresh screen entry. Consumers pass
      * the reference through (ADR-022); a pass-through cannot drift.
      */
+    @NodeCadence(Cadence.CLOCK)
     val isCheckInStale: StateFlow<Boolean> = staleFlow
 
     /** Last-known check-in time, kept up-to-date by the reactive collector. */

@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.domain.repository
 
+import com.chriscartland.garage.domain.graph.DataGraph.Cadence
+import com.chriscartland.garage.domain.graph.NodeCadence
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.ButtonHealth
 import com.chriscartland.garage.domain.model.ButtonHealthError
@@ -41,6 +43,7 @@ import kotlinx.coroutines.flow.StateFlow
  * oldest — any non-UNKNOWN value wins over a current UNKNOWN.
  */
 interface ButtonHealthRepository {
+    @NodeCadence(Cadence.PUSH)
     val buttonHealth: StateFlow<LoadingResult<ButtonHealth>>
 
     /**
