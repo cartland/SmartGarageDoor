@@ -118,23 +118,30 @@ dependency, or is read at runtime, it has become a reactive framework — paid
 for in SKIE bridging, Konsist legibility, and every lint that reads
 constructors. Don't.
 
-## 5. Build order
+## 5. Build order — EXECUTED 2026-08-14
 
-Each item is one PR; status updated as they land.
+Each item was one PR:
 
-1. **This doc + corrections** — renumber `DATA_CACHING_STRATEGY.md` §6's draft
-   ADR to **ADR-036** (ADR-035 was taken by the strings ADR); fix CLAUDE.md's
-   `WhileSubscribed` mechanism sentence and its "two DI components" undercount
-   (three: `AppComponent`, `NativeComponent`, `WearComponent`).
-2. **`DataGraph` registry + all §4 checks**, landed together.
-3. **Collapse the Home fan-out (G7)** — one pure derivation producing the
-   card + gate state; zero-snapshot-diff expectation; both DI graphs if a ctor
-   changes.
-4. **Structural rule for G3** — Konsist: no `MutableStateFlow<T>` in
-   `:viewmodel` where `T` is declared in `:domain` (allowlist for
-   `LoadingResult`/action wrappers); fix the known unseeded `DoorEvent?`
-   mirrors first. Additive to `checkViewModelStateFlow`, per the Konsist
-   posture.
-5. **Live defects** from `DATA_CACHING_STRATEGY.md` §5: T2 (stranded
-   `isLoadingMore` on a cancelled screen scope), T3 (sign-out clears disk but
-   not memory), T4 (iOS pre-seeds auth with a value no listener produced).
+1. ✅ **This doc + corrections** (#1201) — ADR draft renumbered to **ADR-036**;
+   CLAUDE.md's `WhileSubscribed` mechanism sentence and "two DI components"
+   undercount fixed (three: `AppComponent`, `NativeComponent`,
+   `WearComponent`).
+2. ✅ **`DataGraph` registry + all §4 checks** (#1202), landed together.
+3. ✅ **Home fan-out collapsed (G7)** (#1203) — `HomeDoorState` +
+   `HomeDoorStateMapper`, one combine at `viewModelScope`; the voice gate is a
+   projection of the same node; zero snapshot diffs; no ctor change, DI graphs
+   untouched.
+4. ✅ **Structural rule for G3** (#1206) — `ViewModelDomainMirrorKonsistTest`
+   (additive to `checkViewModelStateFlow`); both unseeded `DoorEvent?` mirrors
+   deleted (ADR-022 pass-through); `homeDoorState` added to the registry.
+5. ✅ **Live defects**: T2 fixed (#1204 — `externalScope.async{}.await()` +
+   `finally`, test verified failing pre-fix); T3 fixed (#1205 —
+   `registerInMemoryReset`, sign-out clears both tiers); **T4 was found
+   already fixed upstream** when re-verified (the iOS bridge seeds
+   `initialUser: restoredUser()`, pinned by `IosAuthUserStateHolderTest`) —
+   the strategy doc's row was corrected instead of writing code.
+
+Still open (tracked in `DATA_CACHING_STRATEGY.md` §5): T1 (widen
+`CheckInStalenessManager` to `StateFlow`), T5–T13 minus the parts closed
+above, and the nav-rail settings-mirror burn-down exemption in
+`ViewModelDomainMirrorKonsistTest`.

@@ -82,9 +82,9 @@ Answer in order. Stop at the first "yes".
 
 **Why.** Two copies drift, and the drift is invisible until a user reports the wrong number. `android/164-168` was exactly this: a VM-local snooze mirror that diverged from the repository.
 
-**Enforced today.** `checkViewModelStateFlow` (`buildSrc/.../architecture/ViewModelStateFlowCheckTask.kt`) bans `MutableStateFlow<T>` in `*ViewModel.kt` for four types: `SnoozeState`, `AuthState`, `FcmRegistrationStatus`, `WatchAppStatus`. `checkSingletonGuard` asserts `@Singleton` on ten named providers (`build.gradle.kts:88-106`). Reference-identity tests (`assertSame(fakeRepo.x, vm.x)`) in unit tests.
+**Enforced today.** `checkViewModelStateFlow` (`buildSrc/.../architecture/ViewModelStateFlowCheckTask.kt`) bans `MutableStateFlow<T>` in `*ViewModel.kt` for four types: `SnoozeState`, `AuthState`, `FcmRegistrationStatus`, `WatchAppStatus`. Since #1206 (2026-08-14), `ViewModelDomainMirrorKonsistTest` additionally enforces the inverted structural rule below. `checkSingletonGuard` asserts `@Singleton` on ten named providers (`build.gradle.kts:88-106`). Reference-identity tests (`assertSame(fakeRepo.x, vm.x)`) in unit tests.
 
-**Better.** The banned-type list is a denylist that only grows after an incident. Invert it: fail on any `MutableStateFlow<T>` in a `*ViewModel.kt` whose `T` is declared in `:domain`, with an allowlist for genuinely VM-owned wrappers (`LoadingResult<…>`, `*Action`, `*State` machines). Today `DoorEvent?` is mirrored, unseeded, by both `ProfileViewModel.kt:343` and `FunctionListViewModel.kt:150`, which the current denylist does not catch even though ADR-022's own text says it should.
+**Better (done, #1206).** The banned-type list was a denylist that only grows after an incident. Inverted: `ViewModelDomainMirrorKonsistTest` fails on any `MutableStateFlow<T>` in `:viewmodel` commonMain whose `T` is declared in `:domain`, with the allowlist this section proposed (`LoadingResult<…>` wrappers, `*Action` overlays) and a stale-entry-fails burn-down exemption for the nav-rail settings mirror. The unseeded `DoorEvent?` mirrors in `ProfileViewModel` and `FunctionListViewModel` were deleted in the same PR (ADR-022 pass-through of `observeDoorEvents.current()`).
 
 ### P2. Never seed a mirror with `Loading` or `null` when the upstream already has a value
 
@@ -120,7 +120,7 @@ Answer in order. Stop at the first "yes".
 
 **Rule.** A repository method that writes singleton state around a suspending call wraps the work in `externalScope.async { … }.await()` (ADR-019 Rule 1) and resets any in-flight flag in a `finally`. State comes from the authoritative POST body, never a follow-up GET.
 
-**Why.** The caller's scope is a screen. `NetworkDoorRepository.fetchOlderDoorEvents` (`data/.../repository/NetworkDoorRepository.kt:153-191`) sets `isLoadingMore = true` at line 165, calls the network, and resets only inside the three result branches. It runs on `viewModelScope.launch(dispatchers.io)` (`DoorHistoryViewModel.kt:166`), and `KtorNetworkDoorDataSource` rethrows `CancellationException`. Leaving History mid-page strands `isLoadingMore = true` in a process-lifetime singleton; the guard at line 156 then short-circuits every subsequent load-more, and History shows a stuck footer spinner until a successful pull-to-refresh resets the state. `NetworkSnoozeRepository` (`:138`, `:141-146`, `:164-167`) and `NetworkButtonHealthRepository` (`:107-117`) already implement the correct shape; the door repository does not even retain its `externalScope` parameter as a property.
+**Why.** The caller's scope is a screen. `NetworkDoorRepository.fetchOlderDoorEvents` (`data/.../repository/NetworkDoorRepository.kt:153-191`) sets `isLoadingMore = true` at line 165, calls the network, and resets only inside the three result branches. It runs on `viewModelScope.launch(dispatchers.io)` (`DoorHistoryViewModel.kt:166`), and `KtorNetworkDoorDataSource` rethrows `CancellationException`. Leaving History mid-page strands `isLoadingMore = true` in a process-lifetime singleton; the guard at line 156 then short-circuits every subsequent load-more, and History shows a stuck footer spinner until a successful pull-to-refresh resets the state. `NetworkSnoozeRepository` (`:138`, `:141-146`, `:164-167`) and `NetworkButtonHealthRepository` (`:107-117`) already implement the correct shape; the door repository did not even retain its `externalScope` parameter as a property — fixed in #1204 (2026-08-14), which brought it to the same shape with a `finally` reset.
 
 **Enforced today.** Convention. `checkNoRawDispatchers` does not scan `data/`.
 
@@ -152,7 +152,7 @@ Answer in order. Stop at the first "yes".
 
 **Why.** Today the clear is disk-only. `SignOutCacheClearManager.kt:62-71` calls exactly one method, `userScopedCache.clearUserScopedEntries()`, which terminates at `storage.remove(...)`. `NetworkButtonHealthRepository` and `NetworkSnoozeRepository` contain zero references to `authState` or `Unauthenticated`; only `CachedFeatureAllowlistRepository.kt:96-104` also nulls memory. So after sign-out then sign-in in the same process, the previous session's button-health verdict renders instantly from a singleton the clear never touched, and snooze's surviving `lastFetchedAtSeconds` suppresses revalidation for up to the 5-minute fetch TTL. The registry KDoc frames membership as the privacy boundary; membership governs only the disk tier.
 
-**Enforced today.** Nothing checks the memory half.
+**Enforced today.** The P8 design shipped in #1205 (2026-08-14): `UserScopedCache.registerInMemoryReset`, both repos registered at construction, never-throws + one-failing-reset-cannot-skip-others pinned by `DefaultUserScopedCacheTest`, per-repo reset behavior pinned in each repo test.
 
 **Better.** Give `UserScopedCache` a second responsibility: a registry of `suspend () -> Unit` in-memory resets that state-owning repositories register at construction, invoked by the same manager in the same transition. That keeps one call site and makes "did you clear memory too?" structurally answerable. A `ComponentGraphTest` assertion that every repository holding a `CLEARED_ON_SIGN_OUT` key registered a reset closes the loop.
 
@@ -160,11 +160,9 @@ Answer in order. Stop at the first "yes".
 
 **Rule.** The auth flow emits `Unknown` until the platform listener produces a real value. No layer synthesizes an `Unauthenticated` from the absence of information.
 
-**Why.** `IosAuthUserStateHolder.kt:42` is `MutableStateFlow<AuthUserInfo?>(null)`, created as a stored property of the Swift bridge before `init` registers Firebase's async listener. `FirebaseAuthRepository` maps `null` to `Unauthenticated`. `AppDelegate` builds the bridge and resolves `appStartup.run()` on the same synchronous main-thread turn, while the shared collectors run on `Dispatchers.IO`, so the pre-seeded `null` usually wins the race and `SignOutCacheClearManager` fires on a signed-in cold start, wiping the exact snapshots ADR-034 exists to display. Android's bridge is a cold `callbackFlow` with no pre-seed. The fix is one line: seed the holder from `FirebaseAuthBridge.getCurrentUser()` in `init`, a method that currently has zero call sites anywhere in the tree.
+**Why.** A `StateFlow` always has a value, so whatever the iOS holder is seeded with is published before Firebase's listener has said anything — and `FirebaseAuthRepository` maps `null` to `Unauthenticated`, so a null seed asserts "signed out" on every cold start and `SignOutCacheClearManager` wipes the exact snapshots ADR-034 exists to display. Android's bridge is a cold `callbackFlow` with no pre-seed, so it has no equivalent hazard.
 
-**Enforced today.** Nothing. The failure is silent (the app shows "Checking…" more often).
-
-**Better.** Seed from `getCurrentUser()`, and add an `iosSimulatorArm64Test` asserting the repository never emits `Unauthenticated` before the listener has delivered.
+**Enforced today (fixed — verified 2026-08-14).** `FirebaseAuthBridge.swift:49` constructs the holder with `initialUser: Self.restoredUser()`; `initialUser` is a constructor parameter precisely so the wrong order cannot be written (no window between construction and seeding), the holder's KDoc names the hazard, and `IosAuthUserStateHolderTest` pins the behavior in `iosSimulatorArm64Test`. When this section was first written the seed was `null` and `getCurrentUser()` had zero call sites; that was fixed between then and 2026-08-14.
 
 ### P10. Backup exclusion is a cross-platform policy or it is not a policy
 
@@ -238,9 +236,9 @@ Each of these happened in this repository.
 
 **A8. `WhileSubscribed` on repository-owned state.** Subscriber-count thrash from navigation and backgrounding dropped emissions landing in the dead window. Fix: always-on collector launched in the repository's `init` on `externalScope` (ADR-022).
 
-**A9. In-flight flag stranded on a cancelled caller scope.** Live today: `fetchOlderDoorEvents` (P5). History's load-more dies until the next successful pull-to-refresh if the user leaves the screen mid-page.
+**A9. In-flight flag stranded on a cancelled caller scope.** Was live in `fetchOlderDoorEvents` (P5); fixed in #1204 (2026-08-14) — `externalScope.async{}.await()` + `finally` reset, with a park-the-fetch-then-cancel test that was verified failing pre-fix.
 
-**A10. Sign-out clears disk but not memory.** Live today: the previous session's button-health verdict survives sign-out in the singleton (P8), and snooze's fetch TTL suppresses revalidation for the new session.
+**A10. Sign-out clears disk but not memory.** Was live for button health + snooze; fixed in #1205 (2026-08-14) — `UserScopedCache.registerInMemoryReset` (the P8 'Better' design), both repos registered, never-throws tested.
 
 **A11. iOS wrapper retains `self` inside a never-ending `for await`.** `SettingsViewModelWrapper.swift:69-72` documents the rule; `HistoryViewModelWrapper`, `FunctionListViewModelWrapper` and the `clearInFlight` task in `DiagnosticsViewModelWrapper` do `guard let self else { return }` and then hold `self` strongly for the life of a loop that never terminates. `deinit` never runs, so `KmpViewModelStore.clear()` never cancels the Kotlin `viewModelScope` and the dismissed screen's ViewModel keeps collecting singleton flows for the rest of the process. Related: `ios/7`'s launch crash came from the same family (a discarded `StateObject` wrapper's Task plus `self!`), which is why `self!` is banned and `scripts/check-ios-self-force-unwrap.sh` runs first in `validate-ios.sh`.
 
@@ -263,9 +261,9 @@ Verification status is stated per item. "Adversarially verified" means a second 
 | ID | Tension | Status | Recommendation | Cost |
 |---|---|---|---|---|
 | T1 | `CheckInStalenessManager.isCheckInStale` is `Flow`, forcing two default-seeded VM mirrors | Verified, PARTIAL | Widen to `StateFlow`; seed both mirrors from `.value`. Amend ADR-015's "expose Flow" wording, which is the actual source of the conflict. The recurring defect is History-only (Home's entry survives tab switches); Home's seed is a cold-start race | S, ~5 lines + 1 doc edit |
-| T2 | `fetchOlderDoorEvents` mutates singleton state on the caller's scope with no `finally` | Verified, PARTIAL | Retain `externalScope`, wrap in `async{}.await()`, reset in `finally`. Impact is a stuck History footer recoverable by pull-to-refresh, not a permanent process-lifetime break | S, ~10 lines + a cancellation test |
-| T3 | Sign-out clears disk but not memory for button health and snooze | **Verified, CONFIRMED** | Add in-memory reset registration to `UserScopedCache` (P8). Also reset `lastFetchedAtSeconds` | M, ~40 lines across 3 files + tests |
-| T4 | iOS pre-seeds auth with `null`, emitting a spurious `Unauthenticated` on cold start | Verified, PARTIAL | Seed `IosAuthUserStateHolder` from `getCurrentUser()` in the bridge `init`. It is a race, not a certainty, and the most likely victim is the allowlist snapshot via `SignOutCacheClearManager` rather than the allowlist repo's own branch | S, 1 line + 1 test |
+| T2 | `fetchOlderDoorEvents` mutates singleton state on the caller's scope with no `finally` | **FIXED** (#1204, 2026-08-14) | Retain `externalScope`, wrap in `async{}.await()`, reset in `finally`. Impact is a stuck History footer recoverable by pull-to-refresh, not a permanent process-lifetime break | S, ~10 lines + a cancellation test |
+| T3 | Sign-out clears disk but not memory for button health and snooze | **FIXED** (#1205, 2026-08-14) | `UserScopedCache.registerInMemoryReset` — repos register at construction; the clear runs both tiers in one transition. `lastFetchedAtSeconds` + `acceptGeneration` reset too | Done |
+| T4 | iOS pre-seeds auth with `null`, emitting a spurious `Unauthenticated` on cold start | **FIXED upstream** (verified 2026-08-14) | Already done when re-checked: `FirebaseAuthBridge.swift:49` constructs the holder with `initialUser: Self.restoredUser()`, the holder KDoc names the hazard, and `IosAuthUserStateHolderTest` pins it. P9 below records the as-fixed shape | Done |
 | T5 | Android excludes the data from cloud backup; iOS does not | Verified, PARTIAL | Set `NSURLIsExcludedFromBackupKey` on all four iOS files; extend the check to assert it. Note the check is a local `validate.sh` gate, not CI | M, ~30 lines + task edit |
 | T6 | Two clock abstractions; snooze applies a different skew policy than the shared envelope rule | Unverified | Inject `AppClock` everywhere; route freshness through `StatusSnapshot` helpers | S, ~15 lines across 3 components |
 | T7 | Singleton identity tests never run pre-submit; per-symbol coverage diverges between the two components | Unverified | Promote `:iosFramework:iosSimulatorArm64Test` to a required check, or move the assertions to a JVM unit test. Then mirror the two lists | M, CI topology change |
@@ -276,7 +274,7 @@ Verification status is stated per item. "Adversarially verified" means a second 
 | T12 | Durability policy varies with no stated selection rule; `DoorEvent` is unbounded and never cleared | Unverified | Decide and document the `DoorEvent` policy (cap or justified unbounded); extend the ADR-034 checklist to Room tables | M, includes a migration if capped |
 | T13 | Three hand-mirrored DI components; the rule and the checks account for two | Unverified | Update CLAUDE.md and the ADR-034 checklist to say three; point `checkSingletonGuard`/`checkDataStoreSingleton` at `wearApp` too | S, doc + 2 task inputs |
 
-Sequencing suggestion: T3, T2, T4 first (live user-visible or privacy-relevant defects with small fixes), then T13 and T8 (cheap enforcement gap closures), then T5 and T7 (platform parity), then the doc-only items T10 and T13, then T12 as a deliberate decision rather than an inherited default.
+Sequencing update (2026-08-14): T2 (#1204), T3 (#1205) fixed; T4 found already fixed upstream. G3 inverted + DoorEvent mirrors deleted (#1206, covers the mirror half of T9). Remaining, in the original order: T13 and T8 (cheap enforcement gap closures), then T5 and T7 (platform parity), then T1, T6, T10, T11, the rest of T9, and T12 as a deliberate decision rather than an inherited default.
 
 ---
 
