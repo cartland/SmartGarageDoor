@@ -6,20 +6,24 @@
 
 | Node | Kind | Cadence | Declared by | Sharing | Read by |
 |---|---|---|---|---|---|
-| `authState` | input | USER_ACTION | `AuthRepository` | — | — |
-| `currentDoorEvent` | input | PUSH | `DoorRepository` | — | — |
-| `recentDoorEvents` | input | PUSH | `DoorRepository` | — | — |
+| `authState` | input | USER_ACTION | `AuthRepository` | — | via `ObserveAuthStateUseCase` |
+| `currentDoorEvent` | input | PUSH | `DoorRepository` | — | via `ObserveDoorEventsUseCase` |
+| `recentDoorEvents` | input | PUSH | `DoorRepository` | — | via `ObserveDoorEventsUseCase` |
 | `buttonHealth` | input | PUSH | `ButtonHealthRepository` | — | — |
 | `snoozeState` | input | USER_ACTION | `SnoozeRepository` | — | — |
 | `serverConfig` | input | USER_ACTION | `ServerConfigRepository` | — | — |
-| `allowlist` | input | USER_ACTION | `FeatureAllowlistRepository` | — | — |
-| `testNotificationSandbox` | input | USER_ACTION | `TestNotificationRepository` | — | — |
-| `nowEpochSeconds` | input | CLOCK | `LiveClock` | — | — |
-| `isCheckInStale` | input | CLOCK | `CheckInStalenessManager` | — | — |
+| `allowlist` | input | USER_ACTION | `FeatureAllowlistRepository` | — | via `ObserveFeatureAccessUseCase` |
+| `testNotificationSandbox` | input | USER_ACTION | `TestNotificationRepository` | — | via `ObserveTestNotificationStateUseCase` |
+| `nowEpochSeconds` | input | CLOCK | `LiveClock` | — | `DoorHistoryViewModel`, `HomeViewModel` |
+| `isCheckInStale` | input | CLOCK | `CheckInStalenessManager` | — | `DoorHistoryViewModel`, `HomeViewModel` |
 | `watchCompanion` | input | POLL | `WearCompanionRepository` | — | — |
 | `buttonHealthDisplay` | derived | — | `ComputeButtonHealthDisplayUseCase` | eager | `HomeViewModel` |
 | `effectiveSnoozeState` | derived | — | `ComputeEffectiveSnoozeStateUseCase` | eager | `ProfileViewModel` |
 | `watchAppStatus` | derived | — | `ObserveWatchAppStatusUseCase` | gated on `watchCompanion` | `ProfileViewModel` |
+
+Screens observe inputs through the listed `Observe*` pass-throughs (ADR-022)
+or direct manager injection. An input with no outgoing edge in the diagram is
+consumed at action time inside the data layer (fetch plumbing), not observed.
 
 ```mermaid
 graph LR
@@ -37,8 +41,33 @@ graph LR
     buttonHealthDisplay["buttonHealthDisplay"]
     effectiveSnoozeState["effectiveSnoozeState"]
     watchAppStatus["watchAppStatus"]
+    ObserveAuthStateUseCase[["ObserveAuthStateUseCase"]]
+    ObserveDoorEventsUseCase[["ObserveDoorEventsUseCase"]]
+    ObserveFeatureAccessUseCase[["ObserveFeatureAccessUseCase"]]
+    ObserveTestNotificationStateUseCase[["ObserveTestNotificationStateUseCase"]]
+    DoorHistoryViewModel{{"DoorHistoryViewModel"}}
+    FunctionListViewModel{{"FunctionListViewModel"}}
     HomeViewModel{{"HomeViewModel"}}
     ProfileViewModel{{"ProfileViewModel"}}
+    authState --> ObserveAuthStateUseCase
+    ObserveAuthStateUseCase --> HomeViewModel
+    ObserveAuthStateUseCase --> ProfileViewModel
+    currentDoorEvent --> ObserveDoorEventsUseCase
+    recentDoorEvents --> ObserveDoorEventsUseCase
+    ObserveDoorEventsUseCase --> DoorHistoryViewModel
+    ObserveDoorEventsUseCase --> FunctionListViewModel
+    ObserveDoorEventsUseCase --> HomeViewModel
+    ObserveDoorEventsUseCase --> ProfileViewModel
+    allowlist --> ObserveFeatureAccessUseCase
+    ObserveFeatureAccessUseCase --> FunctionListViewModel
+    ObserveFeatureAccessUseCase --> HomeViewModel
+    ObserveFeatureAccessUseCase --> ProfileViewModel
+    testNotificationSandbox --> ObserveTestNotificationStateUseCase
+    ObserveTestNotificationStateUseCase --> FunctionListViewModel
+    isCheckInStale --> DoorHistoryViewModel
+    isCheckInStale --> HomeViewModel
+    nowEpochSeconds --> DoorHistoryViewModel
+    nowEpochSeconds --> HomeViewModel
     authState --> buttonHealthDisplay
     buttonHealth --> buttonHealthDisplay
     nowEpochSeconds --> buttonHealthDisplay
