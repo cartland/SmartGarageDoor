@@ -9,6 +9,7 @@
 | `authState` | input | USER_ACTION | `AuthRepository` | — | via `ObserveAuthStateUseCase` |
 | `currentDoorEvent` | input | PUSH | `DoorRepository` | — | via `ObserveDoorEventsUseCase` |
 | `recentDoorEvents` | input | PUSH | `DoorRepository` | — | via `ObserveDoorEventsUseCase` |
+| `paginationState` | input | USER_ACTION | `DoorRepository` | — | via `ObserveDoorEventsUseCase` |
 | `buttonHealth` | input | PUSH | `ButtonHealthRepository` | — | — |
 | `snoozeState` | input | USER_ACTION | `SnoozeRepository` | — | — |
 | `serverConfig` | input | USER_ACTION | `ServerConfigRepository` | — | — |
@@ -30,6 +31,7 @@ graph LR
     authState(["authState · USER_ACTION"])
     currentDoorEvent(["currentDoorEvent · PUSH"])
     recentDoorEvents(["recentDoorEvents · PUSH"])
+    paginationState(["paginationState · USER_ACTION"])
     buttonHealth(["buttonHealth · PUSH"])
     snoozeState(["snoozeState · USER_ACTION"])
     serverConfig(["serverConfig · USER_ACTION"])
@@ -53,6 +55,7 @@ graph LR
     ObserveAuthStateUseCase --> HomeViewModel
     ObserveAuthStateUseCase --> ProfileViewModel
     currentDoorEvent --> ObserveDoorEventsUseCase
+    paginationState --> ObserveDoorEventsUseCase
     recentDoorEvents --> ObserveDoorEventsUseCase
     ObserveDoorEventsUseCase --> DoorHistoryViewModel
     ObserveDoorEventsUseCase --> FunctionListViewModel

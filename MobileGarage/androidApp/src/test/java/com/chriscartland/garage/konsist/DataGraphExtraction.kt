@@ -35,6 +35,8 @@ internal object DataGraphExtraction {
     val STATE_FLOW_PROP = Regex("""val\s+[A-Za-z0-9_]+\s*:\s*StateFlow<([^<>]+)>""")
 
     private val TYPE_HEADER = Regex("""\b(interface|class|object)\s+([A-Za-z0-9_]+)""")
+    private val FLOW_VAL = Regex("""\bval\s+([A-Za-z0-9_]+)\s*:\s*(?:StateFlow|SharedFlow|Flow)<""")
+    private val FLOW_FUN = Regex("""\bfun\s+([A-Za-z0-9_]+)\s*\(\s*\)\s*:\s*(?:StateFlow|SharedFlow|Flow)<""")
     private val DECLARATION = Regex("""\b(val|fun)\s+([A-Za-z0-9_]+)""")
     private val CLASS_NAME = Regex("""\bclass\s+([A-Za-z0-9_]+)""")
     private val CLASS_WITH_CTOR = Regex("""\bclass\s+([A-Za-z0-9_]+)\s*\(""")
@@ -61,7 +63,11 @@ internal object DataGraphExtraction {
 
     /** How the inputs reach the screens: reactive pass-through conduits and direct injections. */
     data class InputConsumption(
-        /** Conduit class -> the input node ids it exposes. Only conduits some ViewModel injects. */
+        /**
+         * Conduit class -> the input node ids it exposes — ALL extracted
+         * conduits, unfiltered: one without a reader fails [orphanConduits]
+         * rather than silently vanishing from the graph.
+         */
         val conduitInputs: Map<String, Set<String>>,
         /** Conduit class -> the ViewModels injecting it. */
         val conduitReaders: Map<String, List<String>>,
@@ -290,6 +296,127 @@ internal object DataGraphExtraction {
             .groupBy { it.ownerType }
             .mapValues { (_, list) -> list.map { it.declarationName to it.nodeId } }
 
+    // ---- fail-closed sweeps (completeness: discovery paired with exhaustiveness) ----
+
+    /**
+     * The node-candidate universe of one file: parameterless flow-typed
+     * members whose nearest enclosing type is an INTERFACE, as
+     * (ownerInterface, declarationName). Parameterized flow funs are
+     * excluded by construction — a keyed stream cannot be an app-wide
+     * node (`countKey(key)`, `observeCount(key)`). Class/object members
+     * are excluded — inputs are declared on the consumed interface,
+     * never on an implementation (the `override` carries no annotation).
+     */
+    fun interfaceFlowMembers(strippedText: String): List<Pair<String, String>> {
+        val typeHeaders = TYPE_HEADER
+            .findAll(strippedText)
+            .map { Triple(it.range.first, it.groupValues[1], it.groupValues[2]) }
+            .toList()
+        return (FLOW_VAL.findAll(strippedText) + FLOW_FUN.findAll(strippedText))
+            .mapNotNull { match ->
+                val owner = typeHeaders
+                    .lastOrNull { it.first < match.range.first }
+                    ?.takeIf { it.second == "interface" }
+                    ?: return@mapNotNull null
+                owner.third to match.groupValues[1]
+            }.toList()
+            .sortedBy { "${it.first}.${it.second}" }
+    }
+
+    /**
+     * `Owner.decl | reason` entries; `#` comments and blank lines
+     * ignored. An entry without a reason is itself an error — the file
+     * exists to hold adjudications, not names.
+     */
+    fun parseNodeExemptions(text: String): Map<String, String> =
+        text
+            .lines()
+            .map { it.substringBefore('#').trim() }
+            .filter { it.isNotEmpty() }
+            .associate { line ->
+                val key = line.substringBefore('|').trim()
+                val reason = line.substringAfter('|', missingDelimiterValue = "").trim()
+                require(reason.isNotEmpty()) { "node exemption `$key` has no reason — every exemption states why" }
+                key to reason
+            }
+
+    /**
+     * The C1 verdict: universe members that are neither `@NodeCadence`
+     * nodes nor exempted (missing), and exemption entries that no longer
+     * name an unannotated member (stale — the declaration was deleted or
+     * became a node, so the entry must go).
+     */
+    fun nodeSweepProblems(
+        members: List<Pair<String, String>>,
+        annotated: Set<Pair<String, String>>,
+        exemptions: Set<String>,
+    ): Pair<List<String>, List<String>> {
+        val unannotated = members.filterNot { it in annotated }.map { "${it.first}.${it.second}" }.toSet()
+        val missing = (unannotated - exemptions).sorted()
+        val stale = (exemptions - unannotated).sorted()
+        return missing to stale
+    }
+
+    /**
+     * `.stateIn(` occurrences [path] may not host. Only `:usecase`
+     * commonMain may share a flow on an app-wide scope (that is where
+     * extraction reads derived nodes); `:viewmodel` may `stateIn` only
+     * on `viewModelScope` (a G0 sink — presentation state, never an
+     * app-wide node); the other shared modules may not at all
+     * (repositories use ADR-022 always-on collectors).
+     */
+    fun illegalStateIns(
+        path: String,
+        strippedText: String,
+    ): List<String> {
+        if (path.contains("/usecase/src/commonMain/")) return emptyList()
+        val matches = STATE_IN.findAll(strippedText).toList()
+        if (matches.isEmpty()) return emptyList()
+        if (!path.contains("/viewmodel/src/commonMain/")) {
+            return matches.map { "$path: stateIn outside :usecase — repositories keep ADR-022 always-on collectors" }
+        }
+        return matches.mapNotNull { match ->
+            val args = parenSlice(strippedText, match.range.last)
+            if (args.contains("viewModelScope")) {
+                null
+            } else {
+                "$path: stateIn in :viewmodel not scoped to viewModelScope — an app-scoped derivation belongs in :usecase"
+            }
+        }
+    }
+
+    /** The balanced-paren argument slice starting at [openIndex] (which must point at `(`). */
+    private fun parenSlice(
+        text: String,
+        openIndex: Int,
+    ): String {
+        var depth = 0
+        for (i in openIndex until text.length) {
+            when (text[i]) {
+                '(' -> depth++
+                ')' -> {
+                    depth--
+                    if (depth == 0) return text.substring(openIndex + 1, i)
+                }
+            }
+        }
+        return text.substring(openIndex + 1)
+    }
+
+    /** C5: extracted conduits no ViewModel injects — dead code or an extraction miss, never silence. */
+    fun orphanConduits(
+        conduitInputs: Map<String, Set<String>>,
+        conduitReaders: Map<String, List<String>>,
+    ): List<String> = (conduitInputs.keys - conduitReaders.keys).sorted().map { "$it: conduit no ViewModel injects" }
+
+    /** C5: derived nodes no screen reads — dead code or an extraction miss, never silence. */
+    fun unreadDeriveds(nodes: List<DataGraph.Node>): List<String> =
+        nodes
+            .filterIsInstance<DataGraph.Derived>()
+            .filter { it.readBy.isEmpty() }
+            .map { "${it.id.id}: derived node no ViewModel reads" }
+            .sorted()
+
     /** Remove block + line comments so prose cannot create (or hide) a node or an edge. */
     fun stripComments(text: String): String =
         text
@@ -466,7 +593,9 @@ internal object DataGraphExtraction {
                 .getValue(conduit)
                 .sorted()
                 .forEach { appendLine("    $it --> $conduit") }
-            consumption.conduitReaders.getValue(conduit).forEach { appendLine("    $conduit --> $it") }
+            // An orphan conduit (no readers) is a build failure via
+            // orphanConduits; orEmpty keeps that failure attributed there.
+            consumption.conduitReaders[conduit].orEmpty().forEach { appendLine("    $conduit --> $it") }
         }
         consumption.directReaders.keys.sorted().forEach { id ->
             consumption.directReaders.getValue(id).forEach { appendLine("    $id --> $it") }

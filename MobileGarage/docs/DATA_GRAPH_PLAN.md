@@ -250,3 +250,32 @@ the extraction test and regenerated with `./scripts/generate-data-graph.sh`
 gate on every PR). One deliberate cost: a wrong-but-coherent extraction now
 has no second declaration to disagree with — the committed rendering diff in
 review, the per-parser positive controls, and the checks are the safety net.
+
+**Fail-closed layer — LANDED 2026-08-15 (completeness: discovery paired with
+exhaustiveness).** An extractor is complete only for what matches it, and the
+byte-pin catches *drift*, never *absence* — a node that never appeared
+produces no diff. Two silent holes proved it (`paginationState`, observed by
+the history screen yet absent; `currentDoorPosition`, a second repo flow of
+the same row). So every discovery rule now has a sweep over an enumerable
+universe, in `DataGraphExtractionKonsistTest`:
+
+- **C1 — node membership.** Every parameterless flow-typed member of a
+  `:domain` or `:usecase` INTERFACE is a `@NodeCadence` node or a reasoned
+  entry in `MobileGarage/data-graph-node-exemptions.txt` (stale entries fail;
+  a reason is mandatory; parameterized funs are excluded by construction — a
+  keyed stream cannot be an app-wide node). Cadence stays the one hand-written
+  fact, but its *presence* is now enforced: an unannotated flow is a decision
+  someone writes down, never a hole. Outcome of the first run:
+  `paginationState` became a USER_ACTION node; `currentDoorPosition` was
+  DELETED — position is a pure projection of `currentDoorEvent`, so the map
+  moved into `ObserveDoorEventsUseCase.position()` and the repo no longer
+  owns a second root for G7 to chase.
+- **C2 — derivation placement.** `.stateIn(` may live only in `:usecase`
+  commonMain (where derived extraction reads it). `:viewmodel` may `stateIn`
+  only on `viewModelScope` — a G0 sink; the other shared modules never
+  (repositories keep ADR-022 always-on collectors). An app-scoped `stateIn`
+  elsewhere would be a shared derivation the graph cannot see.
+- **C5 — no silent dead nodes.** A derived node no screen reads, or an
+  `Observe*` conduit no ViewModel injects, FAILS the build instead of
+  vanishing from the rendering (the extraction used to filter unread conduits
+  out — an extraction miss was indistinguishable from dead code).

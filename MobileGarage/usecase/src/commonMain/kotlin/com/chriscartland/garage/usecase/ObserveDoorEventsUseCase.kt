@@ -23,6 +23,8 @@ import com.chriscartland.garage.domain.model.PaginationState
 import com.chriscartland.garage.domain.repository.DoorRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 /**
  * Observes the current and recent door events from the repository.
@@ -54,6 +56,14 @@ class ObserveDoorEventsUseCase(
      */
     fun paginationState(): StateFlow<PaginationState> = doorRepository.paginationState
 
-    /** Stream of door position changes — needed by ButtonStateMachine. */
-    fun position(): Flow<DoorPosition> = doorRepository.currentDoorPosition
+    /**
+     * Stream of door position changes — needed by ButtonStateMachine.
+     * A pure projection of [current]: the repo deliberately does NOT own a
+     * second flow of the same row (a second root would be a second thing for
+     * the graph's G7 rule to chase); the map lives here, in the conduit.
+     */
+    fun position(): Flow<DoorPosition> =
+        doorRepository.currentDoorEvent
+            .map { it?.doorPosition ?: DoorPosition.UNKNOWN }
+            .distinctUntilChanged()
 }

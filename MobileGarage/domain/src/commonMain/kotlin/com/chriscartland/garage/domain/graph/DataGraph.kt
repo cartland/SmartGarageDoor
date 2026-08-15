@@ -83,6 +83,7 @@ object DataGraph {
         AUTH_STATE("authState"),
         CURRENT_DOOR_EVENT("currentDoorEvent"),
         RECENT_DOOR_EVENTS("recentDoorEvents"),
+        PAGINATION_STATE("paginationState"),
         BUTTON_HEALTH("buttonHealth"),
         SNOOZE_STATE("snoozeState"),
         SERVER_CONFIG("serverConfig"),
