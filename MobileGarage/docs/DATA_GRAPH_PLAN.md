@@ -26,7 +26,7 @@ vs. only while observed.
 | Input node (set/update) | `@Singleton` repository owning a `MutableStateFlow`, exposing `StateFlow` | 7 in `data/…/repository/` |
 | Pure function | Named `object` with a `compute`/`forX` fun — no flows, no platform types (ADR-009) | `presentation-model/`, `ButtonHealthDisplayLogic`, `SnoozeStateExpiry` |
 | Derived node | `combine(…).stateIn(applicationScope, …)` in a `@Singleton` UseCase | `ComputeButtonHealthDisplayUseCase`, `ComputeEffectiveSnoozeStateUseCase`, `ObserveWatchAppStatusUseCase` |
-| Screen-scoped derived node | `combine(…).stateIn(viewModelScope, Eagerly, seeded)` | `HomeViewModel` (`warning`, `sinceStatus`, voice gate) |
+| VM-internal composition (outside the graph, G0) | `combine(…).stateIn(viewModelScope, Eagerly, seeded)` | `HomeViewModel.doorState` via `HomeDoorStateMapper` (#1203 collapse) |
 | Edges | Constructor parameters, mirrored by hand across three DI components | `AppComponent` / `NativeComponent` / `WearComponent` |
 | Observers | Shared `*ViewModel`s | Compose, SwiftUI, Wear |
 
@@ -61,6 +61,18 @@ one-frame lie on every fresh `NavBackStackEntry` (#738, #739, and
 
 ## 3. Rules
 
+- **G0 — The graph ends where `:viewmodel` begins.** Inputs are
+  repository/manager `StateFlow`s; derived nodes are `stateIn` UseCases;
+  together they are the terminal app-wide surface the VM layer consumes (the
+  Phase-43 dependency rule read from the other side, including the sanctioned
+  ADR-015 manager reads). ViewModel state is structurally a **sink** —
+  `:usecase` cannot import `:viewmodel`, so VM state can never be anyone's
+  upstream — and is deliberately NOT in the registry. VM-internal derivations
+  (LoadingResult wrappers, action overlays, compositions like
+  `HomeDoorState`) are presentation-layer concerns governed by the VM rules
+  (ADR-023, P2 seeding, G7's VM-level residence below), not graph nodes.
+  Adopted 2026-08-15; this is why `homeDoorState` was removed from the
+  registry after briefly being added in #1206.
 - **G1 — Pure core, policy shell.** The derivation is an `object` taking plain
   values; the UseCase holds the `combine`, the scope, and the sharing policy,
   nothing else. Canonical: `SnoozeStateExpiry.effective(state, now)`.
@@ -79,12 +91,16 @@ one-frame lie on every fresh `NavBackStackEntry` (#738, #739, and
   coherent and honest against sources. Adding an input = one registry line +
   one provider per component. Scar: #871 → #873 (only `AppComponent` updated;
   iOS `main` broke).
-- **G7 — Nodes read together are derived together.** If one screen reads two
-  derived nodes over a shared non-clock root, collapse them into one
-  derivation. Live instance: `HomeViewModel`'s `warning` / `sinceStatus` /
-  voice-gate projection all derive from `_currentDoorEvent` in separate
-  `stateIn`s; the status-card ↔ voice-gate consistency is currently promised by
-  a code comment. Clock roots are exempt (ticks dedup away).
+- **G7 — Nodes read together are derived together.** Two residences, per G0:
+  (a) **Graph level, mechanized**: if one screen reads two derived UseCase
+  nodes over a shared non-clock root, collapse them — `sharedRootViolations`
+  checks this over the registry's `readBy`. (b) **VM level, by review**: the
+  same principle inside a ViewModel — the original instance was
+  `HomeViewModel`'s `warning` / `sinceStatus` / voice-gate trio deriving from
+  the same mirror in separate `stateIn`s, with card ↔ gate consistency
+  promised only by a comment; the `HomeDoorStateMapper` collapse (#1203) is
+  the exemplar fix and stays, even though the node is no longer in the
+  registry. Clock roots are exempt (ticks dedup away).
 
 ## 4. The `DataGraph` registry
 
@@ -110,10 +126,10 @@ so prose can't satisfy the check. The unchecked direction — an edge present
 in code but missing from the registry — is stated, not covered; closing it
 needs combine-argument parsing.
 
-Registry v1 covers **app-scoped nodes only**; screen-scoped nodes (the
-`HomeViewModel` trio) are G7-by-review until the fan-out collapse lands, after
-which the collapsed node joins the registry. Stated so it doesn't look covered
-when it isn't.
+Registry scope is **exactly the G0 boundary**: repository/manager inputs and
+`stateIn` UseCase deriveds — nothing screen-scoped. VM-internal derivations
+are presentation compositions outside the graph (G0), governed by the VM-layer
+rules, not registry entries.
 
 **The line not to cross:** deleting `DataGraph.kt` must break exactly its own
 tests and nothing else. If the registry ever holds a flow, resolves a
@@ -136,7 +152,7 @@ Each item was one PR:
    untouched.
 4. ✅ **Structural rule for G3** (#1206) — `ViewModelDomainMirrorKonsistTest`
    (additive to `checkViewModelStateFlow`); both unseeded `DoorEvent?` mirrors
-   deleted (ADR-022 pass-through); `homeDoorState` added to the registry.
+   deleted (ADR-022 pass-through); `homeDoorState` added to the registry (removed again 2026-08-15 when G0 drew the boundary at the UseCase layer).
 5. ✅ **Live defects**: T2 fixed (#1204 — `externalScope.async{}.await()` +
    `finally`, test verified failing pre-fix); T3 fixed (#1205 —
    `registerInMemoryReset`, sign-out clears both tiers); **T4 was found

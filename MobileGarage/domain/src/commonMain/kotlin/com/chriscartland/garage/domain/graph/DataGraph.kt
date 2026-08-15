@@ -51,11 +51,16 @@ package com.chriscartland.garage.domain.graph
  * at runtime, it has become a reactive framework — paid for in SKIE
  * bridging, Konsist legibility, and every lint that reads constructors.
  *
- * Scope: app-scoped nodes of the phone graph (Android + iOS share
- * these VMs), plus the one screen-scoped derivation that survived the
- * G7 fan-out collapse (HOME_DOOR_STATE — a single stateIn at
- * viewModelScope). Wear wires a subset of the same inputs but none of
- * the derived nodes below.
+ * Scope (rule G0, docs/DATA_GRAPH_PLAN.md): the graph ENDS at the
+ * UseCase boundary. Inputs are repository/manager StateFlows; derived
+ * nodes are `stateIn` UseCases; together they are the terminal
+ * app-wide surface the VM layer consumes. ViewModel-level state is
+ * structurally a SINK — `:usecase` cannot import `:viewmodel`, so VM
+ * state can never be anyone's upstream — and is deliberately NOT in
+ * this registry (its consistency is a presentation-layer concern; see
+ * G7's VM-level residence, exemplified by `HomeDoorStateMapper`). Wear
+ * wires a subset of the same inputs but none of the derived nodes
+ * below.
  *
  * The check functions take the node list as a parameter so tests can
  * run them against doctored graphs — every check has a positive
@@ -86,7 +91,6 @@ object DataGraph {
         BUTTON_HEALTH_DISPLAY("buttonHealthDisplay"),
         EFFECTIVE_SNOOZE_STATE("effectiveSnoozeState"),
         WATCH_APP_STATUS("watchAppStatus"),
-        HOME_DOOR_STATE("homeDoorState"),
     }
 
     /** What makes a node's value change. Part of every node's contract. */
@@ -210,19 +214,6 @@ object DataGraph {
             shell = "ObserveWatchAppStatusUseCase",
             sharing = Sharing.Gated(poll = NodeId.WATCH_COMPANION),
             readBy = listOf("ProfileViewModel"),
-        ),
-        // Screen-scoped (viewModelScope, not applicationScope): the G7
-        // collapse of the former warning / sinceStatus / voice-gate
-        // fan-out into ONE derivation. Its from-edges point at the root
-        // inputs; the VM-side LoadingResult wrapper over
-        // CURRENT_DOOR_EVENT is presentation phase, not a graph node.
-        Derived(
-            id = NodeId.HOME_DOOR_STATE,
-            from = listOf(NodeId.CURRENT_DOOR_EVENT, NodeId.IS_CHECK_IN_STALE, NodeId.NOW_EPOCH_SECONDS),
-            transform = "HomeDoorStateMapper.compute",
-            shell = "HomeViewModel",
-            sharing = Sharing.Eager,
-            readBy = listOf("HomeViewModel"),
         ),
     )
 

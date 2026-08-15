@@ -104,11 +104,11 @@ class DataGraphTest {
     @Test
     fun cycleCheckCanFail() {
         val doctored = listOf(
-            derived(NodeId.BUTTON_HEALTH_DISPLAY, from = listOf(NodeId.HOME_DOOR_STATE)),
-            derived(NodeId.HOME_DOOR_STATE, from = listOf(NodeId.BUTTON_HEALTH_DISPLAY)),
+            derived(NodeId.BUTTON_HEALTH_DISPLAY, from = listOf(NodeId.EFFECTIVE_SNOOZE_STATE)),
+            derived(NodeId.EFFECTIVE_SNOOZE_STATE, from = listOf(NodeId.BUTTON_HEALTH_DISPLAY)),
         )
         assertEquals(
-            listOf(NodeId.BUTTON_HEALTH_DISPLAY, NodeId.HOME_DOOR_STATE),
+            listOf(NodeId.BUTTON_HEALTH_DISPLAY, NodeId.EFFECTIVE_SNOOZE_STATE),
             DataGraph.cycleMembers(doctored),
         )
     }
@@ -149,10 +149,10 @@ class DataGraphTest {
         val doctored = listOf(
             push,
             derived(NodeId.BUTTON_HEALTH_DISPLAY, from = listOf(NodeId.CURRENT_DOOR_EVENT), readBy = listOf("Screen")),
-            derived(NodeId.HOME_DOOR_STATE, from = listOf(NodeId.CURRENT_DOOR_EVENT), readBy = listOf("Screen")),
+            derived(NodeId.EFFECTIVE_SNOOZE_STATE, from = listOf(NodeId.CURRENT_DOOR_EVENT), readBy = listOf("Screen")),
         )
         assertEquals(
-            listOf("Screen reads buttonHealthDisplay + homeDoorState over a shared non-clock root"),
+            listOf("Screen reads buttonHealthDisplay + effectiveSnoozeState over a shared non-clock root"),
             DataGraph.sharedRootViolations(doctored),
         )
     }
@@ -184,12 +184,12 @@ class DataGraphTest {
             poll,
             derived(NodeId.WATCH_APP_STATUS, from = listOf(NodeId.WATCH_COMPANION)),
             derived(
-                NodeId.HOME_DOOR_STATE,
+                NodeId.EFFECTIVE_SNOOZE_STATE,
                 from = listOf(NodeId.WATCH_APP_STATUS),
                 sharing = Sharing.Gated(poll = NodeId.WATCH_COMPANION),
             ),
         )
-        val top = DataGraph.find(NodeId.HOME_DOOR_STATE, doctored)!!
+        val top = DataGraph.find(NodeId.EFFECTIVE_SNOOZE_STATE, doctored)!!
         assertEquals(setOf(poll), DataGraph.sourcesOf(top, doctored))
         assertEquals(emptyList(), DataGraph.invalidGates(doctored))
     }
@@ -207,7 +207,6 @@ class DataGraphTest {
                 NodeId.BUTTON_HEALTH_DISPLAY to listOf("HomeViewModel"),
                 NodeId.EFFECTIVE_SNOOZE_STATE to listOf("ProfileViewModel"),
                 NodeId.WATCH_APP_STATUS to listOf("ProfileViewModel"),
-                NodeId.HOME_DOOR_STATE to listOf("HomeViewModel"),
             ),
             readers,
         )
