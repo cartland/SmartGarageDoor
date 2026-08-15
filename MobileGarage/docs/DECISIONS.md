@@ -489,9 +489,19 @@ The `FCMService` correctly inserts door events into the repository (data layer),
 
 **Rules:**
 - UseCases remain single-attempt — never retry internally
-- Managers never touch UI state — they produce `Flow` that ViewModels observe
+- Managers never touch UI state — they expose observable status that ViewModels observe
 - Managers are singleton — one instance per app process
 - `start()` is idempotent — calling twice doesn't create two retry loops
+
+**Amendment (2026-08-14, per DATA_CACHING_STRATEGY P3/T1):** always-has-a-value
+manager status is exposed as **`StateFlow`**, never narrowed to `Flow`. The
+original "produce `Flow`" wording predates ADR-022 and was the root cause of a
+recurring defect class: narrowing to `Flow` destroys `.value`, which forces
+every consumer into a default-seeded VM mirror that renders a wrong first frame
+on each fresh screen entry (the History-tab stale-banner flash). Canonical:
+`CheckInStalenessManager.isCheckInStale: StateFlow<Boolean>`, consumed by
+reference (ADR-022 pass-through, no mirror). `Flow` remains correct for
+genuinely event-shaped or transforming manager outputs.
 
 **Consequences:**
 - Clear separation: UseCase = logic, Manager = lifecycle, ViewModel = UI state
