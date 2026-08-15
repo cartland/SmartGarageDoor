@@ -44,7 +44,6 @@ import com.chriscartland.garage.testcommon.FakeUserScopedCache
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 import com.chriscartland.garage.usecase.CheckDoorCommandUseCase
-import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
 import com.chriscartland.garage.usecase.DefaultLiveClock
@@ -156,13 +155,7 @@ class RealNetworkButtonHealthRepositoryPropagationTest {
         val doorRepo = FakeDoorRepository()
         val appLogger = FakeAppLoggerRepository()
         val counters = FakeDiagnosticsCountersRepository()
-        val stalenessManager = CheckInStalenessManager(
-            observeDoorEvents = ObserveDoorEventsUseCase(doorRepo),
-            logAppEvent = LogAppEventUseCase(appLogger, counters),
-            scope = externalScope,
-            dispatcher = testDispatcher,
-            clock = AppClock { 0L },
-        )
+        val stalenessManager = FakeCheckInStalenessManager()
         val vm = DefaultHomeViewModel(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepo),
             observeAuthState = ObserveAuthStateUseCase(authRepo),

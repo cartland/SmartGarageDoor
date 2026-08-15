@@ -28,7 +28,6 @@ import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.FakeDoorFcmRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
-import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.FetchOlderDoorEventsUseCase
@@ -80,9 +79,10 @@ class DoorHistoryViewModelTest {
     }
 
     /**
-     * [scope] is used for the CheckInStalenessManager (infinite loop) and
-     * LiveClock (10s ticker). Tests pass `backgroundScope` from `runTest`
-     * so those loops are cancelled when the test completes.
+     * [scope] is used for the LiveClock ticker (staleness comes from
+     * [FakeCheckInStalenessManager], which owns no jobs). Tests pass
+     * `backgroundScope` from `runTest` so the loop is cancelled when the
+     * test completes.
      */
     private fun createViewModel(
         scope: CoroutineScope,
@@ -96,13 +96,7 @@ class DoorHistoryViewModelTest {
         // launch races the first-frame read of .value).
         runScheduler: Boolean = true,
     ): DefaultDoorHistoryViewModel {
-        val stalenessManager = CheckInStalenessManager(
-            observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
-            logAppEvent = LogAppEventUseCase(appLoggerRepository, FakeDiagnosticsCountersRepository()),
-            scope = scope,
-            dispatcher = testDispatcher,
-            clock = AppClock { 0L },
-        )
+        val stalenessManager = FakeCheckInStalenessManager()
         val liveClock = DefaultLiveClock(
             clock = AppClock { 0L },
             scope = scope,
