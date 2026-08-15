@@ -1,7 +1,7 @@
 ---
 category: plan
 status: active
-last_verified: 2026-08-14
+last_verified: 2026-08-15
 ---
 
 # Shared data graph — rules and build order
@@ -160,7 +160,50 @@ Each item was one PR:
    `initialUser: restoredUser()`, pinned by `IosAuthUserStateHolderTest`) —
    the strategy doc's row was corrected instead of writing code.
 
-Still open (tracked in `DATA_CACHING_STRATEGY.md` §5): T1 (widen
-`CheckInStalenessManager` to `StateFlow`), T5–T13 minus the parts closed
-above, and the nav-rail settings-mirror burn-down exemption in
+A same-day hardening series followed (#1208–#1211): hydration-vs-sign-out
+generation guards in both snapshot-hydrating repos, the typed registry
+(`NodeId` enum + sealed `Sharing`) with the shell-file edge-accuracy check,
+T1 closed stronger than proposed (#1210 — `CheckInStalenessManager` widened
+to `StateFlow`, both VM mirrors deleted as ADR-022 pass-throughs, ADR-015
+amended), and explicit `MutableStateFlow` type arguments in `:viewmodel`
+making the G3 mirror rule total (#1211). #1212 then drew the G0 boundary.
+
+Still open (tracked in `DATA_CACHING_STRATEGY.md` §5): T5–T13 minus the parts
+closed above, and the nav-rail settings-mirror burn-down exemption in
 `ViewModelDomainMirrorKonsistTest`.
+
+## 6. Next: derive the graph from code (agreed 2026-08-15, not started)
+
+The registry's residual weakness is its stringly-typed half: `owner`,
+`transform`, `shell`, and `readBy` are prose pinned to sources by the honesty
+test, and the edge check covers only registry ⊆ code. The agreed end state
+inverts the model: **the code is the declaration, and the graph is extracted
+from it** — G6 becomes "the node list is derived and checked," with nothing
+left to hand-maintain.
+
+Design, settled in discussion 2026-08-15:
+
+- **The extraction domain is exactly the G0 boundary**: inputs = `@Singleton`
+  repository/manager-owned `StateFlow`s; derived nodes = `stateIn` UseCases.
+  No VM parsing — VM state is a sink (G0), so the extractor never has to
+  normalize screen-scoped outliers.
+- **Cadence is the only non-derivable metadata.** A small annotation (e.g.
+  `@NodeCadence(PUSH)`) on the input's public `StateFlow` property declares
+  the one fact code cannot express. Everything else is read from sources:
+  edges from `combine` arguments, sharing from the `SharingStarted` literal,
+  owner/shell from the declaring file, readers from constructor references.
+- **A Konsist-based extractor** builds the node list from sources. The
+  existing `DataGraph` check functions are already parameterized on a `nodes`
+  list, so acyclicity / gate-justification / shared-root re-point at the
+  extracted list unchanged. This closes the currently-open direction
+  (code ⊆ registry) by construction: an edge in code IS a graph edge.
+- **The rendered graph is generated, not written**: a `DATA_GRAPH.md` with a
+  mermaid diagram, produced by a generator with a `--check` mode (the
+  `generate-ui-gallery.py` pattern) so CI fails when the committed rendering
+  drifts from the code.
+- **End state deletes the hand-declared `nodes` list** and the `owner` /
+  `transform` / `shell` strings; the `NodeId` enum either becomes the
+  annotation vocabulary or falls away with the list.
+
+The §4 "line not to cross" stands unchanged: extraction happens in tests and
+tooling, never at runtime — the graph description stays inert.
