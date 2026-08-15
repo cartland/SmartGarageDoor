@@ -38,12 +38,27 @@ import org.junit.Test
  *    `WatchInstallAction`); domain declares the vocabulary, the VM owns
  *    the transient overlay state (decision-rule step 5).
  *
- * Text-level extraction, deliberately: Konsist's PSI has no type
- * inference, so an inferred `MutableStateFlow(SomeEnum.VALUE)` has no
- * declared type to inspect. Two patterns cover the shapes in the tree —
- * an explicit type argument, and an enum-constant seed. Both feed
- * [baseTypeOf]/[enumSeedOf], which the positive controls exercise
- * directly (the vacuous-pass rule).
+ * TOTALITY BY CONSTRUCTION: Konsist's PSI has no type inference, so a
+ * bare `MutableStateFlow(expr)` has no inspectable type — the original
+ * rule could only heuristically catch inferred seeds. Instead of a
+ * better heuristic, the companion rule below REQUIRES every
+ * `MutableStateFlow` in `:viewmodel` to spell its type argument
+ * explicitly. With explicitness enforced, the mirror rule's extraction
+ * covers every declaration — nothing can escape by inference. (The
+ * language-construct fix: make the checkable form the only legal form.)
+ *
+ * The scan is whole-text with `\s*` between tokens, so a declaration
+ * split across lines cannot escape either. Comments are stripped first
+ * (the RoomSchemaTest precedent), so prose about the pattern neither
+ * flags nor hides anything.
+ *
+ * Local-run caveat (observed empirically): Konsist reads SOURCES at
+ * runtime, but Gradle's up-to-date check for this test task tracks the
+ * compiled classpath. A bytecode-identical source edit (e.g. deleting
+ * an explicit type argument that inference reproduces) does not
+ * re-trigger the task locally — run with `--rerun-tasks` when probing
+ * the rule. Real violations add declarations, which change bytecode
+ * and re-trigger normally; CI always runs fresh.
  */
 class ViewModelDomainMirrorKonsistTest {
     /** Burn-down list — goal: empty. A stale entry (no longer violating) fails the test. */
@@ -64,30 +79,20 @@ class ViewModelDomainMirrorKonsistTest {
         ).map { it.name }.toSet()
     }
 
-    private fun domainEnumNames(): Set<String> {
-        val domainFiles = scope.files.filter { it.path.contains("/domain/src/commonMain/") }
-        return domainFiles
-            .flatMap { it.classes(includeNested = true) }
-            .filter { it.hasEnumModifier }
-            .map { it.name }
-            .toSet()
-    }
+    private fun vmFiles() =
+        scope.files
+            .filter { it.path.contains("/viewmodel/src/commonMain/") }
+            .also { require(it.isNotEmpty()) { "Konsist scope found no viewmodel files — scope misconfigured" } }
 
     @Test
     fun `no viewmodel MutableStateFlow mirrors a bare domain type`() {
         val domainTypes = domainTypeNames()
-        val domainEnums = domainEnumNames()
-        val vmFiles = scope.files.filter { it.path.contains("/viewmodel/src/commonMain/") }
-        require(vmFiles.isNotEmpty()) { "Konsist scope found no viewmodel files — scope misconfigured" }
 
-        val violations = vmFiles
+        val violations = vmFiles()
             .flatMap { file ->
-                stripComments(file.text).lines().mapNotNull { line ->
-                    val base = baseTypeOf(line) ?: enumSeedOf(line, domainEnums)
-                    base
-                        ?.takeIf { it in domainTypes && !isAllowed(it) }
-                        ?.let { "${file.name}.kt: $it" }
-                }
+                explicitTypeArgs(stripComments(file.text))
+                    .filter { it in domainTypes && !isAllowed(it) }
+                    .map { "${file.name}.kt: $it" }
             }.toSet()
 
         val unexempted = violations - exemptions
@@ -96,15 +101,41 @@ class ViewModelDomainMirrorKonsistTest {
         assertEquals("Stale exemptions (fixed — remove from the list)", emptySet<String>(), stale)
     }
 
+    @Test
+    fun `every viewmodel MutableStateFlow declares its type argument explicitly`() {
+        // The companion rule that makes the mirror rule TOTAL: without
+        // it, `MutableStateFlow(someDomainValue)` would carry a domain
+        // type the text-level scan cannot see. Imports are dropped from
+        // the scan (the import line legitimately ends in the bare name).
+        val violations = vmFiles().flatMap { file ->
+            val text = stripComments(file.text)
+                .lines()
+                .filterNot { it.trimStart().startsWith("import ") }
+                .joinToString("\n")
+            Regex("""MutableStateFlow(?!\s*<)""")
+                .findAll(text)
+                .map { "${file.name}.kt: inferred MutableStateFlow type at offset ${it.range.first}" }
+                .toList()
+        }
+        assertEquals(emptyList<String>(), violations)
+    }
+
     // ---- positive controls: the extraction can actually fire ----
 
     @Test
     fun `the explicit-type pattern can actually fire`() {
-        assertEquals("DoorEvent", baseTypeOf("    private val x = MutableStateFlow<DoorEvent?>(null)"))
+        assertEquals(
+            listOf("DoorEvent"),
+            explicitTypeArgs("    private val x = MutableStateFlow<DoorEvent?>(null)"),
+        )
+        // A declaration split across lines cannot escape the scan.
+        assertEquals(
+            listOf("DoorEvent"),
+            explicitTypeArgs("MutableStateFlow<\n    DoorEvent?>(null)"),
+        )
         // LoadingResult wrapper resolves to the WRAPPER, which is allowed.
-        val wrapped = baseTypeOf("MutableStateFlow<LoadingResult<DoorEvent?>>(seed)")
-        assertEquals("LoadingResult", wrapped)
-        assertTrue(isAllowed(wrapped!!))
+        assertEquals(listOf("LoadingResult"), explicitTypeArgs("MutableStateFlow<LoadingResult<DoorEvent?>>(seed)"))
+        assertTrue(isAllowed("LoadingResult"))
         assertTrue(isAllowed("SnoozeAction"))
         assertTrue(!isAllowed("DoorEvent"))
         // And DoorEvent really is a domain type — the set the rule
@@ -113,15 +144,11 @@ class ViewModelDomainMirrorKonsistTest {
     }
 
     @Test
-    fun `the enum-seed pattern can actually fire`() {
-        val enums = setOf("NavigationRailItemPosition")
-        assertEquals(
-            "NavigationRailItemPosition",
-            enumSeedOf("MutableStateFlow(NavigationRailItemPosition.TopAligned)", enums),
-        )
-        // An object-member seed (Int constant) must NOT match: the arg
-        // type is the member's, not the object's.
-        assertEquals(null, enumSeedOf("MutableStateFlow(NavigationRailLayout.DEFAULT_TOP_PADDING_DP)", enums))
+    fun `the explicitness rule can actually fire`() {
+        val bare = Regex("""MutableStateFlow(?!\s*<)""")
+        assertTrue(bare.containsMatchIn("val x = MutableStateFlow(someValue)"))
+        assertTrue(!bare.containsMatchIn("val x = MutableStateFlow<Boolean>(false)"))
+        assertTrue(!bare.containsMatchIn("val x = MutableStateFlow< Boolean >(false)"))
     }
 
     @Test
@@ -136,8 +163,15 @@ class ViewModelDomainMirrorKonsistTest {
             /* MutableStateFlow<DoorEvent?>(null) */
             val real = MutableStateFlow<DoorEvent?>(null)
             """.trimIndent()
-        val hits = stripComments(text).lines().mapNotNull(::baseTypeOf)
-        assertEquals(listOf("DoorEvent"), hits)
+        assertEquals(listOf("DoorEvent"), explicitTypeArgs(stripComments(text)))
+    }
+
+    @Test
+    fun `a url in a string does not truncate the scan`() {
+        // stripComments must not treat :// as a line comment — a URL
+        // earlier on a line would otherwise hide a mirror after it.
+        val line = """val x = "https://example.com"; val y = MutableStateFlow<DoorEvent?>(null)"""
+        assertEquals(listOf("DoorEvent"), explicitTypeArgs(stripComments(line)))
     }
 
     // ---- extraction (pure; exercised by the controls above) ----
@@ -147,23 +181,18 @@ class ViewModelDomainMirrorKonsistTest {
         text
             .replace(Regex("""(?s)/\*.*?\*/"""), "")
             .lines()
-            .joinToString("\n") { it.substringBefore("//") }
+            .joinToString("\n") { line ->
+                // `(?<!:)//` so a URL's :// is not a comment start.
+                val match = Regex("""(?<!:)//""").find(line)
+                if (match != null) line.substring(0, match.range.first) else line
+            }
 
     private fun isAllowed(base: String): Boolean = base == "LoadingResult" || base.endsWith("Action")
 
-    /** Base type of an explicit `MutableStateFlow<X…>` declaration, e.g. `LoadingResult` or `DoorEvent`. */
-    private fun baseTypeOf(line: String): String? = Regex("""MutableStateFlow<\s*([A-Za-z][A-Za-z0-9_]*)""").find(line)?.groupValues?.get(1)
-
-    /** Enum-constant seed `MutableStateFlow(SomeEnum.VALUE)` where the receiver is a domain enum. */
-    private fun enumSeedOf(
-        line: String,
-        domainEnums: Set<String>,
-    ): String? {
-        if (line.contains("MutableStateFlow<")) return null // explicit form handles it
-        return Regex("""MutableStateFlow\(\s*([A-Za-z][A-Za-z0-9_]*)\.""")
-            .find(line)
-            ?.groupValues
-            ?.get(1)
-            ?.takeIf { it in domainEnums }
-    }
+    /** Base type of every explicit `MutableStateFlow<X…>` in [text], whole-text and newline-tolerant. */
+    private fun explicitTypeArgs(text: String): List<String> =
+        Regex("""MutableStateFlow\s*<\s*([A-Za-z][A-Za-z0-9_]*)""")
+            .findAll(text)
+            .map { it.groupValues[1] }
+            .toList()
 }

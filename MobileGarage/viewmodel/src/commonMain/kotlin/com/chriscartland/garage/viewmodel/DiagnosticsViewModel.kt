@@ -92,31 +92,31 @@ class DefaultDiagnosticsViewModel(
     private val dispatchers: DispatcherProvider,
 ) : ViewModel(),
     DiagnosticsViewModel {
-    private val _initCurrentDoorCount = MutableStateFlow(0L)
+    private val _initCurrentDoorCount = MutableStateFlow<Long>(0L)
     override val initCurrentDoorCount: StateFlow<Long> = _initCurrentDoorCount
 
-    private val _initRecentDoorCount = MutableStateFlow(0L)
+    private val _initRecentDoorCount = MutableStateFlow<Long>(0L)
     override val initRecentDoorCount: StateFlow<Long> = _initRecentDoorCount
 
-    private val _userFetchCurrentDoorCount = MutableStateFlow(0L)
+    private val _userFetchCurrentDoorCount = MutableStateFlow<Long>(0L)
     override val userFetchCurrentDoorCount: StateFlow<Long> = _userFetchCurrentDoorCount
 
-    private val _userFetchRecentDoorCount = MutableStateFlow(0L)
+    private val _userFetchRecentDoorCount = MutableStateFlow<Long>(0L)
     override val userFetchRecentDoorCount: StateFlow<Long> = _userFetchRecentDoorCount
 
-    private val _fcmReceivedDoorCount = MutableStateFlow(0L)
+    private val _fcmReceivedDoorCount = MutableStateFlow<Long>(0L)
     override val fcmReceivedDoorCount: StateFlow<Long> = _fcmReceivedDoorCount
 
-    private val _fcmSubscribeTopicCount = MutableStateFlow(0L)
+    private val _fcmSubscribeTopicCount = MutableStateFlow<Long>(0L)
     override val fcmSubscribeTopicCount: StateFlow<Long> = _fcmSubscribeTopicCount
 
-    private val _exceededExpectedTimeWithoutFcmCount = MutableStateFlow(0L)
+    private val _exceededExpectedTimeWithoutFcmCount = MutableStateFlow<Long>(0L)
     override val exceededExpectedTimeWithoutFcmCount: StateFlow<Long> = _exceededExpectedTimeWithoutFcmCount
 
-    private val _timeWithoutFcmInExpectedRangeCount = MutableStateFlow(0L)
+    private val _timeWithoutFcmInExpectedRangeCount = MutableStateFlow<Long>(0L)
     override val timeWithoutFcmInExpectedRangeCount: StateFlow<Long> = _timeWithoutFcmInExpectedRangeCount
 
-    private val _clearInFlight = MutableStateFlow(false)
+    private val _clearInFlight = MutableStateFlow<Boolean>(false)
     override val clearInFlight: StateFlow<Boolean> = _clearInFlight
 
     init {
