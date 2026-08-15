@@ -25,8 +25,8 @@ import { AndroidMessagePriority, TopicMessage, Notification, NotificationPriorit
 import { buildTimestampToFcmTopic } from '../../model/FcmTopic';
 import { getSnoozeStatus, SnoozeLatestParams } from '../SnoozeNotifications';
 import { SnoozeStatus } from '../../model/SnoozeRequest';
+import { CURRENT_EVENT_KEY } from '../../model/SensorEventDocument';
 
-const CURRENT_EVENT_KEY = 'currentEvent';
 const NOTIFICATION_CURRENT_EVENT_KEY = 'notificationCurrentEvent';
 const NOTIFICATION_MESSAGE_KEY = 'message';
 const TIMESTAMP_SECONDS_KEY = 'timestampSeconds';

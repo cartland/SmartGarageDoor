@@ -15,6 +15,8 @@
  */
 
 import { TimeSeriesDatabase, EventPage, PageDirection, TimestampCursor } from './TimeSeriesDatabase';
+import { SensorEvent } from '../model/SensorEvent';
+import { readCurrentEvent } from '../model/SensorEventDocument';
 
 export { EventPage, PageDirection, TimestampCursor } from './TimeSeriesDatabase';
 
@@ -58,9 +60,31 @@ class FirestoreSensorEventDatabase implements SensorEventDatabase {
 
 let _instance: SensorEventDatabase = new FirestoreSensorEventDatabase();
 
-export const DATABASE: SensorEventDatabase = {
+/**
+ * Reads that are DERIVED from the storage interface rather than part of it.
+ *
+ * These are deliberately not members of {@link SensorEventDatabase}: a fake
+ * installed with {@link setImpl} supplies raw storage only, so it cannot
+ * implement these differently from production. That is the point — the bug
+ * this guards against was a test fake that answered a document shape
+ * production never stores, which let a wrong reader and a wrong fixture agree
+ * with each other and go green.
+ */
+export interface SensorEventDerivedReads {
+  /**
+   * The current door reading, unwrapped from its stored document.
+   *
+   * Prefer this over `getCurrent()` for anything that wants to know what the
+   * door is doing. `getCurrent()` hands back the wrapper as `any`, where
+   * `.type` is silently `undefined`.
+   */
+  getCurrentEvent(buildTimestamp: string): Promise<SensorEvent | null>;
+}
+
+export const DATABASE: SensorEventDatabase & SensorEventDerivedReads = {
   save: (t, d) => _instance.save(t, d),
   getCurrent: (t) => _instance.getCurrent(t),
+  getCurrentEvent: async (t) => readCurrentEvent(await _instance.getCurrent(t)),
   updateCurrentWithMatchingCurrentEventTimestamp: (t, m) => _instance.updateCurrentWithMatchingCurrentEventTimestamp(t, m),
   deleteAllBefore: (c, dry) => _instance.deleteAllBefore(c, dry),
   getLatestN: (n) => _instance.getLatestN(n),
