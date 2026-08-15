@@ -145,9 +145,11 @@ class DefaultFunctionListViewModel(
     private val appVersion: String,
 ) : ViewModel(),
     FunctionListViewModel {
-    // Cached so the snooze action can attach the latest door change time
-    // without the UI having to thread it through.
-    private val currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
+    // ADR-022 pass-through: the snooze action reads `.value` to attach
+    // the latest door change time. Was an unseeded VM-local mirror of
+    // repository-owned state (G3, docs/DATA_GRAPH_PLAN.md); the
+    // upstream IS a StateFlow, so pass the reference through instead.
+    private val currentDoorEvent: StateFlow<DoorEvent?> = observeDoorEventsUseCase.current()
 
     private val _accessGranted = MutableStateFlow<Boolean?>(null)
     override val accessGranted: StateFlow<Boolean?> = _accessGranted
@@ -156,9 +158,6 @@ class DefaultFunctionListViewModel(
         observeTestNotificationStateUseCase()
 
     init {
-        viewModelScope.launch(dispatchers.io) {
-            observeDoorEventsUseCase.current().collect { currentDoorEvent.value = it }
-        }
         viewModelScope.launch(dispatchers.io) {
             observeFeatureAccessUseCase.functionList().collect { _accessGranted.value = it }
         }
