@@ -42,6 +42,7 @@ import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.FakeStatusSnapshotStore
+import com.chriscartland.garage.testcommon.FakeUserScopedCache
 import com.chriscartland.garage.testcommon.FakeWearCompanionRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import com.chriscartland.garage.usecase.AppSettingsUseCase
@@ -189,6 +190,7 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                 authRepository = authRepository,
                 statusSnapshotStore = FakeStatusSnapshotStore(),
                 snoozeDoorEventBridge = SnoozeDoorEventBridge(),
+                userScopedCache = FakeUserScopedCache(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,
@@ -305,6 +307,7 @@ class RealNetworkSnoozeRepositoryPropagationTest {
                 authRepository = authRepository,
                 statusSnapshotStore = FakeStatusSnapshotStore(),
                 snoozeDoorEventBridge = SnoozeDoorEventBridge(),
+                userScopedCache = FakeUserScopedCache(),
                 snoozeNotificationsOption = true,
                 currentTimeSeconds = { now },
                 externalScope = externalScope,

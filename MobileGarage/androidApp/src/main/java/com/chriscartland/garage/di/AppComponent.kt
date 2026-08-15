@@ -838,6 +838,7 @@ abstract class AppComponent(
         authRepository: AuthRepository,
         statusSnapshotStore: StatusSnapshotStore,
         snoozeDoorEventBridge: SnoozeDoorEventBridge,
+        userScopedCache: UserScopedCache,
         appConfig: AppConfig,
         applicationScope: CoroutineScope,
     ): SnoozeRepository =
@@ -847,6 +848,7 @@ abstract class AppComponent(
             authRepository = authRepository,
             statusSnapshotStore = statusSnapshotStore,
             snoozeDoorEventBridge = snoozeDoorEventBridge,
+            userScopedCache = userScopedCache,
             snoozeNotificationsOption = appConfig.snoozeNotificationsOption,
             currentTimeSeconds = { System.currentTimeMillis() / 1000 },
             externalScope = applicationScope,
@@ -879,6 +881,7 @@ abstract class AppComponent(
         serverConfigRepository: ServerConfigRepository,
         authRepository: AuthRepository,
         statusSnapshotStore: StatusSnapshotStore,
+        userScopedCache: UserScopedCache,
         appClock: AppClock,
         applicationScope: CoroutineScope,
     ): ButtonHealthRepository =
@@ -887,6 +890,7 @@ abstract class AppComponent(
             serverConfigRepository = serverConfigRepository,
             authRepository = authRepository,
             statusSnapshotStore = statusSnapshotStore,
+            userScopedCache = userScopedCache,
             appClock = appClock,
             externalScope = applicationScope,
         )

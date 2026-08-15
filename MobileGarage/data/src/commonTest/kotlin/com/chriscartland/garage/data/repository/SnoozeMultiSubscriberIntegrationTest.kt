@@ -27,6 +27,7 @@ import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import com.chriscartland.garage.testcommon.FakeStatusSnapshotStore
+import com.chriscartland.garage.testcommon.FakeUserScopedCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -80,6 +81,7 @@ class SnoozeMultiSubscriberIntegrationTest {
             authRepository = authRepo,
             statusSnapshotStore = FakeStatusSnapshotStore(),
             snoozeDoorEventBridge = SnoozeDoorEventBridge(),
+            userScopedCache = FakeUserScopedCache(),
             snoozeNotificationsOption = true,
             currentTimeSeconds = { currentTime },
             externalScope = externalScope,

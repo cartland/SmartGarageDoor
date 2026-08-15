@@ -29,9 +29,30 @@ package com.chriscartland.garage.domain.repository
  */
 interface UserScopedCache {
     /**
-     * Clears every cache entry registered as user-scoped. Called when
-     * the user signs out so cached per-user values (e.g. the feature
-     * allowlist) cannot leak across accounts. Must not throw.
+     * Clears every cache entry registered as user-scoped — the DISK
+     * tier AND every in-memory reset registered via
+     * [registerInMemoryReset]. Called when the user signs out so cached
+     * per-user values (e.g. the feature allowlist) cannot leak across
+     * accounts. Must not throw.
      */
     suspend fun clearUserScopedEntries()
+
+    /**
+     * Registers an in-memory reset that runs in the SAME sign-out
+     * transition as the disk clear (DATA_CACHING_STRATEGY P8: sign-out
+     * clears memory and disk, or it clears nothing). State-owning
+     * repositories call this at construction, so a repository that was
+     * never built has nothing to clear, and "did you clear memory
+     * too?" is answered structurally by one call site.
+     *
+     * [name] is for logging; [reset] must be idempotent and must not
+     * assume any ordering relative to other resets. Motivating defect:
+     * the previous session's button-health verdict survived sign-out in
+     * the singleton, and snooze's `lastFetchedAtSeconds` suppressed the
+     * next session's revalidation for up to the fetch TTL.
+     */
+    fun registerInMemoryReset(
+        name: String,
+        reset: suspend () -> Unit,
+    )
 }

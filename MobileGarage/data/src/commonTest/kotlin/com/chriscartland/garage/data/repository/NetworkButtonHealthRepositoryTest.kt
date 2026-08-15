@@ -33,6 +33,7 @@ import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeNetworkButtonHealthDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import com.chriscartland.garage.testcommon.FakeStatusSnapshotStore
+import com.chriscartland.garage.testcommon.FakeUserScopedCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
@@ -60,6 +61,7 @@ class NetworkButtonHealthRepositoryTest {
         scope: CoroutineScope,
         store: FakeStatusSnapshotStore = FakeStatusSnapshotStore(),
         clock: AppClock = AppClock { FIXED_NOW },
+        cache: FakeUserScopedCache = FakeUserScopedCache(),
     ): NetworkButtonHealthRepository {
         val configDs = FakeNetworkConfigDataSource().apply { setServerConfigResult(validConfig) }
         val authRepo = FakeAuthRepository().apply {
@@ -70,10 +72,37 @@ class NetworkButtonHealthRepositoryTest {
             serverConfigRepository = CachedServerConfigRepository(configDs, "key", scope),
             authRepository = authRepo,
             statusSnapshotStore = store,
+            userScopedCache = cache,
             appClock = clock,
             externalScope = scope,
         )
     }
+
+    @Test
+    fun signOutClearResetsTheInMemoryVerdict() =
+        runTest {
+            // DATA_CACHING_STRATEGY T3: sign-out used to clear only the
+            // disk tier — the previous session's verdict rendered
+            // instantly from this singleton after sign-out → sign-in.
+            val ds = FakeNetworkButtonHealthDataSource().apply {
+                setResult(NetworkResult.Success(ButtonHealth(ButtonHealthState.ONLINE, 1000L)))
+            }
+            val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val cache = FakeUserScopedCache()
+            val repo = makeRepo(ds, scope, cache = cache)
+            repo.fetchButtonHealth()
+            advanceUntilIdle()
+            assertIs<LoadingResult.Complete<ButtonHealth>>(repo.buttonHealth.value)
+
+            // The same transition that clears the disk tier.
+            cache.clearUserScopedEntries()
+
+            assertEquals(listOf("buttonHealth"), cache.registeredResetNames)
+            val after = repo.buttonHealth.value
+            assertIs<LoadingResult.Loading<ButtonHealth>>(after)
+            assertEquals(null, after.data)
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
 
     @Test
     fun fetchButtonHealth_success_writesStateAndReturnsValue() =
@@ -110,6 +139,7 @@ class NetworkButtonHealthRepositoryTest {
                 serverConfigRepository = CachedServerConfigRepository(configDs, "key", scope),
                 authRepository = authRepo,
                 statusSnapshotStore = FakeStatusSnapshotStore(),
+                userScopedCache = FakeUserScopedCache(),
                 appClock = AppClock { FIXED_NOW },
                 externalScope = scope,
             )
@@ -382,6 +412,7 @@ class NetworkButtonHealthRepositoryTest {
             ),
             authRepository = FakeAuthRepository(),
             statusSnapshotStore = FakeStatusSnapshotStore(),
+            userScopedCache = FakeUserScopedCache(),
             appClock = AppClock { FIXED_NOW },
             externalScope = CoroutineScope(SupervisorJob()),
         )
