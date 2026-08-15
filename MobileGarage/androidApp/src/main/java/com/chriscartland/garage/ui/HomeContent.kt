@@ -72,11 +72,12 @@ fun HomeContent(
         onTokenReceived = { token -> resolved.signInWithGoogle(token) },
     )
     val currentDoorEvent by resolved.currentDoorEvent.collectAsState()
-    val warning by resolved.warning.collectAsState()
-    val sinceStatus by resolved.sinceStatus.collectAsState()
+    // One node for the whole door-status surface (G7): warning, since
+    // line, and stale flag arrive as fields of the same value, so the
+    // card cannot render them one frame apart.
+    val doorState by resolved.doorState.collectAsState()
     val buttonState by resolved.buttonState.collectAsState()
     val authState by resolved.authState.collectAsState()
-    val isCheckInStale by resolved.isCheckInStale.collectAsState()
     // No `initialValue` — `buttonHealthDisplay` is a StateFlow whose
     // upstream is stateIn'd at app scope (Eagerly), so the cached current
     // value is read synchronously on first composition. Avoids the
@@ -106,14 +107,14 @@ fun HomeContent(
     // sourced separately from the shared VM (ADR-031 — the warning mapping
     // moved to `presentation-model`, no longer computed by `HomeMapper`).
     val status = HomeMapper
-        .toHomeStatusDisplay(currentDoorEvent, isCheckInStale)
-        .copy(warning = warning)
+        .toHomeStatusDisplay(currentDoorEvent, doorState.isCheckInStale)
+        .copy(warning = doorState.warning)
     // The elapsed bucket comes from the shared VM (ADR-031); this layer only
     // formats clock time + localized units.
-    val sinceLine = rememberSinceLine(sinceStatus, now, zone)
+    val sinceLine = rememberSinceLine(doorState.sinceStatus, now, zone)
     val alerts = HomeAlertMapper.toHomeAlerts(
         currentDoorEvent = currentDoorEvent,
-        isCheckInStale = isCheckInStale,
+        isCheckInStale = doorState.isCheckInStale,
         notificationPermissionGranted = notificationPermissionState.status.isGranted,
         notificationRequestCount = permissionRequestCount,
     )

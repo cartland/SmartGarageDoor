@@ -30,10 +30,6 @@ import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.RemoteButtonState
-import com.chriscartland.garage.presentation.DoorWarning
-import com.chriscartland.garage.presentation.DoorWarningMapper
-import com.chriscartland.garage.presentation.SinceStatus
-import com.chriscartland.garage.presentation.SinceStatusMapper
 import com.chriscartland.garage.usecase.ButtonAckToken
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 import com.chriscartland.garage.usecase.ButtonStateMachine
@@ -80,26 +76,18 @@ interface HomeViewModel {
     val currentDoorEvent: StateFlow<LoadingResult<DoorEvent?>>
 
     /**
-     * Typed warning for stuck / anomalous door states (ADR-031 shared
-     * presentation model), derived from [currentDoorEvent]. Null when the
-     * current state warrants no warning. Each UI resolves the typed value to a
-     * localized string at render time. Exposed as [StateFlow] (seeded
-     * synchronously from the cached door event) so neither UI flashes a stale
-     * warning on a fresh screen entry.
+     * The whole Home door-status surface as ONE derived node
+     * (docs/DATA_GRAPH_PLAN.md rule G7): the typed warning, the
+     * "Since … · duration" line data, the check-in-stale flag, and the
+     * voice gate's door projection — all fields of the same value,
+     * computed by [HomeDoorStateMapper] from the same
+     * `(event, stale, now)` snapshot. Replaces the former independent
+     * `warning` / `sinceStatus` / `isCheckInStale` StateFlows, which
+     * could render one frame apart and whose agreement with the voice
+     * gate was promised only by a comment. Seeded synchronously so a
+     * fresh screen entry renders the correct state on the first frame.
      */
-    val warning: StateFlow<DoorWarning?>
-
-    /**
-     * Typed data for the "Since … · duration" status line (ADR-031 shared
-     * presentation model), derived from [currentDoorEvent] + [nowEpochSeconds].
-     * Null when the last-change time is unknown. The elapsed bucket is shared;
-     * each UI formats the clock time + localized units itself. Recomputes on
-     * each clock tick so the duration updates live.
-     */
-    val sinceStatus: StateFlow<SinceStatus?>
-
-    /** True when the last check-in is older than the staleness threshold (11 min). */
-    val isCheckInStale: StateFlow<Boolean>
+    val doorState: StateFlow<HomeDoorState>
 
     /**
      * Wall-clock time as epoch seconds, ticking on the [LiveClock] cadence
@@ -216,62 +204,45 @@ class DefaultHomeViewModel(
         )
     override val currentDoorEvent: StateFlow<LoadingResult<DoorEvent?>> = _currentDoorEvent
 
-    // Derived typed warning (ADR-031). `map` is a transformation, so this is a
-    // genuine derivation (not a pass-through) — `stateIn(..., Eagerly, ...)`
-    // with a synchronously-computed initial value keeps it readable on first
-    // composition without a `Loading`/stale flash, mirroring the
-    // ComputeButtonHealthDisplayUseCase pattern.
-    override val warning: StateFlow<DoorWarning?> =
-        _currentDoorEvent
-            .map { DoorWarningMapper.forEvent(it.data) }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.Eagerly,
-                initialValue = DoorWarningMapper.forEvent(_currentDoorEvent.value.data),
-            )
+    private val checkInStale = MutableStateFlow(false)
 
-    // Derived status-line data (ADR-031). Combines the door event with the live
-    // clock so the elapsed bucket re-buckets on each tick; seeded synchronously
-    // from the cached values so a fresh screen entry shows the right line with
-    // no flicker.
-    override val sinceStatus: StateFlow<SinceStatus?> =
-        combine(_currentDoorEvent, nowEpochSeconds) { event, now ->
-            SinceStatusMapper.forEvent(event.data?.lastChangeTimeSeconds, now)
+    // The whole door-status surface as ONE derived node (G7,
+    // docs/DATA_GRAPH_PLAN.md): a single combine + a single pure
+    // transform replaces the former three independent stateIns
+    // (`warning`, `sinceStatus`, and the voice gate's projection) over
+    // the same root, which could render one frame apart and whose
+    // agreement was promised only by a comment. Seeded synchronously
+    // (Eagerly, ComputeButtonHealthDisplayUseCase pattern) so a fresh
+    // screen entry reads the correct state on first composition.
+    override val doorState: StateFlow<HomeDoorState> =
+        combine(_currentDoorEvent, checkInStale, nowEpochSeconds) { event, stale, now ->
+            HomeDoorStateMapper.compute(event.data, stale, now)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
-            initialValue = SinceStatusMapper.forEvent(
-                _currentDoorEvent.value.data?.lastChangeTimeSeconds,
+            initialValue = HomeDoorStateMapper.compute(
+                _currentDoorEvent.value.data,
+                checkInStale.value,
                 nowEpochSeconds.value,
             ),
         )
 
-    private val _isCheckInStale = MutableStateFlow(false)
-    override val isCheckInStale: StateFlow<Boolean> = _isCheckInStale
-
     private val _developerAccess = MutableStateFlow<Boolean?>(null)
     override val developerAccess: StateFlow<Boolean?> = _developerAccess
 
-    // Voice control: the gate's door view projects the REAL observed
-    // state (stale check-in → UNKNOWN → refuse), so refusals always
-    // match the status card above — it combines the same two mirrors
-    // the card renders from. Seeded synchronously (Eagerly) so a fresh
-    // screen entry gates correctly on the first utterance, before the
-    // combine's first async emission.
+    // The voice gate's door view is a projection OF [doorState] — the
+    // controller samples `.value` at gate time, so what it gates on is
+    // the same computed snapshot the status card renders (it can lag by
+    // at most one dispatch, but can never be a DIFFERENT projection of
+    // the same instant, which the pre-G7 independent combine allowed).
     private val voiceDoorState: StateFlow<VoiceDoorState> =
-        combine(
-            _currentDoorEvent,
-            _isCheckInStale,
-        ) { event, stale ->
-            VoiceDoorStateMapper.project(event.data?.doorPosition, stale)
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = VoiceDoorStateMapper.project(
-                _currentDoorEvent.value.data?.doorPosition,
-                _isCheckInStale.value,
-            ),
-        )
+        doorState
+            .map { it.voice }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.Eagerly,
+                initialValue = doorState.value.voice,
+            )
 
     private val voiceCommandController = VoiceCommandController(
         classify = classifyVoiceIntentUseCase,
@@ -308,7 +279,7 @@ class DefaultHomeViewModel(
         Logger.d { "init" }
         viewModelScope.launch(dispatchers.io) {
             checkInStalenessManager.isCheckInStale.collect {
-                _isCheckInStale.value = it
+                checkInStale.value = it
             }
         }
         viewModelScope.launch(dispatchers.io) {

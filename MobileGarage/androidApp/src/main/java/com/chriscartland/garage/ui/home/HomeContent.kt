@@ -105,7 +105,7 @@ import java.time.ZoneId
  * @param lastChangeTimeSeconds raw epoch seconds for the "Since X · Y" line.
  * @param warning optional typed warning for stuck / anomalous states. The TYPE
  *   and its mapping now live in the shared `presentation-model` ([DoorWarning],
- *   ADR-031) and the value is sourced from `DefaultHomeViewModel.warning` (not
+ *   ADR-031) and the value is sourced from `DefaultHomeViewModel.doorState` (not
  *   this screen's mapper); the route wrapper threads it onto the display bundle.
  */
 data class HomeStatusDisplay(
@@ -503,7 +503,7 @@ private fun doorStateLabel(doorPosition: DoorPosition): String =
  *
  * The elapsed-bucket *logic* now lives in the shared `presentation-model`
  * ([SinceStatus] / [ElapsedDuration] / `SinceStatusMapper`) and is exposed by
- * `DefaultHomeViewModel.sinceStatus`. This Composable owns only the
+ * `DefaultHomeViewModel.doorState`. This Composable owns only the
  * Android-side rendering: clock-time formatting via [HomeStatusFormatter] and
  * localized unit strings via `stringResource` / `pluralStringResource`.
  *
