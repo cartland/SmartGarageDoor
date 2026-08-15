@@ -62,7 +62,7 @@ class HomeMapperTest {
     //  (ADR-031) — the typed `DoorWarning` + its mapping moved to the shared
     //  `presentation-model` module. The contract is now guarded by
     //  `DoorWarningMapperTest` in that module's commonTest, so it runs on every
-    //  platform. `DefaultHomeViewModel.warning` exposes the typed value; the
+    //  platform. `DefaultHomeViewModel.doorState` exposes the typed value; the
     //  Composable renders it.)
 
     // (regions formatDuration, formatTimeOrDate, sinceLine were removed in

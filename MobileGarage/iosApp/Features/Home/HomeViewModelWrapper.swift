@@ -97,16 +97,15 @@ final class HomeViewModelWrapper: ObservableObject {
 
     init(component: NativeComponent) {
         shared = SharedViewModel(component.homeViewModel)
-        // Seed the stale flag before `applyDoor` so the first `rebuildAlerts`
-        // sees the real value rather than the default `false`.
-        isCheckInStale = vm.isCheckInStale.value.boolValue
+        // Seed the whole door-status surface from the VM's single G7
+        // node BEFORE `applyDoor` so the first `rebuildAlerts` sees the
+        // real stale flag rather than the default `false`.
+        applyDoorState(vm.doorState.value)
         // Seed the clock before `applyDoor` so the first `rebuildCheckIn` (called
         // from `applyDoor`) sees the real now rather than 0.
         latestNowEpochSeconds = vm.nowEpochSeconds.value.int64Value
         applyAuth(vm.authState.value)
         applyDoor(vm.currentDoorEvent.value)
-        applyWarning(vm.warning.value)
-        applySince(vm.sinceStatus.value)
         applyButton(vm.buttonState.value)
         applyHealth(vm.buttonHealthDisplay.value)
         // Async — rebuilds the alert stack again once the OS settings resolve.
@@ -132,12 +131,8 @@ final class HomeViewModelWrapper: ObservableObject {
             for await v in stream { self?.applyDoor(v) }
         })
         tasks.append(Task { @MainActor [weak self] in
-            guard let stream = self?.vm.warning else { return }
-            for await v in stream { self?.applyWarning(v) }
-        })
-        tasks.append(Task { @MainActor [weak self] in
-            guard let stream = self?.vm.sinceStatus else { return }
-            for await v in stream { self?.applySince(v) }
+            guard let stream = self?.vm.doorState else { return }
+            for await v in stream { self?.applyDoorState(v) }
         })
         tasks.append(Task { @MainActor [weak self] in
             guard let stream = self?.vm.buttonState else { return }
@@ -146,13 +141,6 @@ final class HomeViewModelWrapper: ObservableObject {
         tasks.append(Task { @MainActor [weak self] in
             guard let stream = self?.vm.buttonHealthDisplay else { return }
             for await v in stream { self?.applyHealth(v) }
-        })
-        tasks.append(Task { @MainActor [weak self] in
-            guard let stream = self?.vm.isCheckInStale else { return }
-            for await v in stream {
-                self?.isCheckInStale = v.boolValue
-                self?.rebuildAlerts()
-            }
         })
         tasks.append(Task { @MainActor [weak self] in
             guard let stream = self?.vm.nowEpochSeconds else { return }
@@ -284,6 +272,19 @@ final class HomeViewModelWrapper: ObservableObject {
         case .attemptCount:
             return String(localized: "You have tapped the button \(attemptCount) times.")
         }
+    }
+
+    /// Applies the VM's single G7 door-status node: warning, since
+    /// line, and stale flag are fields of the same value, computed by
+    /// the same shared transform from the same snapshot — one apply per
+    /// emission, so this wrapper can no longer publish them one frame
+    /// apart (pre-G7 they arrived on three independent streams).
+    private func applyDoorState(_ door: HomeDoorState) {
+        applyWarning(door.warning)
+        applySince(door.sinceStatus)
+        let staleChanged = isCheckInStale != door.isCheckInStale
+        isCheckInStale = door.isCheckInStale
+        if staleChanged { rebuildAlerts() }
     }
 
     /// Builds the "Since {time} · {duration}" line from the shared typed

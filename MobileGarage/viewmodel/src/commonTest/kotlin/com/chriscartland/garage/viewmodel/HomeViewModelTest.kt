@@ -323,7 +323,7 @@ class HomeViewModelTest {
             // DoorWarningMapper returns null for non-anomalous states).
             val viewModel = createViewModel(scope = backgroundScope, fetchOnInit = false)
 
-            assertNull(viewModel.warning.value)
+            assertNull(viewModel.doorState.value.warning)
         }
 
     @Test
@@ -340,7 +340,7 @@ class HomeViewModelTest {
             )
             testDispatcher.scheduler.runCurrent()
 
-            assertEquals(DoorWarning.ServerMessage("Taking too long"), viewModel.warning.value)
+            assertEquals(DoorWarning.ServerMessage("Taking too long"), viewModel.doorState.value.warning)
         }
 
     /**
@@ -364,7 +364,7 @@ class HomeViewModelTest {
                 runScheduler = false,
             )
 
-            assertEquals(DoorWarning.OpeningTooLong, viewModel.warning.value)
+            assertEquals(DoorWarning.OpeningTooLong, viewModel.doorState.value.warning)
         }
 
     @Test
@@ -373,7 +373,7 @@ class HomeViewModelTest {
             // testDoorEvent.lastChangeTimeSeconds = 900; LiveClock now = 0 (AppClock { 0L }).
             val viewModel = createViewModel(scope = backgroundScope, fetchOnInit = false)
 
-            val status = viewModel.sinceStatus.value
+            val status = viewModel.doorState.value.sinceStatus
             assertEquals(900L, status?.sinceEpochSeconds)
             // now (0) < since (900): wall-clock skew clamps elapsed to zero.
             assertEquals(ElapsedDuration.Seconds(0), status?.elapsed)
@@ -387,7 +387,7 @@ class HomeViewModelTest {
             )
             val viewModel = createViewModel(scope = backgroundScope, fetchOnInit = false)
 
-            assertNull(viewModel.sinceStatus.value)
+            assertNull(viewModel.doorState.value.sinceStatus)
         }
 
     /**

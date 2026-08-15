@@ -35,7 +35,7 @@ import com.chriscartland.garage.domain.model.LoadingResult
  *
  * The typed door warning moved to the shared `presentation-model`
  * (`DoorWarning` / `DoorWarningMapper`, ADR-031) and is now exposed by
- * `DefaultHomeViewModel.warning`; the Composable reads it from the VM rather
+ * `DefaultHomeViewModel.doorState`; the Composable reads it from the VM rather
  * than from this mapper.
  *
  * The alert-banner stack (`HomeAlert` + selection logic) also moved to the
