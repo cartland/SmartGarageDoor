@@ -34,6 +34,7 @@ import com.chriscartland.garage.testcommon.FakeNetworkButtonHealthDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import com.chriscartland.garage.testcommon.FakeStatusSnapshotStore
 import com.chriscartland.garage.testcommon.FakeUserScopedCache
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
@@ -436,6 +437,35 @@ class NetworkButtonHealthRepositoryTest {
 
             val complete = assertIs<LoadingResult.Complete<ButtonHealth>>(repo.buttonHealth.value)
             assertEquals(ButtonHealthState.ONLINE, complete.data?.state)
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
+
+    @Test
+    fun signOutDuringHydrationDropsTheStaleDiskSeed() =
+        runTest {
+            // The reset's Loading(null) re-matches hydration's CAS, so
+            // without the generation guard a disk read that STARTED
+            // before sign-out could seed the previous user's verdict
+            // AFTER the clear. Park the read, reset in the gap, release.
+            val store = FakeStatusSnapshotStore().apply {
+                seed(
+                    ButtonHealthSnapshot.KEY,
+                    ButtonHealthSnapshot.SCHEMA_VERSION,
+                    freshSnapshot(ButtonHealthState.ONLINE, stateChangedAtSeconds = 1000L),
+                )
+            }
+            val gate = CompletableDeferred<Unit>()
+            store.setReadGate(gate)
+            val scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val cache = FakeUserScopedCache()
+            val repo = makeRepo(FakeNetworkButtonHealthDataSource(), scope, store, cache = cache)
+
+            cache.clearUserScopedEntries() // sign-out while the read is parked
+            gate.complete(Unit)
+            advanceUntilIdle()
+
+            val after = assertIs<LoadingResult.Loading<ButtonHealth>>(repo.buttonHealth.value)
+            assertEquals(null, after.data)
             scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
         }
 

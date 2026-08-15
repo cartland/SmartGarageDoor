@@ -102,6 +102,14 @@ class NetworkButtonHealthRepository(
      */
     private var currentIsDiskSeed = false
 
+    /**
+     * Bumped by the sign-out reset. Hydration captures it before the
+     * disk read and applies its seed only if unchanged, so a snapshot
+     * read on the previous user's behalf structurally cannot land
+     * after the reset. Guarded by [writeMutex].
+     */
+    private var resetGeneration = 0L
+
     init {
         externalScope.launch { hydrateFromSnapshot() }
         // Sign-out clears memory and disk, or it clears nothing
@@ -113,6 +121,7 @@ class NetworkButtonHealthRepository(
             writeMutex.withLock {
                 _buttonHealth.value = LoadingResult.Loading(null)
                 currentIsDiskSeed = false
+                resetGeneration += 1
             }
             Logger.i { "buttonHealth <- Loading(null) (source=sign-out reset)" }
         }
@@ -138,6 +147,12 @@ class NetworkButtonHealthRepository(
      * seed strictly first-writer-only.
      */
     private suspend fun hydrateFromSnapshot() {
+        // Generation capture BEFORE the disk read: a sign-out reset
+        // firing while the read is in flight bumps [resetGeneration],
+        // so a snapshot read on the previous user's behalf structurally
+        // cannot seed the flow after the reset (the reset's
+        // `Loading(null)` would otherwise pass the CAS below).
+        val generationAtRead = writeMutex.withLock { resetGeneration }
         val snapshot = statusSnapshotStore.read(
             ButtonHealthSnapshot.KEY,
             ButtonHealthSnapshot.SCHEMA_VERSION,
@@ -148,6 +163,10 @@ class NetworkButtonHealthRepository(
             return
         }
         writeMutex.withLock {
+            if (resetGeneration != generationAtRead) {
+                Logger.i { "buttonHealth: hydration crossed a sign-out reset; dropping disk seed" }
+                return
+            }
             if (_buttonHealth.value is LoadingResult.Complete) {
                 Logger.d { "buttonHealth: server value arrived before hydration; dropping disk seed" }
                 return

@@ -25,6 +25,7 @@ import com.chriscartland.garage.testcommon.FakeNetworkButtonDataSource
 import com.chriscartland.garage.testcommon.FakeNetworkConfigDataSource
 import com.chriscartland.garage.testcommon.FakeStatusSnapshotStore
 import com.chriscartland.garage.testcommon.FakeUserScopedCache
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
@@ -537,6 +538,34 @@ class NetworkSnoozeRepositoryTest {
             externalScope = externalScope,
         )
     }
+
+    @Test
+    fun signOutDuringHydrationDropsTheStaleSeedAndItsFreshness() =
+        runTest {
+            // Without the generation guard, a disk read parked when the
+            // sign-out reset fires would (a) re-seed the previous
+            // user's snooze — the reset's Loading re-matches the CAS —
+            // and (b) restore lastFetchedAtSeconds, re-suppressing the
+            // next session's revalidation. Both must be dropped.
+            val buttonDs = FakeNetworkButtonDataSource()
+            val externalScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+            val store = seededStore(endTimeSeconds = 5_000L, fetchedAtSeconds = 990L)
+            val gate = CompletableDeferred<Unit>()
+            store.setReadGate(gate)
+            val cache = FakeUserScopedCache()
+            val repo = makeRepo(buttonDs, externalScope, store = store, cache = cache)
+
+            cache.clearUserScopedEntries() // sign-out while the read is parked
+            gate.complete(Unit)
+            advanceUntilIdle()
+
+            // The old user's snooze never comes back...
+            assertTrue(repo.snoozeState.value !is SnoozeState.Snoozing)
+            // ...and its freshness didn't suppress the init revalidation
+            // (a surviving lastFetchedAtSeconds would have skipped it).
+            assertEquals(1, buttonDs.fetchSnoozeCount)
+            externalScope.cancel()
+        }
 
     @Test
     fun signOutClearResetsStateAndUnsuppressesRevalidation() =

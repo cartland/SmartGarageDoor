@@ -192,6 +192,14 @@ class NetworkSnoozeRepository(
      */
     private suspend fun hydrate() {
         try {
+            // Generation capture BEFORE the disk read: a sign-out reset
+            // that fires while the read is in flight bumps
+            // acceptGeneration, so a snapshot that belongs to the
+            // previous user structurally cannot seed the flow or
+            // re-suppress revalidation after the reset. Without this,
+            // the reset's `Loading` re-matched the CAS below and the
+            // old user's snooze (plus its fetchedAt) came back.
+            val generationAtRead = writeMutex.withLock { acceptGeneration }
             val snapshot = statusSnapshotStore.read(
                 SnoozeSnapshot.KEY,
                 SnoozeSnapshot.SCHEMA_VERSION,
@@ -199,6 +207,10 @@ class NetworkSnoozeRepository(
             ) ?: return
             val seeded = snoozeStateFromEndTime(snapshot.payload.endTimeSeconds)
             writeMutex.withLock {
+                if (acceptGeneration != generationAtRead) {
+                    Logger.i { "snoozeState: hydration crossed a reset; dropping disk seed" }
+                    return
+                }
                 lastFetchedAtSeconds = snapshot.fetchedAtEpochSeconds
                 // CAS: only seed the untouched sentinel. A server value that
                 // raced ahead (unlikely — writers await hydration) wins.

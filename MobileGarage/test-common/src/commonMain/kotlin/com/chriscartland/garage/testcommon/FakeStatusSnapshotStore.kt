@@ -20,6 +20,7 @@ package com.chriscartland.garage.testcommon
 import com.chriscartland.garage.data.statuscache.StatusCacheKey
 import com.chriscartland.garage.data.statuscache.StatusSnapshot
 import com.chriscartland.garage.data.statuscache.StatusSnapshotStore
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.serialization.KSerializer
 
 /**
@@ -67,6 +68,16 @@ class FakeStatusSnapshotStore : StatusSnapshotStore {
         readFailurePending = true
     }
 
+    // When set, read() suspends on this gate before returning — parks a
+    // hydration mid-disk-read so a test can run a sign-out reset in the
+    // gap and assert the stale seed is dropped.
+    private var readGate: CompletableDeferred<Unit>? = null
+
+    /** Park the next [read] on [gate]; complete it to let the read finish. */
+    fun setReadGate(gate: CompletableDeferred<Unit>) {
+        readGate = gate
+    }
+
     /** The next [write] is dropped (simulates storage failure). */
     fun failNextWrite() {
         writeFailurePending = true
@@ -80,6 +91,7 @@ class FakeStatusSnapshotStore : StatusSnapshotStore {
         schemaVersion: Int,
         payloadSerializer: KSerializer<T>,
     ): StatusSnapshot<T>? {
+        readGate?.await()
         if (readFailurePending) {
             readFailurePending = false
             return null
