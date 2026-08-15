@@ -190,13 +190,15 @@ export async function handleDoorCommand(input: {
   // Throws when config has no buildTimestamp; the wrapper turns that into a
   // 500 and Cloud Logging gets an ERROR. See docs/FIREBASE_CONFIG_AUTHORITY.md.
   const buildTimestamp = requireBuildTimestamp(getBuildTimestamp(config), 'httpDoorCommand');
-  const event = await SENSOR_EVENT_DATABASE.getCurrent(buildTimestamp);
+  // The reading is NESTED inside the stored document, so it has to be unwrapped
+  // rather than read off the document. getCurrentEvent() owns that unwrap and
+  // answers null for every shape that carries no reading, including the `{}`
+  // that getCurrent() returns for a missing document — which then projects to
+  // Unknown with a stale check-in, refusing both directions.
+  const event = await SENSOR_EVENT_DATABASE.getCurrentEvent(buildTimestamp);
 
   const verdict = judgeDoorCommand({
-    // TimeSeriesDatabase.getCurrent answers `{}` for a missing document rather
-    // than null, so an empty object has to read as "no event" — which it does:
-    // no `type` projects to Unknown and no check-in reads as stale.
-    event: event ?? null,
+    event,
     command,
     nowSeconds: input.nowSeconds,
   });

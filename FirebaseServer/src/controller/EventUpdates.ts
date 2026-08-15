@@ -24,14 +24,15 @@ import { getNewEventOrNull } from './EventInterpreter';
 import { SensorEvent, SensorEventType } from '../model/SensorEvent';
 import { SERVICE as EventFCMService } from '../controller/fcm/EventFCM';
 import { SERVICE as ResolvedNotificationFCMService } from '../controller/fcm/ResolvedNotificationFCM';
+// This module WRITES the document shape that every reader has to unwrap, so it
+// takes the keys from the same owner the readers do rather than restating them.
+import { CURRENT_EVENT_KEY, PREVIOUS_EVENT_KEY } from '../model/SensorEventDocument';
 
 const BUILD_TIMESTAMP_PARAM_KEY = "buildTimestamp";
 const DATABASE_TIMESTAMP_SECONDS_KEY = 'FIRESTORE_databaseTimestampSeconds';
 const QUERY_PARAMS_KEY = 'queryParams';
 const SENSOR_A_KEY = 'sensorA';
 const SENSOR_B_KEY = 'sensorB';
-const CURRENT_EVENT_KEY = 'currentEvent';
-const PREVIOUS_EVENT_KEY = 'previousEvent';
 
 export async function updateEvent(data, scheduledJob: boolean) {
   if (!data || !(BUILD_TIMESTAMP_PARAM_KEY in data)) {

@@ -78,6 +78,28 @@ describe('DoorCommand endpoint core', () => {
   let fakeSensor: FakeSensorEventDatabase;
   let fakeAuth: FakeAuthService;
 
+  /**
+   * Seed the door the way production stores it: the reading is NESTED under
+   * `currentEvent`, never bare at the top level.
+   *
+   * Every seed in this file goes through here on purpose. These fixtures were
+   * originally written flat, which matched a reader that was also wrong, and
+   * the two agreed with each other well enough to ship an endpoint that
+   * refused every spoken command for the whole of server/35. A bare seed now
+   * reads back as "no event" — see test/model/SensorEventDocumentTest.ts.
+   */
+  const seedDoor = (type: SensorEventType, checkInTimestampSeconds: number) => {
+    fakeSensor.seed(BUILD_TIMESTAMP, {
+      buildTimestamp: BUILD_TIMESTAMP,
+      currentEvent: {
+        type,
+        timestampSeconds: checkInTimestampSeconds,
+        message: '',
+        checkInTimestampSeconds,
+      },
+    });
+  };
+
   beforeEach(() => {
     fakeConfig = new FakeServerConfigDatabase();
     fakeSensor = new FakeSensorEventDatabase();
@@ -89,10 +111,7 @@ describe('DoorCommand endpoint core', () => {
     fakeAuth.seedDecoded({ email: EMAIL, email_verified: true });
     // An open door with a fresh check-in: "close" is accepted from here, so any
     // test that gets a refusal got it from the thing it was testing.
-    fakeSensor.seed(BUILD_TIMESTAMP, {
-      type: SensorEventType.Open,
-      checkInTimestampSeconds: NOW - 5,
-    });
+    seedDoor(SensorEventType.Open, NOW - 5);
   });
 
   afterEach(() => {
@@ -157,10 +176,7 @@ describe('DoorCommand endpoint core', () => {
   });
 
   it('matches the rejected-response fixture byte-shape', async () => {
-    fakeSensor.seed(BUILD_TIMESTAMP, {
-      type: SensorEventType.OpeningTooLong,
-      checkInTimestampSeconds: NOW - 5,
-    });
+    seedDoor(SensorEventType.OpeningTooLong, NOW - 5);
     const result = await handleDoorCommand(request({ body: { command: 'open' } }));
     expect(result.kind).to.equal('ok');
     if (result.kind !== 'ok') return;
@@ -189,10 +205,7 @@ describe('DoorCommand endpoint core', () => {
   });
 
   it('lets a stuck door be closed but not opened', async () => {
-    fakeSensor.seed(BUILD_TIMESTAMP, {
-      type: SensorEventType.OpeningTooLong,
-      checkInTimestampSeconds: NOW - 5,
-    });
+    seedDoor(SensorEventType.OpeningTooLong, NOW - 5);
     const close = await handleDoorCommand(request({ body: { command: 'close' } }));
     expect(close.kind === 'ok' && close.data.verdict.accepted, 'close').to.be.true;
     const open = await handleDoorCommand(request({ body: { command: 'open' } }));
@@ -201,10 +214,7 @@ describe('DoorCommand endpoint core', () => {
   });
 
   it('refuses everything when the check-in is stale', async () => {
-    fakeSensor.seed(BUILD_TIMESTAMP, {
-      type: SensorEventType.Open,
-      checkInTimestampSeconds: NOW - 3600,
-    });
+    seedDoor(SensorEventType.Open, NOW - 3600);
     const result = await handleDoorCommand(request({ body: { command: 'close' } }));
     expect(result.kind).to.equal('ok');
     if (result.kind !== 'ok') return;
