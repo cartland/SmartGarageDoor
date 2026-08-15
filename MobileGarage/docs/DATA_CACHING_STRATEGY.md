@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-07-25
+last_verified: 2026-08-14
 ---
 # Data management and caching strategy
 
@@ -180,7 +180,7 @@ Answer in order. Stop at the first "yes".
 
 **Rule.** A constructor change to any class in a shared KMP module updates every DI component that wires it: `androidApp/.../di/AppComponent.kt` (`@Singleton`), `iosFramework/.../NativeComponent.kt` (`@SharedSingleton`), and `wearApp/.../di/WearComponent.kt` (`@WearSingleton`, 17 scoped providers wiring `FirebaseAuthRepository`, `CachedServerConfigRepository`, `NetworkDoorRepository`, `NetworkRemoteButtonRepository`). Every scoped state owner needs a matching `abstract val` entry point and an `assertSame` identity test in that component's test.
 
-**Why.** `@Singleton` is silent when misused: without an entry point the annotation generates nothing (`android/170`). `validate.sh` compiles Android targets only, so a stale iOS or Wear provider passes every required check; #871 broke iOS `main` this way. CLAUDE.md still says "two DI components", which undercounts.
+**Why.** `@Singleton` is silent when misused: without an entry point the annotation generates nothing (`android/170`). `validate.sh` compiles Android targets only, so a stale iOS provider passes every required check; #871 broke iOS `main` this way. CLAUDE.md's rule was corrected to say three components (2026-08-14).
 
 **Enforced today.** `checkSingletonCaching` parses the generated Android component; `checkDataStoreSingleton` scans `androidApp/src/main/java` only; `ComponentGraphTest` lives in `androidTest/` so `validate.sh` compiles it but never runs it; `NativeComponentTest` runs only in non-required iOS CI. Per-symbol coverage diverges between the two test files in both directions.
 
@@ -283,11 +283,11 @@ Sequencing suggestion: T3, T2, T4 first (live user-visible or privacy-relevant d
 ## 6. Proposed ADR
 
 ```markdown
-## ADR-035: Data placement and cache lifetime — one owner, seeded pass-through, cost-keyed sharing, earned persistence
+## ADR-036: Data placement and cache lifetime — one owner, seeded pass-through, cost-keyed sharing, earned persistence
 
 **Status**: Proposed
 
-**Date**: 2026-07-25
+**Date**: 2026-07-25 (renumbered 2026-08-14 — ADR-035 was taken by the adopted strings ADR in `DECISIONS.md` before this draft landed)
 
 **Context**
 
