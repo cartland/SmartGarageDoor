@@ -94,15 +94,20 @@ one-frame lie on every fresh `NavBackStackEntry` (#738, #739, and
   `DATA_GRAPH.md` keeps it reviewable. Scar: #871 → #873 (only `AppComponent`
   updated; iOS `main` broke).
 - **G7 — Nodes read together are derived together.** Two residences, per G0:
-  (a) **Graph level, mechanized**: if one screen reads two derived UseCase
-  nodes over a shared non-clock root, collapse them — `sharedRootViolations`
-  checks this over `readBy`, extracted from the ViewModel constructors. (b) **VM level, by review**: the
+  (a) **Graph level, mechanized**: if one screen reactively observes one root
+  through two or more independent flows — derived nodes, conduit methods, and
+  direct injections all count as reads since C4 — collapse them into one
+  derivation or adjudicate in `data-graph-shared-root-exemptions.txt`.
+  `sharedRootFindings` checks this over `ScreenRead`s extracted from the
+  ViewModel constructors. (b) **VM level, by review**: the
   same principle inside a ViewModel — the original instance was
   `HomeViewModel`'s `warning` / `sinceStatus` / voice-gate trio deriving from
   the same mirror in separate `stateIn`s, with card ↔ gate consistency
   promised only by a comment; the `HomeDoorStateMapper` collapse (#1203) is
   the exemplar fix and stays, even though the node is no longer in the
-  registry. Clock roots are exempt (ticks dedup away).
+  registry. Clock ROOTS are exempt (ticks dedup away) — per root, not per
+  node, so a CLOCK-cadence manager input cannot launder a PUSH upstream
+  (`Input.from`, C3).
 
 ## 4. The graph description — derived from code
 
@@ -279,3 +284,37 @@ universe, in `DataGraphExtractionKonsistTest`:
   `Observe*` conduit no ViewModel injects, FAILS the build instead of
   vanishing from the rendering (the extraction used to filter unread conduits
   out — an extraction miss was indistinguishable from dead code).
+
+**Honesty layer — LANDED 2026-08-15 (manager edges, read-path G7,
+method-precise rendering).** Two modeling choices had been quietly laundering
+edges past the rules; both are closed:
+
+- **C3 — manager edges (`Input.from`).** `isCheckInStale` rendered as a bare
+  CLOCK root while `DefaultCheckInStalenessManager` collects
+  `observeDoorEvents.current()` — a PUSH upstream hidden behind exactly the
+  cadence G7 exempts. `Input` now carries an extracted `from` (direct input
+  references + conduit-METHOD references in the manager file's impl classes,
+  minus its own ids), `sourcesOf`/`cycleMembers` walk through it, the diagram
+  draws it as `-. reacts .->`, and the G7 clock exemption is per ROOT — the
+  manager's own tick stays exempt, its upstream does not. Cadence still
+  describes the node's self-driven half. Lifecycle coupling (a user-scoped
+  cache clearing on sign-out) is deliberately NOT an edge — edges are value
+  derivations, not lifetime triggers.
+- **C4 — G7 over every read (`ScreenRead` + `sharedRootFindings`).** The old
+  check paired Derived×Derived only. Now every reactive consumption — derived
+  nodes, conduit methods (`ObserveDoorEventsUseCase.current` vs `.position`
+  are two routes to one root), and direct injections — is a read, and a root
+  reached through ≥2 routes into one screen is a finding, either collapsed or
+  adjudicated with reasoning in
+  `MobileGarage/data-graph-shared-root-exemptions.txt` (stale entries fail).
+  First run surfaced three: the `HomeViewModel | authState` diamond (direct +
+  through `buttonHealthDisplay`), the `HomeViewModel | currentDoorEvent`
+  triple (`current` + `position` + `isCheckInStale` — collapsed for rendering
+  by the VM-level `doorState` combine, G7's sanctioned residence), and a
+  previously unknown `ProfileViewModel | allowlist` pair (`functionList` +
+  `developer`). All three adjudicated in the file, each with a burn-down note.
+- **C6 — the rendering states what it knows.** Method-precise `Read by`
+  (`HomeViewModel (current, position)` — the three-projection story is
+  readable off the table), cadence glosses, a diagram legend, the
+  class-level-conduit-edge caveat, and the `DiagnosticsViewModel` /
+  Wear-subset notes, all generated.

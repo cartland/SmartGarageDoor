@@ -1,0 +1,33 @@
+# Shared-root (G7) exemptions (DataGraphExtractionKonsistTest, C4).
+#
+# A finding means one screen reactively observes one root through two or more
+# independent flows, so it can render two projections of the same instant one
+# frame apart. The remedy is to collapse the reads into ONE derivation; an
+# entry here is an adjudication that the divergence window is acceptable,
+# with the reasoning written down.
+#
+# Format: `Screen | root | reason` — key halves match SharedRootFinding.key.
+# Stale entries FAIL the build (the finding disappeared; remove the entry),
+# so this list cannot accumulate. The goal is a shrinking list.
+
+# Routes: ObserveAuthStateUseCase.invoke + buttonHealthDisplay. An auth
+# transition rebuilds the whole Home surface in the same recomposition; the
+# pill re-deriving a frame later is invisible inside that rebuild, and both
+# flows project is-authenticated so token refreshes dedupe away. The direct
+# read cannot be removed (Home's sign-in UI needs authState itself).
+# Burn-down candidate: fold the pill's auth-dependence into a Home-level node.
+HomeViewModel | authState | auth transitions rebuild the whole surface; pill lag is invisible inside it
+
+# Routes: ObserveDoorEventsUseCase.current + .position + isCheckInStale.
+# Everything the user SEES already collapses in the single VM-level doorState
+# combine (HomeDoorStateMapper — G7's sanctioned VM residence), so the
+# rendered projection cannot self-disagree; position() feeds
+# ButtonStateMachine's arming logic, not a rendered surface.
+HomeViewModel | currentDoorEvent | rendered projection collapses in the doorState combine; position feeds the button machine, not the screen
+
+# Routes: ObserveFeatureAccessUseCase.developer + .functionList. Two
+# independent feature-flag rows (Functions row, Developer section); both are
+# projections of one allowlist write and a one-frame stagger between two
+# unrelated settings rows has no joint meaning.
+# Burn-down candidate: a single access() projection carrying both flags.
+ProfileViewModel | allowlist | two unrelated flag rows; a one-frame stagger between them has no joint meaning
