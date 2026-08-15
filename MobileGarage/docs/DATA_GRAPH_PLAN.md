@@ -89,23 +89,26 @@ one-frame lie on every fresh `NavBackStackEntry` (#738, #739, and
 ## 4. The `DataGraph` registry
 
 `domain/…/graph/DataGraph.kt`: an **inert description** — `Input(id, owner,
-cadence)` and `Derived(id, from, transform, sharing)` entries with a
-`Cadence` enum (`USER_ACTION` / `PUSH` / `POLL` / `CLOCK` / `DERIVED`) and
-`Sharing` (`EAGER` / `GATED`). Nothing flows through it; values still move via
-`StateFlow` and kotlin-inject exactly as today.
+cadence)` and `Derived(id, from, transform, shell, sharing)` entries. Since the
+typed-registry hardening, correctness-by-construction carries what it can:
 
-Checks that make it worth having (all land in the same PR as the registry —
-a node list nothing checks is a second source of truth, strictly worse than
-none):
+- **Node identity is the `NodeId` enum** — edges reference enum constants, so
+  a typo'd or dangling edge is a compile error, not a test failure. A
+  bijection check (`missingNodes` + `duplicateIds`) pins list ↔ enum.
+- **`Sharing` is sealed**: `Eager`, or `Gated(poll: NodeId)` — a gate cannot
+  be *declared* without naming the poll that justifies it; `invalidGates`
+  verifies the named poll is real, upstream, and POLL-cadence.
 
-- every edge names a node that exists; the graph is acyclic (iterative check,
-  not the recursive helper);
-- `GATED` requires a `POLL` in the transitive closure (G4, mechanized);
-- no screen in `readBy` reads two derived nodes sharing a non-clock root (G7);
-- a **positive control** proving the gating check can fail (the repo's
-  vacuous-pass rule);
-- an honesty test (Konsist, in `:androidApp`) asserting each `Input.owner` and
-  `Derived.transform` names a declaration that exists in sources.
+Runtime-checkable properties (each with a positive control, per the repo's
+vacuous-pass rule): acyclicity (iterative Kahn), the G7 shared-root rule, and
+the bijection above. The honesty test (Konsist, `:androidApp`) checks the
+registry against SOURCES: every `owner` / `transform` / `shell` / `readBy`
+names a real declaration, and **edge accuracy (registry ⊆ code)** — each
+derived node's `shell` file must reference its transform call and every
+declared `from` node (by camelCase id or owner name), with comments stripped
+so prose can't satisfy the check. The unchecked direction — an edge present
+in code but missing from the registry — is stated, not covered; closing it
+needs combine-argument parsing.
 
 Registry v1 covers **app-scoped nodes only**; screen-scoped nodes (the
 `HomeViewModel` trio) are G7-by-review until the fan-out collapse lands, after
