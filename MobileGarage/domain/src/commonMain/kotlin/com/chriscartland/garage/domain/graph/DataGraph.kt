@@ -39,10 +39,11 @@ package com.chriscartland.garage.domain.graph
  * at runtime, it has become a reactive framework — paid for in SKIE
  * bridging, Konsist legibility, and every lint that reads constructors.
  *
- * Scope (v1): app-scoped nodes of the phone graph (Android + iOS share
- * these VMs). Screen-scoped derivations (the HomeViewModel trio) join
- * after the G7 fan-out collapse; Wear wires a subset of the same inputs
- * but none of the derived nodes below.
+ * Scope: app-scoped nodes of the phone graph (Android + iOS share
+ * these VMs), plus the one screen-scoped derivation that survived the
+ * G7 fan-out collapse (homeDoorState — a single stateIn at
+ * viewModelScope). Wear wires a subset of the same inputs but none of
+ * the derived nodes below.
  *
  * The check functions take the node list as a parameter so tests can
  * run them against doctored graphs — every check has a positive
@@ -151,6 +152,18 @@ object DataGraph {
             transform = IDENTITY,
             sharing = Sharing.GATED, // 15s Play Services poll upstream
             readBy = listOf("ProfileViewModel"),
+        ),
+        // Screen-scoped (viewModelScope, not applicationScope): the G7
+        // collapse of the former warning / sinceStatus / voice-gate
+        // fan-out into ONE derivation. Its from-edges point at the root
+        // inputs; the VM-side LoadingResult wrapper over
+        // currentDoorEvent is presentation phase, not a graph node.
+        Derived(
+            id = "homeDoorState",
+            from = listOf("currentDoorEvent", "isCheckInStale", "nowEpochSeconds"),
+            transform = "HomeDoorStateMapper.compute",
+            sharing = Sharing.EAGER,
+            readBy = listOf("HomeViewModel"),
         ),
     )
 

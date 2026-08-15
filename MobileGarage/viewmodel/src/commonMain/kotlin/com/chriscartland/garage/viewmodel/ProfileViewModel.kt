@@ -313,14 +313,15 @@ class DefaultProfileViewModel(
     private val _lastVoiceVerdict = MutableStateFlow<VoiceVerdict?>(null)
     override val lastVoiceVerdict: StateFlow<VoiceVerdict?> = _lastVoiceVerdict
 
-    // Cached so the snooze action can attach the latest door change time
-    // without the UI having to thread it through.
-    private val currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
+    // ADR-022 pass-through: the snooze action reads `.value` to attach
+    // the latest door change time. This was a VM-local
+    // MutableStateFlow<DoorEvent?>(null) mirror + collector — an
+    // unseeded copy of repository-owned state (G3,
+    // docs/DATA_GRAPH_PLAN.md); the upstream IS a StateFlow, so pass
+    // the reference through instead.
+    private val currentDoorEvent: StateFlow<DoorEvent?> = observeDoorEvents.current()
 
     init {
-        viewModelScope.launch(dispatchers.io) {
-            observeDoorEvents.current().collect { currentDoorEvent.value = it }
-        }
         viewModelScope.launch(dispatchers.io) {
             observeFeatureAccessUseCase.functionList().collect { _functionListAccess.value = it }
         }

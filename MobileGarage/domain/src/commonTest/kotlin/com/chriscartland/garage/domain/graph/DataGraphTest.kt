@@ -163,6 +163,7 @@ class DataGraphTest {
                 "buttonHealthDisplay" to listOf("HomeViewModel"),
                 "effectiveSnoozeState" to listOf("ProfileViewModel"),
                 "watchAppStatus" to listOf("ProfileViewModel"),
+                "homeDoorState" to listOf("HomeViewModel"),
             ),
             readers,
         )
