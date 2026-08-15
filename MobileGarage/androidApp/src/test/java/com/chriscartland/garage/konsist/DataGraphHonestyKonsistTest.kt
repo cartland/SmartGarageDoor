@@ -38,10 +38,10 @@ import org.junit.Test
  *    call. Comments are stripped first, so prose cannot satisfy the
  *    check.
  *
- * The unchecked direction is stated so it isn't mistaken for covered:
- * an edge present in CODE but missing from the registry (code ⊄
- * registry) is not detected here — that requires parsing combine
- * argument lists and is tracked in DATA_GRAPH_PLAN.md §4.
+ * The other direction — an edge present in CODE but missing from the
+ * registry — is covered by `DataGraphExtractionKonsistTest` (§6 phase
+ * 1), which parses the flow expressions and fails parity on any edge
+ * the registry misses.
  *
  * Scope-sanity `require`s follow the repo's Konsist pattern: a filter
  * that matches zero declarations must fail loudly, never pass

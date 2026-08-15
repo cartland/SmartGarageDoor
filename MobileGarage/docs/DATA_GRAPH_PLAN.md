@@ -122,9 +122,10 @@ registry against SOURCES: every `owner` / `transform` / `shell` / `readBy`
 names a real declaration, and **edge accuracy (registry ⊆ code)** — each
 derived node's `shell` file must reference its transform call and every
 declared `from` node (by camelCase id or owner name), with comments stripped
-so prose can't satisfy the check. The unchecked direction — an edge present
-in code but missing from the registry — is stated, not covered; closing it
-needs combine-argument parsing.
+so prose can't satisfy the check. The other direction — an edge present in
+code but missing from the registry — is covered since §6 phase 1: the
+extraction test parses the flow expressions and fails parity on any edge the
+registry misses.
 
 Registry scope is **exactly the G0 boundary**: repository/manager inputs and
 `stateIn` UseCase deriveds — nothing screen-scoped. VM-internal derivations
@@ -172,7 +173,7 @@ Still open (tracked in `DATA_CACHING_STRATEGY.md` §5): T5–T13 minus the parts
 closed above, and the nav-rail settings-mirror burn-down exemption in
 `ViewModelDomainMirrorKonsistTest`.
 
-## 6. Next: derive the graph from code (agreed 2026-08-15, not started)
+## 6. Next: derive the graph from code (agreed 2026-08-15; phase 1 landed)
 
 The registry's residual weakness is its stringly-typed half: `owner`,
 `transform`, `shell`, and `readBy` are prose pinned to sources by the honesty
@@ -207,3 +208,24 @@ Design, settled in discussion 2026-08-15:
 
 The §4 "line not to cross" stands unchanged: extraction happens in tests and
 tooling, never at runtime — the graph description stays inert.
+
+**Phase 1 — LANDED (annotation + extractor + parity bridge).** `@NodeCadence`
+(`domain/…/graph/NodeCadence.kt`, SOURCE retention so it cannot exist at
+runtime) sits on all 11 input declarations — the consumed interface/manager
+declaration, never an `override`; `id` is overridden only where the
+declaration name is not the node name (`state` → `testNotificationSandbox`,
+`observeWatchAppStatus` → `watchCompanion`).
+`DataGraphExtractionKonsistTest` extracts inputs from the annotations and
+derived nodes from the `:usecase` `stateIn` holders (edges from the flow
+expression before `.stateIn(`, so seeds reading `.value` don't count;
+sharing from the `SharingStarted` literal; a gate's poll resolved as the
+unique POLL source upstream), runs the extracted list through the same
+parameterized checks, and pins **extracted == registry** on input
+(id, cadence) and derived (id, edge set, sharing). While both exist they
+verify each other; this closes code ⊆ registry. The same PR mechanized
+`Sharing.Eager`'s stated precondition as `DataGraph.eagerOverPolls`.
+**Remaining for the end state:** generated mermaid `DATA_GRAPH.md` with
+`--check`, then delete the hand-declared `nodes` list and the
+`owner`/`transform`/`shell` strings (the honesty test retires with them;
+`readBy` — the G7 check's key — needs a new home first, likely constructor
+references of the reading ViewModels).

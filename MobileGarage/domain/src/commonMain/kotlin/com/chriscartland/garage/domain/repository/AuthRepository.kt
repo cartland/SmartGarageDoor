@@ -1,5 +1,7 @@
 package com.chriscartland.garage.domain.repository
 
+import com.chriscartland.garage.domain.graph.DataGraph.Cadence
+import com.chriscartland.garage.domain.graph.NodeCadence
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface AuthRepository {
     /** Observation: identity-only auth state as an owned [StateFlow]. */
+    @NodeCadence(Cadence.USER_ACTION)
     val authState: StateFlow<AuthState>
 
     /**

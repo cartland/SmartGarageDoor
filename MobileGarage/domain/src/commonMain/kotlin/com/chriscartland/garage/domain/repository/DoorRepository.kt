@@ -1,5 +1,7 @@
 package com.chriscartland.garage.domain.repository
 
+import com.chriscartland.garage.domain.graph.DataGraph.Cadence
+import com.chriscartland.garage.domain.graph.NodeCadence
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
@@ -16,6 +18,7 @@ interface DoorRepository {
      * Observation: current door event owned as a [StateFlow] (ADR-022 —
      * state-y). Backed by an always-on collector over the local Room flow.
      */
+    @NodeCadence(Cadence.PUSH)
     val currentDoorEvent: StateFlow<DoorEvent?>
 
     /**
@@ -26,6 +29,7 @@ interface DoorRepository {
      * result with the cached events list (avoiding a one-frame
      * `Loading(emptyList())` render on every fresh screen entry).
      */
+    @NodeCadence(Cadence.PUSH)
     val recentDoorEvents: StateFlow<List<DoorEvent>>
 
     /**

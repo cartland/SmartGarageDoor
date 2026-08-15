@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.domain.repository
 
+import com.chriscartland.garage.domain.graph.DataGraph.Cadence
+import com.chriscartland.garage.domain.graph.NodeCadence
 import com.chriscartland.garage.domain.model.WatchAppStatus
 import com.chriscartland.garage.domain.model.WatchInstallResult
 import kotlinx.coroutines.flow.Flow
@@ -41,6 +43,7 @@ interface WearCompanionRepository {
      * [WatchAppStatus.Unavailable] and completes when the platform cannot
      * query watches at all.
      */
+    @NodeCadence(Cadence.POLL, id = "watchCompanion")
     fun observeWatchAppStatus(): Flow<WatchAppStatus>
 
     /**

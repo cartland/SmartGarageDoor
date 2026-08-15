@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.domain.repository
 
+import com.chriscartland.garage.domain.graph.DataGraph.Cadence
+import com.chriscartland.garage.domain.graph.NodeCadence
 import com.chriscartland.garage.domain.model.FeatureAllowlist
 import kotlinx.coroutines.flow.StateFlow
 
@@ -35,6 +37,7 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface FeatureAllowlistRepository {
     /** Observation: latest cached allowlist (null until first fetch succeeds). */
+    @NodeCadence(Cadence.USER_ACTION)
     val allowlist: StateFlow<FeatureAllowlist?>
 
     /**
