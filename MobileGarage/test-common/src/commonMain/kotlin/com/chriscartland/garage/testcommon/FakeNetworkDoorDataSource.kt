@@ -21,6 +21,7 @@ import com.chriscartland.garage.data.NetworkDoorDataSource
 import com.chriscartland.garage.data.NetworkResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorEventPage
+import kotlinx.coroutines.CompletableDeferred
 
 /**
  * Fake [NetworkDoorDataSource] for unit testing.
@@ -64,6 +65,16 @@ class FakeNetworkDoorDataSource : NetworkDoorDataSource {
         nextDoorEventPageResult = value
     }
 
+    // When set, fetchDoorEventPage suspends on this gate before
+    // returning — parks a page fetch mid-flight so a test can cancel
+    // the caller and assert the repository's in-flight flag resets.
+    private var pageFetchGate: CompletableDeferred<Unit>? = null
+
+    /** Park the next [fetchDoorEventPage] on [gate]; complete it to let the fetch finish. */
+    fun setPageFetchGate(gate: CompletableDeferred<Unit>) {
+        pageFetchGate = gate
+    }
+
     override suspend fun fetchCurrentDoorEvent(buildTimestamp: String): NetworkResult<DoorEvent> {
         _fetchCurrentBuildTimestamps.add(buildTimestamp)
         return currentDoorEventResult
@@ -75,6 +86,7 @@ class FakeNetworkDoorDataSource : NetworkDoorDataSource {
         pageToken: String?,
     ): NetworkResult<DoorEventPage> {
         _fetchPageCalls.add(FetchPageCall(buildTimestamp = buildTimestamp, pageSize = pageSize, pageToken = pageToken))
+        pageFetchGate?.await()
         nextDoorEventPageResult?.let {
             nextDoorEventPageResult = null
             return it

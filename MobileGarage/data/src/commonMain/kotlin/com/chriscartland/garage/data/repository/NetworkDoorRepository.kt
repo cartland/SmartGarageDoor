@@ -30,6 +30,7 @@ import com.chriscartland.garage.domain.model.PaginationState
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -42,7 +43,7 @@ class NetworkDoorRepository(
     private val networkDoorDataSource: NetworkDoorDataSource,
     private val serverConfigRepository: ServerConfigRepository,
     private val recentEventCount: Int,
-    externalScope: CoroutineScope,
+    private val externalScope: CoroutineScope,
 ) : DoorRepository {
     override val currentDoorPosition: Flow<DoorPosition>
         get() =
@@ -162,32 +163,48 @@ class NetworkDoorRepository(
             Logger.e { "Server config is null" }
             return AppResult.Error(FetchError.NotReady)
         }
-        _paginationState.value = current.copy(isLoadingMore = true)
-        Logger.i { "paginationState <- isLoadingMore=true (loadMore)" }
-        return when (
-            val result = networkDoorDataSource.fetchDoorEventPage(
-                buildTimestamp = buildTimestamp,
-                pageSize = recentEventCount,
-                pageToken = token,
-            )
-        ) {
-            is NetworkResult.Success -> {
-                Logger.d { "Older page: ${result.data.events.size} events" }
-                localDoorDataSource.appendDoorEvents(result.data.events)
-                _paginationState.value = result.data.toPaginationState()
-                AppResult.Success(result.data.events)
-            }
-            is NetworkResult.HttpError -> {
-                Logger.e { "HTTP ${result.code} fetching older door events" }
-                _paginationState.value = current.copy(isLoadingMore = false)
-                AppResult.Error(FetchError.NetworkFailed)
-            }
-            NetworkResult.ConnectionFailed -> {
-                Logger.e { "Connection failed fetching older door events" }
-                _paginationState.value = current.copy(isLoadingMore = false)
-                AppResult.Error(FetchError.NetworkFailed)
-            }
-        }
+        // ADR-019 Rule 1: the flag lives in a process-lifetime singleton,
+        // so the mutation runs on externalScope — the caller is a screen,
+        // and leaving History mid-page used to cancel this work between
+        // the flag write and the result write, stranding
+        // isLoadingMore=true forever (the reentrancy guard then refused
+        // every later load-more). The finally makes the reset
+        // unconditional on every path, including a throw.
+        return externalScope
+            .async {
+                _paginationState.value = current.copy(isLoadingMore = true)
+                Logger.i { "paginationState <- isLoadingMore=true (loadMore)" }
+                try {
+                    when (
+                        val result = networkDoorDataSource.fetchDoorEventPage(
+                            buildTimestamp = buildTimestamp,
+                            pageSize = recentEventCount,
+                            pageToken = token,
+                        )
+                    ) {
+                        is NetworkResult.Success -> {
+                            Logger.d { "Older page: ${result.data.events.size} events" }
+                            localDoorDataSource.appendDoorEvents(result.data.events)
+                            _paginationState.value = result.data.toPaginationState()
+                            AppResult.Success(result.data.events)
+                        }
+                        is NetworkResult.HttpError -> {
+                            Logger.e { "HTTP ${result.code} fetching older door events" }
+                            AppResult.Error(FetchError.NetworkFailed)
+                        }
+                        NetworkResult.ConnectionFailed -> {
+                            Logger.e { "Connection failed fetching older door events" }
+                            AppResult.Error(FetchError.NetworkFailed)
+                        }
+                    }
+                } finally {
+                    val state = _paginationState.value
+                    if (state.isLoadingMore) {
+                        _paginationState.value = state.copy(isLoadingMore = false)
+                        Logger.i { "paginationState <- isLoadingMore=false (loadMore finally)" }
+                    }
+                }
+            }.await()
     }
 
     private fun DoorEventPage.toPaginationState(): PaginationState =
