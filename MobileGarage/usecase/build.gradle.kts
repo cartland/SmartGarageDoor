@@ -36,6 +36,10 @@ kotlin {
             implementation(project(":data"))
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
+            // Test-only: reads wire-contracts/doorCommand/verdict_table.json,
+            // the shared fixture the Firebase server's DoorCommandGateTest
+            // also loads. See VoiceGateVerdictTableTest.
+            implementation(libs.kotlinx.serialization.json)
         }
     }
 }

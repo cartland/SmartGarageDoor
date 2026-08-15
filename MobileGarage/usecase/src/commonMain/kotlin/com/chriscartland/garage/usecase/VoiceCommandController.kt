@@ -432,20 +432,14 @@ class VoiceCommandController(
         }
     }
 
+    /**
+     * The direction rule lives in [VoiceCommandGate] so it can be compared
+     * against the server's copy of the same table. See that object.
+     */
     private fun gateReason(
         intent: VoiceIntent,
         door: VoiceDoorState,
-    ): VoiceCommandIgnoreReason? =
-        when (door) {
-            VoiceDoorState.MOVING -> VoiceCommandIgnoreReason.DOOR_MOVING
-            VoiceDoorState.STUCK ->
-                if (intent == VoiceIntent.OPEN) VoiceCommandIgnoreReason.DOOR_STUCK else null
-            VoiceDoorState.UNKNOWN -> VoiceCommandIgnoreReason.DOOR_STATE_UNKNOWN
-            VoiceDoorState.OPEN ->
-                if (intent == VoiceIntent.OPEN) VoiceCommandIgnoreReason.DOOR_ALREADY_OPEN else null
-            VoiceDoorState.CLOSED ->
-                if (intent == VoiceIntent.CLOSE) VoiceCommandIgnoreReason.DOOR_ALREADY_CLOSED else null
-        }
+    ): VoiceCommandIgnoreReason? = VoiceCommandGate.reasonFor(intent, door)
 
     private fun coerceWindow(ms: Long): Long = ms.coerceIn(MIN_ARMED_WINDOW_MS, MAX_ARMED_WINDOW_MS)
 
