@@ -275,16 +275,16 @@ class DefaultProfileViewModel(
     private val _developerAccess = MutableStateFlow<Boolean?>(null)
     override val developerAccess: StateFlow<Boolean?> = _developerAccess
 
-    private val _layoutDebugEnabled = MutableStateFlow(false)
+    private val _layoutDebugEnabled = MutableStateFlow<Boolean>(false)
     override val layoutDebugEnabled: StateFlow<Boolean> = _layoutDebugEnabled
 
     private val _navigationRailItemPosition =
-        MutableStateFlow(NavigationRailItemPosition.TopAligned)
+        MutableStateFlow<NavigationRailItemPosition>(NavigationRailItemPosition.TopAligned)
     override val navigationRailItemPosition: StateFlow<NavigationRailItemPosition> =
         _navigationRailItemPosition
 
     private val _navigationRailTopPaddingDp =
-        MutableStateFlow(NavigationRailLayout.DEFAULT_TOP_PADDING_DP)
+        MutableStateFlow<Int>(NavigationRailLayout.DEFAULT_TOP_PADDING_DP)
     override val navigationRailTopPaddingDp: StateFlow<Int> = _navigationRailTopPaddingDp
 
     // ADR-022: pass the UseCase's cached StateFlow through by reference.
