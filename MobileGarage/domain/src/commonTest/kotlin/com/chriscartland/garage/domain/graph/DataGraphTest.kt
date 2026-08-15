@@ -26,59 +26,18 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Coherence checks for the real registry, plus a positive control per
- * check run against a doctored graph — a checker that cannot fail is a
- * checker that verifies nothing (the repo's vacuous-pass rule; see
- * "Testing Philosophy" in CLAUDE.md).
+ * Positive controls for the [DataGraph] check functions — one per
+ * check, each run against a doctored graph, because a checker that
+ * cannot fail is a checker that verifies nothing (the repo's
+ * vacuous-pass rule; see "Testing Philosophy" in CLAUDE.md).
  *
- * Two former checks are gone because the type system now carries them:
- * a dangling edge does not compile ([NodeId] enum references), and a
- * gate without a justification does not compile ([Sharing.Gated]
- * requires its poll). What remains runtime-checkable is checked here;
- * the honesty of entries against SOURCES (owners, transforms, shells,
- * edges) is `DataGraphHonestyKonsistTest` in `:androidApp`.
+ * The REAL graph is not here: since DATA_GRAPH_PLAN.md §6 it is
+ * extracted from sources by `DataGraphExtractionKonsistTest`
+ * (`:androidApp`), which runs these same checks over the extracted
+ * node list and pins the generated `docs/DATA_GRAPH.md` rendering.
+ * This suite proves the checks themselves have teeth.
  */
 class DataGraphTest {
-    // ---- the real graph is coherent ----
-
-    @Test
-    fun everyNodeIdHasExactlyOneEntry() {
-        // Bijection with the enum: with no missing and no duplicate
-        // ids, every compile-checked edge reference resolves to exactly
-        // one entry — closing (and strengthening) what the old
-        // dangling-edge check covered.
-        assertEquals(emptyList(), DataGraph.missingNodes())
-        assertEquals(emptyList(), DataGraph.duplicateIds())
-    }
-
-    @Test
-    fun graphIsAcyclic() {
-        assertEquals(emptyList(), DataGraph.cycleMembers())
-    }
-
-    @Test
-    fun everyGateNamesARealUpstreamPoll() {
-        assertEquals(emptyList(), DataGraph.invalidGates())
-    }
-
-    @Test
-    fun noScreenReadsTwoDerivedNodesOverASharedNonClockRoot() {
-        assertEquals(emptyList(), DataGraph.sharedRootViolations())
-    }
-
-    @Test
-    fun noEagerNodeKeepsAPollRunning() {
-        assertEquals(emptyList(), DataGraph.eagerOverPolls())
-    }
-
-    @Test
-    fun theRegistryIsNotEmpty() {
-        // Scope sanity: every check above passes vacuously on an empty
-        // node list, so pin that the real registry has substance.
-        assertTrue(DataGraph.nodes.filterIsInstance<Input>().isNotEmpty())
-        assertTrue(DataGraph.nodes.filterIsInstance<Derived>().isNotEmpty())
-    }
-
     // ---- positive controls: each check can actually fail ----
 
     private val clock = Input(NodeId.NOW_EPOCH_SECONDS, owner = "Clock", cadence = Cadence.CLOCK)
@@ -90,7 +49,7 @@ class DataGraphTest {
         from: List<NodeId>,
         sharing: Sharing = Sharing.Eager,
         readBy: List<String> = emptyList(),
-    ) = Derived(id = id, from = from, transform = "X.f", shell = "X", sharing = sharing, readBy = readBy)
+    ) = Derived(id = id, from = from, shell = "X", sharing = sharing, readBy = readBy)
 
     @Test
     fun missingNodeCheckCanFail() {
@@ -211,23 +170,5 @@ class DataGraphTest {
         val top = DataGraph.find(NodeId.EFFECTIVE_SNOOZE_STATE, doctored)!!
         assertEquals(setOf(poll), DataGraph.sourcesOf(top, doctored))
         assertEquals(emptyList(), DataGraph.invalidGates(doctored))
-    }
-
-    @Test
-    fun readByMirrorsTheRealConsumers() {
-        // Pins the readBy entries the G7 check keys on. If a ViewModel
-        // starts or stops observing a derived node, update BOTH the
-        // registry and this test (they drift apart silently otherwise).
-        val readers = DataGraph.nodes
-            .filterIsInstance<Derived>()
-            .associate { it.id to it.readBy }
-        assertEquals(
-            mapOf(
-                NodeId.BUTTON_HEALTH_DISPLAY to listOf("HomeViewModel"),
-                NodeId.EFFECTIVE_SNOOZE_STATE to listOf("ProfileViewModel"),
-                NodeId.WATCH_APP_STATUS to listOf("ProfileViewModel"),
-            ),
-            readers,
-        )
     }
 }

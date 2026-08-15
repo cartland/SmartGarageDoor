@@ -86,15 +86,17 @@ one-frame lie on every fresh `NavBackStackEntry` (#738, #739, and
   two preconditions). `GATED` requires a poll in the transitive closure.
 - **G5 — Mirrors seed from `upstream.value`,** never `Loading`/`null`/a
   literal. If `.value` is unreadable, widen the upstream type. Scar: #738/#739.
-- **G6 — The node list is written once and checked, not searched for.** An
-  inert `DataGraph` registry (§4) describes nodes and edges; tests keep it
-  coherent and honest against sources. Adding an input = one registry line +
-  one provider per component. Scar: #871 → #873 (only `AppComponent` updated;
-  iOS `main` broke).
+- **G6 — The node list is derived from code and checked, never hand-written.**
+  The graph is extracted from sources (§4): adding an input = one
+  `@NodeCadence` annotation + one `NodeId` enum entry + one provider per
+  component; adding a derived node = the `stateIn` UseCase itself + its enum
+  entry. The extraction test keeps the graph coherent and the generated
+  `DATA_GRAPH.md` keeps it reviewable. Scar: #871 → #873 (only `AppComponent`
+  updated; iOS `main` broke).
 - **G7 — Nodes read together are derived together.** Two residences, per G0:
   (a) **Graph level, mechanized**: if one screen reads two derived UseCase
   nodes over a shared non-clock root, collapse them — `sharedRootViolations`
-  checks this over the registry's `readBy`. (b) **VM level, by review**: the
+  checks this over `readBy`, extracted from the ViewModel constructors. (b) **VM level, by review**: the
   same principle inside a ViewModel — the original instance was
   `HomeViewModel`'s `warning` / `sinceStatus` / voice-gate trio deriving from
   the same mirror in separate `stateIn`s, with card ↔ gate consistency
@@ -102,40 +104,46 @@ one-frame lie on every fresh `NavBackStackEntry` (#738, #739, and
   the exemplar fix and stays, even though the node is no longer in the
   registry. Clock roots are exempt (ticks dedup away).
 
-## 4. The `DataGraph` registry
+## 4. The graph description — derived from code
 
-`domain/…/graph/DataGraph.kt`: an **inert description** — `Input(id, owner,
-cadence)` and `Derived(id, from, transform, shell, sharing)` entries. Since the
-typed-registry hardening, correctness-by-construction carries what it can:
+There is **no hand-declared node list**. `domain/…/graph/DataGraph.kt` holds
+the shared vocabulary and the pure check functions; the graph itself is
+extracted from sources by `DataGraphExtractionKonsistTest` (`:androidApp`):
 
-- **Node identity is the `NodeId` enum** — edges reference enum constants, so
-  a typo'd or dangling edge is a compile error, not a test failure. A
-  bijection check (`missingNodes` + `duplicateIds`) pins list ↔ enum.
-- **`Sharing` is sealed**: `Eager`, or `Gated(poll: NodeId)` — a gate cannot
-  be *declared* without naming the poll that justifies it; `invalidGates`
-  verifies the named poll is real, upstream, and POLL-cadence.
+- **Inputs** from `@NodeCadence` annotations on the consumed
+  repository/manager declarations — cadence (plus an id override where the
+  declaration name isn't the node name) is the only hand-written metadata.
+  Placement is fenced to `:domain`/`:usecase` (a `:viewmodel` input cannot
+  exist, per G0), and `SOURCE` retention makes the annotation unreadable at
+  runtime by construction.
+- **Derived nodes** from the `:usecase` `stateIn` holders — id from the class
+  name, edges from the flow expression before `.stateIn(` (seeds reading
+  `.value` are construction-time plumbing, not edges), sharing from the
+  `SharingStarted` literal, a gate's poll resolved from the transitive
+  closure.
+- **Readers** (the G7 key) from `:viewmodel` constructors: a parameter typed
+  as a derived shell class, or `StateFlow<output>` named after the node.
+  Constructor references are consumption of the terminal surface — VM STATE
+  stays out of the graph (G0).
 
-Runtime-checkable properties (each with a positive control, per the repo's
-vacuous-pass rule): acyclicity (iterative Kahn), the G7 shared-root rule, and
-the bijection above. The honesty test (Konsist, `:androidApp`) checks the
-registry against SOURCES: every `owner` / `transform` / `shell` / `readBy`
-names a real declaration, and **edge accuracy (registry ⊆ code)** — each
-derived node's `shell` file must reference its transform call and every
-declared `from` node (by camelCase id or owner name), with comments stripped
-so prose can't satisfy the check. The other direction — an edge present in
-code but missing from the registry — is covered since §6 phase 1: the
-extraction test parses the flow expressions and fails parity on any edge the
-registry misses.
+Correctness-by-construction, where the language carries it: node identity is
+the closed `NodeId` enum (extraction resolves against it — an unknown id is a
+loud failure, and `missingNodes` fires when an enum entry's code was deleted,
+so enum and code pin each other in both directions), and `Sharing` is sealed
+(`Gated(poll)` cannot be declared without naming its justification).
 
-Registry scope is **exactly the G0 boundary**: repository/manager inputs and
-`stateIn` UseCase deriveds — nothing screen-scoped. VM-internal derivations
-are presentation compositions outside the graph (G0), governed by the VM-layer
-rules, not registry entries.
+Checks run over the extracted graph, each with a positive control (the
+vacuous-pass rule): acyclicity, `invalidGates`, `eagerOverPolls` (an Eager
+node may not sit over a POLL source), the G7 shared-root rule, and the
+enum bijection. The human-readable rendering is the **generated
+[`DATA_GRAPH.md`](./DATA_GRAPH.md)** (table + mermaid), pinned byte-exact by
+the same test — a graph change shows up in review as a diff of that file, and
+CI fails until `./scripts/generate-data-graph.sh` regenerates it.
 
 **The line not to cross:** deleting `DataGraph.kt` must break exactly its own
-tests and nothing else. If the registry ever holds a flow, resolves a
-dependency, or is read at runtime, it has become a reactive framework — paid
-for in SKIE bridging, Konsist legibility, and every lint that reads
+tests and nothing else. If the graph description ever holds a flow, resolves
+a dependency, or is read at runtime, it has become a reactive framework —
+paid for in SKIE bridging, Konsist legibility, and every lint that reads
 constructors. Don't.
 
 ## 5. Build order — EXECUTED 2026-08-14
@@ -173,14 +181,14 @@ Still open (tracked in `DATA_CACHING_STRATEGY.md` §5): T5–T13 minus the parts
 closed above, and the nav-rail settings-mirror burn-down exemption in
 `ViewModelDomainMirrorKonsistTest`.
 
-## 6. Next: derive the graph from code (agreed 2026-08-15; phase 1 landed)
+## 6. Derive the graph from code (agreed 2026-08-15 — EXECUTED same day)
 
-The registry's residual weakness is its stringly-typed half: `owner`,
-`transform`, `shell`, and `readBy` are prose pinned to sources by the honesty
-test, and the edge check covers only registry ⊆ code. The agreed end state
-inverts the model: **the code is the declaration, and the graph is extracted
-from it** — G6 becomes "the node list is derived and checked," with nothing
-left to hand-maintain.
+The registry's residual weakness was its stringly-typed half: `owner`,
+`transform`, `shell`, and `readBy` were prose pinned to sources by a
+Konsist honesty test, and the edge check covered only registry ⊆ code. The
+agreed end state inverts the model: **the code is the declaration, and the
+graph is extracted from it** — G6 becomes "the node list is derived and
+checked," with nothing left to hand-maintain.
 
 Design, settled in discussion 2026-08-15:
 
@@ -220,12 +228,25 @@ derived nodes from the `:usecase` `stateIn` holders (edges from the flow
 expression before `.stateIn(`, so seeds reading `.value` don't count;
 sharing from the `SharingStarted` literal; a gate's poll resolved as the
 unique POLL source upstream), runs the extracted list through the same
-parameterized checks, and pins **extracted == registry** on input
-(id, cadence) and derived (id, edge set, sharing). While both exist they
-verify each other; this closes code ⊆ registry. The same PR mechanized
-`Sharing.Eager`'s stated precondition as `DataGraph.eagerOverPolls`.
-**Remaining for the end state:** generated mermaid `DATA_GRAPH.md` with
-`--check`, then delete the hand-declared `nodes` list and the
-`owner`/`transform`/`shell` strings (the honesty test retires with them;
-`readBy` — the G7 check's key — needs a new home first, likely constructor
-references of the reading ViewModels).
+parameterized checks, and pinned **extracted == registry** on input
+(id, cadence) and derived (id, edge set, sharing) while both existed —
+the bridge that let the registry review the extractor before retiring.
+The same PR mechanized `Sharing.Eager`'s stated precondition as
+`DataGraph.eagerOverPolls`, and fenced `@NodeCadence` placement to the G0
+boundary.
+
+**End state — LANDED (registry deleted; the graph is the code).** The
+hand-declared `nodes` list, the `transform` strings, and the Konsist honesty
+test are gone; `DataGraph.kt` keeps only the vocabulary (the `NodeId` enum —
+extraction resolves against it and `missingNodes` fires when an entry's code
+is deleted, so enum and code pin each other) and the parameterized checks.
+`readBy` found its extracted home: `:viewmodel` constructor parameters typed
+as a derived shell class, or `StateFlow<output>` named after the node (the
+injected-value shape) — consumption of the terminal surface, never VM state
+(G0). The reviewable artifact is the generated
+[`DATA_GRAPH.md`](./DATA_GRAPH.md) (table + mermaid), pinned byte-exact by
+the extraction test and regenerated with `./scripts/generate-data-graph.sh`
+(whose `--check` is the pin itself; it runs in the required Android unit-test
+gate on every PR). One deliberate cost: a wrong-but-coherent extraction now
+has no second declaration to disagree with — the committed rendering diff in
+review, the per-parser positive controls, and the checks are the safety net.

@@ -17,62 +17,65 @@
 package com.chriscartland.garage.domain.graph
 
 /**
- * An inert description of the shared data graph
+ * The vocabulary and checks of the shared data graph
  * (docs/DATA_GRAPH_PLAN.md, rule G6).
  *
- * This object computes nothing and nothing flows through it. Values
- * still move through StateFlow and kotlin-inject exactly as they do
- * today; this is the description those wirings are CHECKED against, so
- * "where does this value come from, and when can it change" has one
- * written answer instead of three hand-mirrored DI components' worth.
+ * There is NO hand-declared node list — since §6 the graph is DERIVED
+ * FROM SOURCES by `DataGraphExtractionKonsistTest` (`:androidApp`):
+ * inputs from `@NodeCadence` annotations, derived nodes from the
+ * `:usecase` `stateIn` holders, readers from ViewModel constructors.
+ * This object holds what remains shared: the node/edge types, and the
+ * pure check functions the extracted graph runs through. The
+ * human-readable rendering is the generated `docs/DATA_GRAPH.md`,
+ * pinned to the sources by the same test.
  *
  * Correctness by construction, where the language can carry it:
- *  - Node identity is the [NodeId] enum — a typo'd or dangling edge
- *    does not compile, so there is no dangling-edge check to run.
- *    [missingNodes] + [duplicateIds] pin the remaining direction: the
- *    entry list is a bijection with the enum.
+ *  - Node identity is the [NodeId] enum — the closed id vocabulary.
+ *    Extraction resolves each discovered node id against it, so a
+ *    declaration the enum doesn't know is a loud failure, and
+ *    [missingNodes] fires when an enum entry's code was deleted: the
+ *    enum and the code pin each other in both directions.
  *  - [Sharing.Gated] REQUIRES the poll that justifies it as a
  *    constructor argument — a gate cannot be declared without naming
  *    the expensive source it exists for. [invalidGates] verifies the
  *    named poll really is a POLL-cadence node upstream.
  *
- * Two kinds of entry:
+ * Two kinds of node:
  *  - [Input]: a node that is written to. Exactly one owner (the
- *    `@Singleton` repository or ADR-015 manager holding the
- *    MutableStateFlow).
- *  - [Derived]: computed from other nodes by a named pure function,
- *    with [Derived.shell] naming the class that holds its `stateIn`
- *    (the policy shell, rule G1) — the file the honesty test checks
- *    the edges against.
+ *    type declaring the annotated `StateFlow`/flow function).
+ *  - [Derived]: computed from other nodes, with [Derived.shell] the
+ *    class holding its `stateIn` (the policy shell, rule G1).
  *
  * THE LINE NOT TO CROSS: deleting this file must break exactly its own
- * tests ([DataGraphTest], the Konsist honesty test) and nothing else.
- * If the registry ever holds a flow, resolves a dependency, or is read
- * at runtime, it has become a reactive framework — paid for in SKIE
- * bridging, Konsist legibility, and every lint that reads constructors.
+ * tests ([DataGraphTest], the extraction test) and nothing else. If
+ * the graph description ever holds a flow, resolves a dependency, or
+ * is read at runtime, it has become a reactive framework — paid for in
+ * SKIE bridging, Konsist legibility, and every lint that reads
+ * constructors. (`@NodeCadence`'s SOURCE retention makes the runtime
+ * half of this impossible by construction.)
  *
  * Scope (rule G0, docs/DATA_GRAPH_PLAN.md): the graph ENDS at the
  * UseCase boundary. Inputs are repository/manager StateFlows; derived
  * nodes are `stateIn` UseCases; together they are the terminal
  * app-wide surface the VM layer consumes. ViewModel-level state is
  * structurally a SINK — `:usecase` cannot import `:viewmodel`, so VM
- * state can never be anyone's upstream — and is deliberately NOT in
- * this registry (its consistency is a presentation-layer concern; see
- * G7's VM-level residence, exemplified by `HomeDoorStateMapper`). Wear
- * wires a subset of the same inputs but none of the derived nodes
- * below.
+ * state can never be anyone's upstream — and is never a node (its
+ * consistency is a presentation-layer concern; see G7's VM-level
+ * residence, exemplified by `HomeDoorStateMapper`). Wear wires a
+ * subset of the same inputs but none of the derived nodes.
  *
- * The check functions take the node list as a parameter so tests can
- * run them against doctored graphs — every check has a positive
- * control proving it can fail (the repo's vacuous-pass rule).
+ * The check functions take the node list as a parameter — the
+ * extraction test passes the extracted graph, and every check has a
+ * positive control proving it can fail on a doctored graph (the
+ * repo's vacuous-pass rule).
  */
 object DataGraph {
     /**
-     * Every node in the graph, as a closed enum. Edges reference these
-     * constants, so an edge to a nonexistent node is a compile error,
-     * not a test failure. [id] is the camelCase name the code uses for
-     * the value (property names, combine arguments) — the honesty
-     * test's text anchor.
+     * Every node in the graph, as a closed enum — the id vocabulary
+     * extraction resolves against. [id] is the camelCase name the code
+     * uses for the value: the declaration name (or `@NodeCadence` id
+     * override) for inputs, the decapitalized `Compute`/`Observe` …
+     * `UseCase` class stem for derived nodes.
      */
     enum class NodeId(
         val id: String,
@@ -148,18 +151,15 @@ object DataGraph {
     ) : Node
 
     /**
-     * A node computed from other nodes by the named pure function
-     * ("Object.function", or [IDENTITY] for a pass-through cache).
-     * [shell] names the class holding the `stateIn` (rule G1's policy
-     * shell) — the honesty test resolves that file and checks it
-     * references [transform] and every [from] node. [readBy] names the
-     * screen ViewModels that observe it — the G7 shared-root check
-     * keys on it.
+     * A node computed from other nodes. [shell] is the class holding
+     * the `stateIn` (rule G1's policy shell); [from] is extracted from
+     * the flow expression feeding that `stateIn`. [readBy] names the
+     * screen ViewModels that observe it (extracted from their
+     * constructors) — the G7 shared-root check keys on it.
      */
     data class Derived(
         override val id: NodeId,
         val from: List<NodeId>,
-        val transform: String,
         val shell: String,
         val sharing: Sharing,
         val readBy: List<String> = emptyList(),
@@ -167,59 +167,9 @@ object DataGraph {
         override val cadence: Cadence get() = Cadence.DERIVED
     }
 
-    /** Transform sentinel for a pass-through cache with no mapping. */
-    const val IDENTITY: String = "identity"
-
-    val nodes: List<Node> = listOf(
-        // ---- Inputs: one owner each (DATA_GRAPH_PLAN.md G3) ----
-        Input(NodeId.AUTH_STATE, owner = "FirebaseAuthRepository", cadence = Cadence.USER_ACTION),
-        Input(NodeId.CURRENT_DOOR_EVENT, owner = "NetworkDoorRepository", cadence = Cadence.PUSH),
-        Input(NodeId.RECENT_DOOR_EVENTS, owner = "NetworkDoorRepository", cadence = Cadence.PUSH),
-        Input(NodeId.BUTTON_HEALTH, owner = "NetworkButtonHealthRepository", cadence = Cadence.PUSH),
-        Input(NodeId.SNOOZE_STATE, owner = "NetworkSnoozeRepository", cadence = Cadence.USER_ACTION),
-        Input(NodeId.SERVER_CONFIG, owner = "CachedServerConfigRepository", cadence = Cadence.USER_ACTION),
-        Input(NodeId.ALLOWLIST, owner = "CachedFeatureAllowlistRepository", cadence = Cadence.USER_ACTION),
-        Input(NodeId.TEST_NOTIFICATION_SANDBOX, owner = "DefaultTestNotificationRepository", cadence = Cadence.USER_ACTION),
-        Input(NodeId.NOW_EPOCH_SECONDS, owner = "DefaultLiveClock", cadence = Cadence.CLOCK),
-        // A derivation implemented as manager-owned state (doorEvent +
-        // clock -> stale flag). Listed as an Input because that is the
-        // shape of the code (the manager owns the MutableStateFlow and
-        // exposes StateFlow since the T1 widening; consumers pass the
-        // reference through). Cadence is CLOCK: ticks drive the writes.
-        Input(NodeId.IS_CHECK_IN_STALE, owner = "CheckInStalenessManager", cadence = Cadence.CLOCK),
-        // Owner is the interface: the polling impl is per-platform
-        // (Play Services on Android; Unavailable elsewhere).
-        Input(NodeId.WATCH_COMPANION, owner = "WearCompanionRepository", cadence = Cadence.POLL),
-        // ---- Derived nodes (pure core + policy shell, G1/G4) ----
-        Derived(
-            id = NodeId.BUTTON_HEALTH_DISPLAY,
-            from = listOf(NodeId.AUTH_STATE, NodeId.BUTTON_HEALTH, NodeId.NOW_EPOCH_SECONDS),
-            transform = "ButtonHealthDisplayLogic.compute",
-            shell = "ComputeButtonHealthDisplayUseCase",
-            sharing = Sharing.Eager,
-            readBy = listOf("HomeViewModel"),
-        ),
-        Derived(
-            id = NodeId.EFFECTIVE_SNOOZE_STATE,
-            from = listOf(NodeId.SNOOZE_STATE, NodeId.NOW_EPOCH_SECONDS),
-            transform = "SnoozeStateExpiry.effective",
-            shell = "ComputeEffectiveSnoozeStateUseCase",
-            sharing = Sharing.Eager,
-            readBy = listOf("ProfileViewModel"),
-        ),
-        Derived(
-            id = NodeId.WATCH_APP_STATUS,
-            from = listOf(NodeId.WATCH_COMPANION),
-            transform = IDENTITY,
-            shell = "ObserveWatchAppStatusUseCase",
-            sharing = Sharing.Gated(poll = NodeId.WATCH_COMPANION),
-            readBy = listOf("ProfileViewModel"),
-        ),
-    )
-
     fun find(
         id: NodeId,
-        nodes: List<Node> = this.nodes,
+        nodes: List<Node>,
     ): Node? = nodes.firstOrNull { it.id == id }
 
     /**
@@ -228,7 +178,7 @@ object DataGraph {
      */
     fun sourcesOf(
         start: Node,
-        nodes: List<Node> = this.nodes,
+        nodes: List<Node>,
     ): Set<Input> {
         val byId = nodes.associateBy { it.id }
         val sources = mutableSetOf<Input>()
@@ -253,13 +203,13 @@ object DataGraph {
      * reference plus the bijection close what the old dangling-edge
      * check covered, and more). Empty = coherent.
      */
-    fun missingNodes(nodes: List<Node> = this.nodes): List<NodeId> {
+    fun missingNodes(nodes: List<Node>): List<NodeId> {
         val present = nodes.map { it.id }.toSet()
         return NodeId.entries.filterNot(present::contains)
     }
 
     /** Node ids declared more than once. Empty = coherent. */
-    fun duplicateIds(nodes: List<Node> = this.nodes): List<NodeId> =
+    fun duplicateIds(nodes: List<Node>): List<NodeId> =
         nodes
             .groupBy { it.id }
             .filterValues { it.size > 1 }
@@ -271,7 +221,7 @@ object DataGraph {
      * every node whose dependencies resolve gets removed; whatever
      * remains is cyclic. Empty = acyclic.
      */
-    fun cycleMembers(nodes: List<Node> = this.nodes): List<NodeId> {
+    fun cycleMembers(nodes: List<Node>): List<NodeId> {
         val byId = nodes.associateBy { it.id }
         val remainingDeps = nodes.associate { node ->
             node.id to when (node) {
@@ -304,7 +254,7 @@ object DataGraph {
      * name a poll; this verifies the named poll is real and upstream.
      * Empty = conformant.
      */
-    fun invalidGates(nodes: List<Node> = this.nodes): List<String> =
+    fun invalidGates(nodes: List<Node>): List<String> =
         nodes
             .filterIsInstance<Derived>()
             .mapNotNull { d ->
@@ -325,7 +275,7 @@ object DataGraph {
      * process, which is exactly what gating exists to prevent
      * (DATA_GRAPH_PLAN.md §2). Empty = conformant.
      */
-    fun eagerOverPolls(nodes: List<Node> = this.nodes): List<String> =
+    fun eagerOverPolls(nodes: List<Node>): List<String> =
         nodes
             .filterIsInstance<Derived>()
             .filter { it.sharing == Sharing.Eager }
@@ -345,7 +295,7 @@ object DataGraph {
      * [Cadence.CLOCK] roots are exempt (ticks that change nothing
      * dedup away). Empty = conformant.
      */
-    fun sharedRootViolations(nodes: List<Node> = this.nodes): List<String> {
+    fun sharedRootViolations(nodes: List<Node>): List<String> {
         val derived = nodes.filterIsInstance<Derived>()
         return derived
             .flatMap { d -> d.readBy.map { screen -> screen to d } }
