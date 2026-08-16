@@ -15,6 +15,29 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.23.10
+
+- **Signing out now clears what was being held in memory, not only what was
+  saved to disk.** Signing out and back in within the same session could show
+  the previous account's button-health verdict instantly, and could suppress
+  the new session's first snooze refresh for as long as the old reading was
+  considered fresh. Every cached value a signed-in session owns is now cleared
+  in the same step, and a slow read that started before the sign-out can no
+  longer land afterwards and put the old account's data back.
+
+- **History's "load more" can no longer get stuck.** Leaving the History screen
+  while an older page was still loading could leave the app believing a load
+  was permanently in progress, and every later attempt to load more was
+  refused until a successful pull-to-refresh. The load now completes or unwinds
+  on its own, whichever happens, and the page it fetched still lands in the
+  cache.
+
+- Underneath, the app's shared data — what is cached, what derives from what,
+  and how long each piece lives — is now described by the code itself rather
+  than by a document that could drift, and that description is checked on every
+  build. Nothing about this is visible on screen; it is here so that the kind
+  of bug fixed above is harder to write in the first place.
+
 ## 2.23.9
 
 - **Voice commands are now confirmed with the server before being sent.** The
