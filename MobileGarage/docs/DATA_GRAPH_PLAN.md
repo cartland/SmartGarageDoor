@@ -145,6 +145,27 @@ enum bijection. The human-readable rendering is the **generated
 the same test — a graph change shows up in review as a diff of that file, and
 CI fails until `./scripts/generate-data-graph.sh` regenerates it.
 
+**Edge representation (settled 2026-08-15): bare edges ride nodes; attributed
+edges get a data class; unified views are computed, never stored.** The graph
+deliberately has two edge representations, chosen by one rule — an edge
+becomes a data class exactly when it carries attributes beyond its two
+endpoints. `ScreenRead(screen, route, node)` earns a class because the route
+string is what lets G7 tell two reads of the same root apart; a derivation
+edge (`Derived.inputs`) and a manager reactive edge (`Input.from`) are bare
+(from, to) pairs, so they ride the node the extractor already builds, and the
+closed `NodeId` enum already makes a dangling endpoint a compile error. Do
+not "normalize" this into a stored edge list, and never one class per edge
+instance: extraction is node-shaped (a declaration is a node; its body's
+references are its in-edges), so a primary edge store would either restate
+what extraction already knows or be hand-authored — reintroducing exactly the
+drift class §6 eliminated. If a future checker needs uniform traversal
+(today `cycleMembers`/`sourcesOf` walk `inputs` + `from` while
+`sharedRootFindings` walks `ScreenRead`s separately), the sanctioned shape is
+a computed view — a small `sealed interface GraphEdge` plus a pure
+`edges(nodes, reads)` function derived from the node data at check time —
+so every walker shares one edge list and nothing new can drift because
+nothing new is stored.
+
 **The line not to cross:** deleting `DataGraph.kt` must break exactly its own
 tests and nothing else. If the graph description ever holds a flow, resolves
 a dependency, or is read at runtime, it has become a reactive framework —
