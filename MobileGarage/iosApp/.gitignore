@@ -5,6 +5,12 @@
 # local.properties on Android. The committed Secrets.xcconfig #include?s it.
 Secrets.local.xcconfig
 
+# Release PROVISIONING_PROFILE_SPECIFIER, written by release-ios.yml. Also
+# #include?d by Secrets.xcconfig. Absent locally on purpose, so a local Xcode
+# build keeps the Automatic signing in project.yml instead of demanding the
+# distribution profile.
+Signing.local.xcconfig
+
 # Build output
 build/
 DerivedData/

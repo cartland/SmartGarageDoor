@@ -276,6 +276,7 @@ jobs:
           PROFILE_UUID="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PLIST")"
           PROFILE_NAME="$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PLIST")"
           echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          echo "PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
 
           # Xcode has moved this directory across versions; install to both so
           # the workflow does not depend on which one this Xcode reads.
@@ -288,6 +289,24 @@ jobs:
           echo "Imported profile '$PROFILE_NAME' ($PROFILE_UUID)"
           echo "Signing identities available:"
           security find-identity -v -p codesigning "$KEYCHAIN"
+
+          # PROVISIONING_PROFILE_SPECIFIER goes on the APP TARGET's own xcconfig
+          # and NOT on the xcodebuild command line, because command-line build
+          # settings apply to EVERY target in the build -- including the ~20
+          # Swift Package dependencies, which abort the archive with "<package>
+          # does not support provisioning profiles" as soon as it is set (that
+          # is how ios/13 failed). A target-level xcconfig reaches only this
+          # target. The other signing settings stay on the command line below:
+          # the packages tolerate those, and the command line is the only place
+          # that outranks the CODE_SIGN_STYLE baked into project.yml.
+          #
+          # Gitignored and pulled in by an optional #include, so the file exists
+          # on CI alone and a local Xcode build keeps Automatic signing.
+          cat > MobileGarage/iosApp/Signing.local.xcconfig <<XCCONFIG
+          PROVISIONING_PROFILE_SPECIFIER = $PROFILE_NAME
+          XCCONFIG
+          echo "Wrote Signing.local.xcconfig:"
+          cat MobileGarage/iosApp/Signing.local.xcconfig
 
       # The pre-build Run Script builds shared.framework for device arm64 via Gradle.
       - name: Archive (Release)
@@ -307,8 +326,29 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM=4EFTFGDT4G \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
             archive
+
+      # A silent signing fallback is the failure mode this whole file is built
+      # against, so assert the archive really carries OUR profile rather than
+      # trusting that xcodebuild would have failed. Cheap, and it fails here
+      # with a clear message instead of deep inside the upload.
+      - name: Verify the archive is signed with the expected profile
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/GarageControl.xcarchive/Products/Applications/GarageControl.app"
+          EMBEDDED="$APP/embedded.mobileprovision"
+          if [ ! -f "$EMBEDDED" ]; then
+            echo "::error title=Archive is not provisioned::No embedded.mobileprovision in the archive. The app target was built without a provisioning profile."
+            exit 1
+          fi
+          security cms -D -i "$EMBEDDED" > "$RUNNER_TEMP/embedded.plist"
+          GOT_UUID="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$RUNNER_TEMP/embedded.plist")"
+          if [ "$GOT_UUID" != "$PROFILE_UUID" ]; then
+            echo "::error title=Wrong provisioning profile::Archive embeds $GOT_UUID but the imported profile is $PROFILE_UUID."
+            exit 1
+          fi
+          echo "Archive embeds the expected profile '$PROFILE_NAME' ($GOT_UUID)."
+          codesign -dvv "$APP" 2>&1 | grep -E "^Authority=|^TeamIdentifier=" || true
 
       - name: Create ExportOptions.plist
         run: |
