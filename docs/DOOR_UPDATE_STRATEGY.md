@@ -219,16 +219,34 @@ Android's default is `PUSH`, which is the behavior it has always had:
 Android makes no request it was not already making. iOS's default is
 `POLL`, which is the first time it has ever updated live.
 
-**Phase 2 — server APNs config (not started).** Add `apns` to the
-door-event message in `EventFCM.ts`:
-`apns.payload.aps.content-available = 1`, `apns-push-type: background`,
-`apns-priority: 5`. Pin the shape with a `wire-contracts/` fixture the way
-`fcmDoorEvent` payloads already are, so a unilateral change breaks a test
-on at least one side. This is an **additive** change to a message Android
-already ignores the unknown parts of — but it is on the path that carries
-every Android device's updates, so it wants its own PR, its own
-`server/N`, and a verification that Android still receives events after it
-deploys.
+**Phase 2 — server APNs config: code complete, NOT deployed.**
+`getFCMDataFromEvent` (`EventFCM.ts`) now sets
+`apns.payload.aps['content-available'] = 1`, `apns-push-type: background`,
+`apns-priority: 5`. `model/FCM.ts` gained `ApnsConfig` / `ApnsHeaders` /
+`ApnsPushType` / `ApnsPayload` / `Aps`, written in the FCM v1 REST API's
+own wire shape (hyphenated `content-available`) rather than the admin
+SDK's camelCase types — matching this file's existing convention, and
+confirmed necessary by reading `firebase-admin`'s `messaging-internal.js`:
+`send()` deep-copies the message and forwards it to the REST endpoint
+near-verbatim, so a REST-shaped object was already how this file worked
+even before `apns` existed.
+
+5 new tests in `EventFCMTest.ts`, teeth-checked (deleting the `apns`
+assignment fails exactly those 5). No `wire-contracts/` fixture: that
+directory pins bytes CLIENT APP code decodes on both sides, and no app
+code ever decodes `apns`/`android` — it's server → FCM infrastructure →
+OS. A server-side assertion on `getFCMDataFromEvent`'s output, matching
+the existing `android` field test style, is the right and sufficient
+mechanism here.
+
+This is an **additive** change to a message Android already ignores the
+unknown parts of — FCM applies `android`/`apns` configs only to the
+platform they name — but it is on the path that carries every Android
+device's updates, so **deployment is deliberately withheld**: merging to
+`main` does not deploy Cloud Functions (this repo only deploys via a
+tagged `release-firebase.sh` run), and that release — its own `server/N`,
+a changelog entry, and a check that Android still receives events
+afterward — is a separate, explicit action for whoever runs it.
 
 **Phase 3 — flip iOS to `PUSH_WITH_FOREGROUND_REFRESH`.** Once Phase 2 is
 verified on a real device (the simulator cannot receive real pushes),
