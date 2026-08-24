@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-08-23
+last_verified: 2026-08-24
 ---
 
 # Door update strategy — how each platform stays fresh
@@ -140,9 +140,17 @@ than being left to platform behavior. Failures back off geometrically
 (15s → 30s → 60s → 120s cap) and reset on the first success.
 
 `PUSH_WITH_FOREGROUND_REFRESH` has no timer; becoming visible buys exactly
-one request. This is not belt-and-braces — it is the answer to iOS's push
-budget. A failed refresh retries until it succeeds, then goes quiet, so a
-bad network cannot silently promote it into a poll.
+one request **when that request succeeds**. This is not belt-and-braces —
+it is the answer to iOS's push budget.
+
+Be precise about the failure path, because an earlier revision of this
+document was not: a failed refresh retries with backoff (5s → 10s → 20s →
+40s → 60s cap) and stops only on success. During a sustained outage, with
+the app left open, that IS a 60-second poll. The guarantee is "quiet once
+it has a fresh value", not "at most one request per foreground". That is
+the right trade — the strategy exists to correct state push may have
+failed to deliver, and giving up would leave the stale value on screen —
+but it is a different promise from the one the prose used to make.
 
 ### Known: one duplicate request at cold start
 
@@ -265,6 +273,70 @@ load-bearing assertions are the ones about **not** fetching: a strategy
 that fetched constantly would satisfy every "did it fetch?" check in the
 file. Confirmed with a teeth-check — deleting the `if (!visible)` gate
 fails 5 tests.
+
+### The gap those tests cannot close
+
+Every unit test **injects** `AppVisibilityState` and drives it directly.
+That proves the loop behaves correctly *given* a visibility signal, and it
+can say nothing at all about whether the platform actually emits one. A
+platform that never called `setVisible(true)` would leave `POLL`
+subscribed to a flow that stays `false` — no fetches, no errors, no
+failing test, and a completely inert feature. The whole point of the iOS
+work is a signal the tests take as a premise.
+
+So it has to be checked by running the app. Verified 2026-08-24 on an
+iPhone 16 simulator (iOS `POLL`, end to end); the expected log
+sequence is:
+
+```
+doorUpdateStrategy <- POLL
+AppVisibilityState: visible=true
+Logging key: foreground_refresh_current_door     <- immediately on becoming visible
+Logging key: poll_current_door                   <- ~15s later
+Logging key: poll_current_door                   <- ~30s later if fetches are failing (backoff)
+```
+
+Capture it with:
+
+```bash
+xcrun simctl spawn <udid> log stream --style compact --level debug \
+  --predicate 'processImagePath CONTAINS "GarageControl"'
+```
+
+**Two traps make this look broken when it is not.** Both cost real time
+on 2026-08-24 and produced a false "iOS never polls" conclusion that was
+only walked back by testing the two builds side by side:
+
+1. **A headless simulator never activates the scene.** `simctl boot`
+   without the Simulator UI attached leaves the app inactive forever, so
+   `scenePhase` never reaches `.active` and no visibility is ever
+   reported. Open `Simulator.app` before trusting a negative result.
+2. **The notification-permission alert holds the scene inactive.** On a
+   fresh install `AppDelegate` requests authorization during launch, and
+   while that system-modal alert is up the app is not active — so polling
+   genuinely has not started yet. This is real first-launch behavior, not
+   an artifact: polling begins when the user answers the prompt.
+   Pre-grant it to test the steady state:
+   `applesimutils --booted --bundle com.chriscartland.garage
+   --setPermissions notifications=YES`.
+
+`--level debug` is required; Kermit's `Logger.d` lines do not appear at
+the default log level, which reads as silence from the app.
+
+### Still unverified
+
+- **Android's visibility reporting.** `GarageApplication`'s
+  started-Activity counter (including the claim that a rotation goes
+  1 → 2 → 1 and never reports a background round trip) has no test and has
+  not been exercised on a device. It does not matter today — Android ships
+  `PUSH`, which ignores visibility entirely — but it would matter the
+  moment anyone selects `POLL` there.
+- **That `firebase-admin` accepts the `apns` block at runtime.** The
+  server tests assert on `getFCMDataFromEvent`'s output, and `send()`
+  type-checks, but nothing exercises the SDK's own `validateMessage`. A
+  wrong header shape would surface only on a real send.
+- **Real push delivery to a device.** Phase 3's gate, and not something a
+  simulator can answer.
 
 Two properties worth keeping if these tests are ever rewritten:
 
