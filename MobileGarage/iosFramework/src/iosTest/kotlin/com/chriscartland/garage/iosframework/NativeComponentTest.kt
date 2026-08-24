@@ -121,6 +121,19 @@ class NativeComponentTest {
     @Test
     fun statusCacheStorageIsSingleton() = assertSame(component.statusCacheStorage, component.statusCacheStorage, "statusCacheStorage")
 
+    // GarageControlApp reports scenePhase into this object and the running
+    // DoorUpdateStrategy reads it. iOS is the platform that depends on it:
+    // its default strategy is POLL, which fetches nothing at all until
+    // something reports the app visible. Two instances would leave the
+    // poll permanently idle.
+    @Test
+    fun appVisibilityStateIsSingleton() = assertSame(component.appVisibilityState, component.appVisibilityState, "appVisibilityState")
+
+    // Owns the one running strategy and its idempotent start(). Two
+    // instances would each run their own strategy against the same cache.
+    @Test
+    fun doorUpdateManagerIsSingleton() = assertSame(component.doorUpdateManager, component.doorUpdateManager, "doorUpdateManager")
+
     // Caches the watch-app status in a stateIn over a cold flow. A
     // non-singleton would give every ProfileViewModel its own cache
     // seeded at Unknown — the Settings "Watch" section flicker.

@@ -18,6 +18,7 @@
 package com.chriscartland.garage.wear.di
 
 import com.chriscartland.garage.domain.model.AppConfig
+import com.chriscartland.garage.domain.model.DoorUpdateStrategyId
 import com.chriscartland.garage.testcommon.FakeAuthBridge
 import com.chriscartland.garage.usecase.SimulatedVoiceCommandEnvironment
 import com.chriscartland.garage.wear.ui.WearLiveVoiceViewModel
@@ -59,6 +60,7 @@ class WearComponentGraphTest {
                 serverConfigKey = "test-key",
                 snoozeNotificationsOption = false,
                 remoteButtonPushEnabled = false,
+                defaultDoorUpdateStrategy = DoorUpdateStrategyId.POLL,
             ),
             signInConfig = WearSignInConfig(googleServerClientId = "test-client-id"),
             appVersion = "wear-test",

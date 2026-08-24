@@ -12,4 +12,12 @@ data class AppConfig(
     val serverConfigKey: String,
     val snoozeNotificationsOption: Boolean,
     val remoteButtonPushEnabled: Boolean,
+    /**
+     * Which [DoorUpdateStrategyId] this build runs when the user has
+     * expressed no preference. Deliberately has NO default value here:
+     * the answer differs per platform (Android's push works, iOS's does
+     * not yet), and a shared default would be exactly the hardcoded
+     * platform decision this class exists to keep out of shared code.
+     */
+    val defaultDoorUpdateStrategy: DoorUpdateStrategyId,
 )

@@ -19,6 +19,7 @@ package com.chriscartland.garage.config
 
 import com.chriscartland.garage.BuildConfig
 import com.chriscartland.garage.domain.model.AppConfig
+import com.chriscartland.garage.domain.model.DoorUpdateStrategyId
 
 /**
  * Builds [AppConfig] from [BuildConfig] values.
@@ -35,5 +36,10 @@ object AppConfigFactory {
             serverConfigKey = BuildConfig.SERVER_CONFIG_KEY,
             snoozeNotificationsOption = true,
             remoteButtonPushEnabled = true,
+            // Android's data FCM wakes the process reliably, including in
+            // Doze, so the client needs no timer of its own. This is the
+            // behavior Android has always had; the strategy seam names it
+            // rather than changing it.
+            defaultDoorUpdateStrategy = DoorUpdateStrategyId.PUSH,
         )
 }

@@ -34,10 +34,36 @@ import SwiftUI
 @main
 struct GarageControlApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
             MainScreen(component: appDelegate.component)
+                // Report visibility into the shared `AppVisibilityState` so
+                // the door-update strategy knows when to run. iOS defaults to
+                // `DoorUpdateStrategyId.POLL`, which fetches nothing until it
+                // is told the app is visible — this is the signal that turns
+                // it on, and the reason a fresh value is on screen the moment
+                // the user comes back.
+                //
+                // `onAppear` as well as `onChange`: the first `.active` is the
+                // value `scenePhase` already holds at launch, so `onChange`
+                // never fires for it and polling would wait for the user to
+                // background the app once before ever starting.
+                .onAppear { report(scenePhase) }
+                // iOS 16 deployment target: the single-parameter `onChange`.
+                // Read the closure's value, never `self.scenePhase` — the
+                // handler that runs can be one a previous body evaluation
+                // registered, so the captured property may be stale (the
+                // `AnimatedDoorCanvas` bug, #1055).
+                .onChange(of: scenePhase) { newPhase in report(newPhase) }
         }
+    }
+
+    /// Only `.active` counts as visible. `.inactive` covers the app switcher
+    /// and a pulled-down Control Center — moments where a poll would spend a
+    /// request on a screen nobody is reading.
+    private func report(_ phase: ScenePhase) {
+        appDelegate.component.appVisibilityState.setVisible(visible: phase == .active)
     }
 }

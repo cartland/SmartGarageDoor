@@ -17,7 +17,9 @@
 
 package com.chriscartland.garage
 
+import android.app.Activity
 import android.app.Application
+import android.os.Bundle
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import com.chriscartland.garage.di.AppComponent
@@ -41,6 +43,60 @@ class GarageApplication : Application() {
         // manifest default_notification_channel_id has a real channel for
         // OS-rendered background open-door warnings to land on (M4). Idempotent.
         DoorNotificationPresenter.createChannel(this)
+        reportVisibilityToSharedCode()
+    }
+
+    /**
+     * Tell the shared `AppVisibilityState` when the user can see the app,
+     * so a visibility-gated `DoorUpdateStrategy` (polling, foreground
+     * refresh) knows when to run.
+     *
+     * Counting started Activities rather than overriding `MainActivity`'s
+     * `onStart`/`onStop` is what makes a configuration change a non-event:
+     * Android starts the new Activity before stopping the old one, so the
+     * count goes 1 → 2 → 1 and never touches zero. Per-Activity callbacks
+     * would report a background/foreground round trip on every rotation and
+     * fire a pointless fetch each time.
+     *
+     * Android ships `DoorUpdateStrategyId.PUSH`, which ignores this
+     * entirely; the wiring exists so a developer can switch a phone to
+     * polling from Settings → Developer and have it behave correctly.
+     */
+    private fun reportVisibilityToSharedCode() {
+        registerActivityLifecycleCallbacks(
+            object : ActivityLifecycleCallbacks {
+                private var startedActivities = 0
+
+                override fun onActivityStarted(activity: Activity) {
+                    startedActivities++
+                    component.appVisibilityState.setVisible(true)
+                }
+
+                override fun onActivityStopped(activity: Activity) {
+                    startedActivities--
+                    if (startedActivities <= 0) {
+                        startedActivities = 0
+                        component.appVisibilityState.setVisible(false)
+                    }
+                }
+
+                override fun onActivityCreated(
+                    activity: Activity,
+                    savedInstanceState: Bundle?,
+                ) = Unit
+
+                override fun onActivityResumed(activity: Activity) = Unit
+
+                override fun onActivityPaused(activity: Activity) = Unit
+
+                override fun onActivitySaveInstanceState(
+                    activity: Activity,
+                    outState: Bundle,
+                ) = Unit
+
+                override fun onActivityDestroyed(activity: Activity) = Unit
+            },
+        )
     }
 
     /**

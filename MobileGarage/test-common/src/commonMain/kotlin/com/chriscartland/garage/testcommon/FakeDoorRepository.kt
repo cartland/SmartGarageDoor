@@ -46,6 +46,17 @@ class FakeDoorRepository : DoorRepository {
     private var olderPage: List<DoorEvent> = emptyList()
     private var olderPageState: PaginationState = PaginationState.Initial
 
+    // While true, every fetchCurrentDoorEvent() fails. Lets a test drive
+    // the retry/backoff half of a DoorUpdateStrategy without a fake
+    // network. The attempt is still counted, which is what backoff tests
+    // assert on. `private var` + setter per ADR-017 Rule 5.
+    private var failCurrentDoorEventFetch = false
+
+    /** Make [fetchCurrentDoorEvent] start (or stop) failing. */
+    fun setFailCurrentDoorEventFetch(fail: Boolean) {
+        failCurrentDoorEventFetch = fail
+    }
+
     fun setBuildTimestamp(value: String?) {
         buildTimestamp = value
     }
@@ -79,6 +90,7 @@ class FakeDoorRepository : DoorRepository {
 
     override suspend fun fetchCurrentDoorEvent(): AppResult<DoorEvent, FetchError> {
         fetchCurrentDoorEventCount++
+        if (failCurrentDoorEventFetch) return AppResult.Error(FetchError.NetworkFailed)
         return _currentDoorEvent.value?.let { AppResult.Success(it) }
             ?: AppResult.Error(FetchError.NotReady)
     }

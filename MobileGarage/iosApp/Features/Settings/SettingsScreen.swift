@@ -75,6 +75,7 @@ struct SettingsScreen: View {
             durations: wrapper.durations,
             developerAccess: wrapper.developerAccess,
             functionListAccess: wrapper.functionListAccess,
+            doorUpdateStrategy: wrapper.doorUpdateStrategy,
             appVersion: Self.appVersion,
             appBuild: Self.appBuild,
             appPackage: Self.appPackage,
@@ -84,7 +85,8 @@ struct SettingsScreen: View {
             onSignOut: { wrapper.signOut() },
             onSnooze: { wrapper.snooze($0) },
             onRefresh: { await wrapper.refreshSnooze() },
-            onEnableNotifications: { wrapper.requestNotificationPermission() }
+            onEnableNotifications: { wrapper.requestNotificationPermission() },
+            onDoorUpdateStrategyChange: { wrapper.setDoorUpdateStrategy($0) }
         )
         .navigationDestination(for: SettingsRoute.self) { route in
             switch route {
@@ -130,6 +132,11 @@ struct SettingsContentView: View {
     let durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)]
     let developerAccess: Bool?
     let functionListAccess: Bool?
+    /// Developer-only: the stored door-update OVERRIDE, not the resolved
+    /// strategy — the picker shows what was chosen, including "platform
+    /// default", so a later release can move the default without stranding
+    /// anyone who once opened this screen.
+    let doorUpdateStrategy: DoorUpdateStrategyOverride
     let appVersion: String
     let appBuild: String
     let appPackage: String
@@ -146,6 +153,7 @@ struct SettingsContentView: View {
     /// of the fetch rather than dismissing it immediately.
     let onRefresh: () async -> Void
     var onEnableNotifications: () -> Void = {}
+    var onDoorUpdateStrategyChange: (DoorUpdateStrategyOverride) -> Void = { _ in }
 
     /// Sheet presentation is pure local UI state. The explicit `init` below
     /// keeps these `private @State`s from lowering the synthesized memberwise
@@ -174,6 +182,23 @@ struct SettingsContentView: View {
         }
     }
 
+    /// iOS's words for each strategy. The shared enum names a behavior;
+    /// naming the transport is each platform's job (ADR-035), and on iOS
+    /// "push" means APNs, not FCM's Android plumbing.
+    ///
+    /// No `default` case, deliberately: adding a strategy has to break this
+    /// build until iOS has worded it.
+    static func doorUpdateStrategyLabel(
+        _ option: DoorUpdateStrategyOverride
+    ) -> LocalizedStringResource {
+        switch option {
+        case .platformDefault: return "Default (poll)"
+        case .push: return "Push only"
+        case .poll: return "Poll while open"
+        case .pushWithForegroundRefresh: return "Push, refresh on open"
+        }
+    }
+
     private func aboutValue(for fact: AppBuildFact) -> String {
         switch fact {
         case .releaseVersion: return appVersion
@@ -193,6 +218,7 @@ struct SettingsContentView: View {
         durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)],
         developerAccess: Bool?,
         functionListAccess: Bool?,
+        doorUpdateStrategy: DoorUpdateStrategyOverride = .platformDefault,
         appVersion: String,
         appBuild: String,
         appPackage: String,
@@ -202,7 +228,8 @@ struct SettingsContentView: View {
         onSignOut: @escaping () -> Void,
         onSnooze: @escaping (SnoozeDurationUIOption) -> Void,
         onRefresh: @escaping () async -> Void,
-        onEnableNotifications: @escaping () -> Void = {}
+        onEnableNotifications: @escaping () -> Void = {},
+        onDoorUpdateStrategyChange: @escaping (DoorUpdateStrategyOverride) -> Void = { _ in }
     ) {
         self.authState = authState
         self.displayName = displayName
@@ -213,6 +240,7 @@ struct SettingsContentView: View {
         self.durations = durations
         self.developerAccess = developerAccess
         self.functionListAccess = functionListAccess
+        self.doorUpdateStrategy = doorUpdateStrategy
         self.appVersion = appVersion
         self.appBuild = appBuild
         self.appPackage = appPackage
@@ -223,6 +251,7 @@ struct SettingsContentView: View {
         self.onSnooze = onSnooze
         self.onRefresh = onRefresh
         self.onEnableNotifications = onEnableNotifications
+        self.onDoorUpdateStrategyChange = onDoorUpdateStrategyChange
     }
 
     var body: some View {
@@ -341,6 +370,23 @@ struct SettingsContentView: View {
                         NavigationLink(value: SettingsRoute.functions) {
                             Label("Function list", systemImage: "square.grid.2x2")
                         }
+                    }
+                    // Swapping is live: `DoorUpdateManager` cancels the
+                    // running strategy the moment this lands, so the effect
+                    // is visible without relaunching. iOS ships polling
+                    // because it receives no door pushes today; this row is
+                    // how push gets compared against it once it does.
+                    Picker(
+                        selection: Binding(
+                            get: { doorUpdateStrategy },
+                            set: { onDoorUpdateStrategyChange($0) }
+                        )
+                    ) {
+                        ForEach(DoorUpdateStrategyOverride.allCases, id: \.self) { option in
+                            Text(Self.doorUpdateStrategyLabel(option)).tag(option)
+                        }
+                    } label: {
+                        Label("Door updates", systemImage: "arrow.triangle.2.circlepath")
                     }
                 }
             }

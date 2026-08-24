@@ -40,7 +40,20 @@ enum AppConfigFactory {
             recentEventCount: dev.recentEventCount,
             serverConfigKey: nonEmptyString("GARAGE_SERVER_CONFIG_KEY") ?? dev.serverConfigKey,
             snoozeNotificationsOption: dev.snoozeNotificationsOption,
-            remoteButtonPushEnabled: dev.remoteButtonPushEnabled
+            remoteButtonPushEnabled: dev.remoteButtonPushEnabled,
+            // The platform default lives HERE, with the platform, mirroring
+            // Android's `AppConfigFactory.create()`. Every other field above
+            // falls back to `dev` only when its Info.plist key is missing;
+            // this one has no Info.plist key, so routing it through the
+            // placeholder config would have made a stated fallback the only
+            // source — and hidden iOS's answer in Kotlin.
+            //
+            // iOS receives no door pushes today, so polling while visible is
+            // what makes the screen live. Change this to
+            // `.pushWithForegroundRefresh` once APNs delivery is verified on
+            // a device; a developer can already try either from
+            // Settings → Developer → Door updates.
+            defaultDoorUpdateStrategy: .poll
         )
     }
 }

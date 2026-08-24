@@ -43,6 +43,7 @@ class AppStartup(
     private val buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager,
     private val doorResolvedFcmSubscriptionManager: DoorResolvedFcmSubscriptionManager,
     private val initialDoorFetchManager: InitialDoorFetchManager,
+    private val doorUpdateManager: DoorUpdateManager,
     private val signOutCacheClearManager: SignOutCacheClearManager,
     private val externalScope: CoroutineScope,
     private val dispatchers: DispatcherProvider,
@@ -78,6 +79,10 @@ class AppStartup(
         Logger.d { "AppStartup: Starting initial door fetch (one-shot per process)" }
         initialDoorFetchManager.start()
         actions.add("startInitialDoorFetch")
+
+        Logger.d { "AppStartup: Starting door update strategy manager" }
+        doorUpdateManager.start()
+        actions.add("startDoorUpdates")
 
         Logger.d { "AppStartup: Starting sign-out cache clear manager" }
         signOutCacheClearManager.start()

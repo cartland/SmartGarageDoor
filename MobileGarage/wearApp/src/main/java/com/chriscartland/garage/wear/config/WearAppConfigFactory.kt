@@ -18,6 +18,7 @@
 package com.chriscartland.garage.wear.config
 
 import com.chriscartland.garage.domain.model.AppConfig
+import com.chriscartland.garage.domain.model.DoorUpdateStrategyId
 import com.chriscartland.garage.wear.BuildConfig
 
 /**
@@ -37,5 +38,19 @@ object WearAppConfigFactory {
             // Snooze management stays a phone concern.
             snoozeNotificationsOption = false,
             remoteButtonPushEnabled = true,
+            // The watch polls, and has since before this enum existed:
+            // `WearHomeViewModel.onVisible()` runs a foreground refresh loop
+            // (10s idle, 2s while a press is waiting on the door) and
+            // `onHidden()` stops it. The watch has no FCM registration at
+            // all, so PUSH was never available to it.
+            //
+            // This states the policy; it does not enforce it. The watch runs
+            // no AppStartup and therefore no DoorUpdateManager, so nothing
+            // reads this value — the loop lives in the ViewModel, screen-
+            // scoped, because the cadence depends on ButtonStateMachine
+            // state that only the VM holds (an app-scoped manager could not
+            // read it: `:usecase` cannot import `:viewmodel`). Unifying the
+            // two hosts is a live proposal, not an oversight.
+            defaultDoorUpdateStrategy = DoorUpdateStrategyId.POLL,
         )
 }

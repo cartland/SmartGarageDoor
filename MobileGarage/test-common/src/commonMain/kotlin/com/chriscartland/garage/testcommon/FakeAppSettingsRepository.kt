@@ -1,5 +1,6 @@
 package com.chriscartland.garage.testcommon
 
+import com.chriscartland.garage.domain.model.DoorUpdateStrategyOverride
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.model.NavigationRailLayout
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
@@ -17,6 +18,8 @@ class FakeAppSettingsRepository : AppSettingsRepository {
         InMemorySetting(NavigationRailItemPosition.TopAligned)
     override val navigationRailTopPaddingDp: Setting<Int> =
         InMemorySetting(NavigationRailLayout.DEFAULT_TOP_PADDING_DP)
+    override val doorUpdateStrategy: Setting<DoorUpdateStrategyOverride> =
+        InMemorySetting(DoorUpdateStrategyOverride.PLATFORM_DEFAULT)
     override val testNotificationCurrentTopic: Setting<String> = InMemorySetting("")
     override val testNotificationWantSubscribed: Setting<Boolean> = InMemorySetting(false)
     override val testNotificationSubscribedTopic: Setting<String> = InMemorySetting("")

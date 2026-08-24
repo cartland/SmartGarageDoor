@@ -86,6 +86,7 @@ import com.chriscartland.garage.domain.repository.UserScopedCache
 import com.chriscartland.garage.domain.repository.WearCompanionRepository
 import com.chriscartland.garage.usecase.AppSettingsUseCase
 import com.chriscartland.garage.usecase.AppStartup
+import com.chriscartland.garage.usecase.AppVisibilityState
 import com.chriscartland.garage.usecase.ApplyButtonHealthFcmUseCase
 import com.chriscartland.garage.usecase.BuildAppLogCsvUseCase
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
@@ -102,6 +103,7 @@ import com.chriscartland.garage.usecase.DefaultReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.DefaultRegisterFcmUseCase
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.DoorResolvedFcmSubscriptionManager
+import com.chriscartland.garage.usecase.DoorUpdateManager
 import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
@@ -120,8 +122,11 @@ import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.ObserveFeatureAccessUseCase
 import com.chriscartland.garage.usecase.ObserveTestNotificationStateUseCase
 import com.chriscartland.garage.usecase.ObserveWatchAppStatusUseCase
+import com.chriscartland.garage.usecase.PollDoorUpdateStrategy
 import com.chriscartland.garage.usecase.PruneDiagnosticsLogUseCase
+import com.chriscartland.garage.usecase.PushDoorUpdateStrategy
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
+import com.chriscartland.garage.usecase.PushWithForegroundRefreshDoorUpdateStrategy
 import com.chriscartland.garage.usecase.ReceiveFcmDoorEventUseCase
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import com.chriscartland.garage.usecase.RequestWatchAppInstallUseCase
@@ -227,6 +232,17 @@ abstract class NativeComponent(
     abstract val doorResolvedFcmRepository: DoorResolvedFcmRepository
     abstract val doorResolvedFcmSubscriptionManager: DoorResolvedFcmSubscriptionManager
     abstract val initialDoorFetchManager: InitialDoorFetchManager
+
+    /**
+     * Entry point because `GarageControlApp` reports `scenePhase` into
+     * it — and because a `@SharedSingleton` with no entry point is
+     * silently not a singleton (rule 1 above). iOS is the platform that
+     * actually depends on this signal: its default strategy is
+     * `DoorUpdateStrategyId.POLL`, which does nothing at all until
+     * something reports the app visible.
+     */
+    abstract val appVisibilityState: AppVisibilityState
+    abstract val doorUpdateManager: DoorUpdateManager
     abstract val computeButtonHealthDisplayUseCase: ComputeButtonHealthDisplayUseCase
 
     // Entry point exists purely so kotlin-inject honors @SharedSingleton
@@ -953,6 +969,58 @@ abstract class NativeComponent(
         )
 
     @Provides
+    @SharedSingleton
+    fun provideAppVisibilityState(): AppVisibilityState = AppVisibilityState()
+
+    @Provides
+    fun providePushDoorUpdateStrategy(): PushDoorUpdateStrategy = PushDoorUpdateStrategy()
+
+    @Provides
+    fun providePollDoorUpdateStrategy(
+        fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
+        appVisibilityState: AppVisibilityState,
+        logAppEvent: LogAppEventUseCase,
+    ): PollDoorUpdateStrategy =
+        PollDoorUpdateStrategy(
+            fetchCurrentDoorEvent = fetchCurrentDoorEvent,
+            appVisibility = appVisibilityState,
+            logAppEvent = logAppEvent,
+        )
+
+    @Provides
+    fun providePushWithForegroundRefreshDoorUpdateStrategy(
+        fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
+        appVisibilityState: AppVisibilityState,
+        logAppEvent: LogAppEventUseCase,
+    ): PushWithForegroundRefreshDoorUpdateStrategy =
+        PushWithForegroundRefreshDoorUpdateStrategy(
+            fetchCurrentDoorEvent = fetchCurrentDoorEvent,
+            appVisibility = appVisibilityState,
+            logAppEvent = logAppEvent,
+        )
+
+    @Provides
+    @SharedSingleton
+    fun provideDoorUpdateManager(
+        pushStrategy: PushDoorUpdateStrategy,
+        pollStrategy: PollDoorUpdateStrategy,
+        pushWithForegroundRefreshStrategy: PushWithForegroundRefreshDoorUpdateStrategy,
+        appSettings: AppSettingsRepository,
+        appConfig: AppConfig,
+        applicationScope: CoroutineScope,
+        dispatchers: DispatcherProvider,
+    ): DoorUpdateManager =
+        DoorUpdateManager(
+            pushStrategy = pushStrategy,
+            pollStrategy = pollStrategy,
+            pushWithForegroundRefreshStrategy = pushWithForegroundRefreshStrategy,
+            appSettings = appSettings,
+            appConfig = appConfig,
+            scope = applicationScope,
+            dispatcher = dispatchers.io,
+        )
+
+    @Provides
     fun provideAppStartup(
         fcmRegistrationManager: FcmRegistrationManager,
         checkInStalenessManager: CheckInStalenessManager,
@@ -962,6 +1030,7 @@ abstract class NativeComponent(
         buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager,
         doorResolvedFcmSubscriptionManager: DoorResolvedFcmSubscriptionManager,
         initialDoorFetchManager: InitialDoorFetchManager,
+        doorUpdateManager: DoorUpdateManager,
         signOutCacheClearManager: SignOutCacheClearManager,
         applicationScope: CoroutineScope,
         dispatchers: DispatcherProvider,
@@ -975,6 +1044,7 @@ abstract class NativeComponent(
             buttonHealthFcmSubscriptionManager = buttonHealthFcmSubscriptionManager,
             doorResolvedFcmSubscriptionManager = doorResolvedFcmSubscriptionManager,
             initialDoorFetchManager = initialDoorFetchManager,
+            doorUpdateManager = doorUpdateManager,
             signOutCacheClearManager = signOutCacheClearManager,
             externalScope = applicationScope,
             dispatchers = dispatchers,
