@@ -152,6 +152,52 @@ describe('getFCMDataFromEvent', () => {
         expect(actual).to.be.undefined
     });
 
+    // docs/DOOR_UPDATE_STRATEGY.md § Phase 2: without this block the
+    // message never reached an Apple device at all, because a data-only
+    // FCM message is only forwarded to APNs when it carries
+    // `apns.payload.aps['content-available'] = 1`.
+    describe('apns (iOS background push, Phase 2)', () => {
+        const buildTimestamp = 'Sat Mar 13 14:45:00 2021';
+        const sensorEvent = <SensorEvent>{
+            type: SensorEventType.Closed,
+            timestampSeconds: 1725781091,
+            message: "Test message",
+            checkInTimestampSeconds: 1725781091,
+        };
+
+        it('returns FCM with apns-push-type background', () => {
+            const event = getFCMDataFromEvent(buildTimestamp, sensorEvent);
+            expect(event.apns.headers['apns-push-type']).to.equal('background');
+        });
+
+        it('returns FCM with apns-priority 5', () => {
+            // Not 10 (immediate) — APNs REJECTS priority 10 for a payload
+            // with no visible alert/sound/badge, so getting this wrong
+            // fails delivery outright rather than degrading gracefully.
+            const event = getFCMDataFromEvent(buildTimestamp, sensorEvent);
+            expect(event.apns.headers['apns-priority']).to.equal('5');
+        });
+
+        it('returns FCM with content-available 1', () => {
+            const event = getFCMDataFromEvent(buildTimestamp, sensorEvent);
+            expect(event.apns.payload.aps['content-available']).to.equal(1);
+        });
+
+        it('returns FCM without an alert, sound, or badge — a silent background wake, not a visible notification', () => {
+            const event = getFCMDataFromEvent(buildTimestamp, sensorEvent);
+            const aps = event.apns.payload.aps as unknown as Record<string, unknown>;
+            expect(aps.alert).to.be.undefined;
+            expect(aps.sound).to.be.undefined;
+            expect(aps.badge).to.be.undefined;
+        });
+
+        it('adding apns does not remove the existing android config — both platforms are served by one message', () => {
+            const event = getFCMDataFromEvent(buildTimestamp, sensorEvent);
+            expect(event.android.collapse_key).to.equal('sensor_event_update');
+            expect(event.apns.payload.aps['content-available']).to.equal(1);
+        });
+    });
+
     describe('wire-contract fixtures (shared with Android)', () => {
         const buildTimestamp = 'Sat Mar 13 14:45:00 2021';
 

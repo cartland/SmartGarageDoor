@@ -21,7 +21,7 @@ export interface TopicMessage {
   notification: Notification,
   android: AndroidConfig,
   // webpush: WebpushConfig,
-  // apns: ApnsConfig,
+  apns: ApnsConfig,
   // fcm_options: FcmOptions,
   // Union field target can be only one of the following:
   // token: string,
@@ -155,4 +155,54 @@ export interface FcmOptions {
 // https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages#androidfcmoptions
 export interface AndroidFcmOptions {
   analytics_label: string,
+}
+
+// https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages#apnsconfig
+//
+// `headers` are literal HTTP/2 header names APNs itself defines
+// (`apns-push-type`, `apns-priority`) — Apple's naming, not Firebase's, so
+// they stay hyphenated. `payload.aps` is likewise forwarded to APNs
+// byte-for-byte: `content-available` is Apple's own key, hyphenated in the
+// wire payload. See docs/DOOR_UPDATE_STRATEGY.md § Phase 2 for why this
+// exists — without it, a data-only FCM message never reaches an Apple
+// device at all.
+export interface ApnsConfig {
+  headers: ApnsHeaders,
+  payload: ApnsPayload,
+  // fcm_options: ApnsFcmOptions,
+}
+
+// https://firebase.google.com/docs/reference/apns/apns-request#headers
+//
+// The index signature matches firebase-admin's own `ApnsConfig.headers`
+// type (a plain string map — APNs headers are HTTP/2 headers, so the SDK
+// makes no attempt to type them individually). The two named keys are
+// this file's own promise about what THIS server sends; TypeScript
+// structurally allows both to coexist as long as every named value is
+// itself a string.
+export interface ApnsHeaders {
+  'apns-push-type': ApnsPushType,
+  // A background push MUST be priority 5 — APNs rejects priority 10
+  // (immediate) for a payload with no visible alert/sound/badge.
+  'apns-priority': '5',
+  [key: string]: string,
+}
+
+// https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages#apnspushtype
+export enum ApnsPushType {
+  BACKGROUND = 'background',
+}
+
+// https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages#apnspayload
+export interface ApnsPayload {
+  aps: Aps,
+}
+
+// https://developer.apple.com/documentation/usernotifications/generating-a-remote-notification
+export interface Aps {
+  // Wakes the app in the background with no visible UI. Value must be the
+  // literal integer 1 (not `true`) — that is Apple's wire format, and
+  // firebase-admin's own validation converts a boolean to it, so the
+  // literal keeps this file honest about what actually goes over the wire.
+  'content-available': 1,
 }
