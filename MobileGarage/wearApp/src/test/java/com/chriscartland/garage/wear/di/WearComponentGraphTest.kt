@@ -60,7 +60,7 @@ class WearComponentGraphTest {
                 serverConfigKey = "test-key",
                 snoozeNotificationsOption = false,
                 remoteButtonPushEnabled = false,
-                defaultDoorUpdateStrategy = DoorUpdateStrategyId.PUSH,
+                defaultDoorUpdateStrategy = DoorUpdateStrategyId.POLL,
             ),
             signInConfig = WearSignInConfig(googleServerClientId = "test-client-id"),
             appVersion = "wear-test",

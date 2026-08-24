@@ -154,12 +154,43 @@ at launch. Accepted rather than suppressed: they are not fully redundant
 deduplicating would require one to know about the other's timing — a worse
 trade than one idempotent GET per launch.
 
-### Wear
+### Wear already polls — with a second implementation
 
-`wearApp` does not run `AppStartup`, so no `DoorUpdateManager` exists
-there and no strategy runs. `WearAppConfigFactory` declares `PUSH` for
-completeness only. Bringing the watch into this seam is a separate
-decision, not an oversight of this one.
+`WearAppConfigFactory` declares `POLL`, and that is the truth: the watch
+has polled since before this enum existed. `WearHomeViewModel.onVisible()`
+starts a foreground refresh loop and `onHidden()` stops it. The watch has
+no FCM registration at all, so `PUSH` was never available to it.
+
+But it is a **different implementation of the same policy**, and the
+differences are all load-bearing:
+
+| | Phone / iOS | Wear |
+|---|---|---|
+| Host | `DoorUpdateManager` (app-scoped) | `WearHomeViewModel` (screen-scoped) |
+| Visibility source | `AppVisibilityState` (`scenePhase` / Activity count) | `onVisible()` / `onHidden()` from the composition root |
+| Cadence | fixed 15s | 10s idle, 2s while a press is waiting on the door |
+| Failure backoff | geometric to 2 min | **none** — retries at 10s forever |
+| Swappable by flag | yes | no (nothing reads the declaration) |
+
+The cadence difference is why the loop lives in the ViewModel: it depends
+on `ButtonStateMachine` state and `voicePressAwaitingDoor`, which only the
+VM holds, and an app-scoped manager cannot read them (`:usecase` cannot
+import `:viewmodel` — G0). So this is not a case of the watch having
+missed a refactor. It is a case of **one policy with two legitimate
+hosts**, and the declaration in `AppConfig` currently states the policy
+without enforcing it.
+
+Two consequences worth acting on, tracked but not yet done:
+
+1. The missing backoff is a real gap, not a cosmetic one. The watch's
+   network path is explicitly the least reliable in the system (BT relay,
+   or Wi-Fi at the garage), and a garage-network outage has it retrying
+   every 10 seconds indefinitely.
+2. `DoorRefreshLoop` is already parameterized on `isVisible` — it does not
+   care *whose* visibility that is. Giving it an urgency input and letting
+   Wear pass its own two sources would leave one tested loop with two sets
+   of inputs, rather than two loops. That is the shape a "declare the
+   policy, host it per platform" split would take.
 
 ## 4. Rollout
 
