@@ -131,6 +131,25 @@ class ComponentGraphTest {
     }
 
     @Test
+    fun appVisibilityStateIsSingleton() {
+        // The platform writes visibility into this object and the running
+        // DoorUpdateStrategy reads it. Two instances would mean the
+        // strategy watches a signal GarageApplication never writes to, and
+        // a visibility-gated poll would simply never fire.
+        val c = component
+        assertSame("AppVisibilityState must be singleton", c.appVisibilityState, c.appVisibilityState)
+    }
+
+    @Test
+    fun doorUpdateManagerIsSingleton() {
+        // Owns the one running strategy and its idempotent start(). Two
+        // instances would each run their own strategy against the same
+        // cache.
+        val c = component
+        assertSame("DoorUpdateManager must be singleton", c.doorUpdateManager, c.doorUpdateManager)
+    }
+
+    @Test
     fun remoteButtonRepositoryIsSingleton() {
         val c = component
         assertSame("RemoteButtonRepository must be singleton", c.remoteButtonRepository, c.remoteButtonRepository)

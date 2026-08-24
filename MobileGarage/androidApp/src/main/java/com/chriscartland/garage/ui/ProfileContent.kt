@@ -53,6 +53,7 @@ import com.chriscartland.garage.presentation.SnoozeRowStatus
 import com.chriscartland.garage.presentation.SnoozeRowStatusMapper
 import com.chriscartland.garage.ui.settings.AccountBottomSheet
 import com.chriscartland.garage.ui.settings.AccountRowState
+import com.chriscartland.garage.ui.settings.DoorUpdatesBottomSheet
 import com.chriscartland.garage.ui.settings.NavRailBottomSheet
 import com.chriscartland.garage.ui.settings.SettingsContent
 import com.chriscartland.garage.ui.settings.SimulatedVoiceBottomSheet
@@ -100,6 +101,7 @@ fun ProfileContent(
     val layoutDebugEnabled by resolved.layoutDebugEnabled.collectAsState()
     val navigationRailItemPosition by resolved.navigationRailItemPosition.collectAsState()
     val navigationRailTopPaddingDp by resolved.navigationRailTopPaddingDp.collectAsState()
+    val doorUpdateStrategy by resolved.doorUpdateStrategy.collectAsState()
     val watchAppStatus by resolved.watchAppStatus.collectAsState()
     val watchInstallAction by resolved.watchInstallAction.collectAsState()
     val appConfig = component.appConfig
@@ -121,6 +123,7 @@ fun ProfileContent(
     var versionSheetOpen by rememberSaveable { mutableStateOf(false) }
     var navRailSheetOpen by rememberSaveable { mutableStateOf(false) }
     var simulatedVoiceSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var doorUpdatesSheetOpen by rememberSaveable { mutableStateOf(false) }
 
     // Settings → Developer → Simulated voice: the Home tab's voice
     // control rehearsed against a pretend door. Same controller, same
@@ -213,6 +216,7 @@ fun ProfileContent(
             layoutDebugEnabled = layoutDebugEnabled,
             navigationRailItemPosition = navigationRailItemPosition,
             navigationRailTopPaddingDp = navigationRailTopPaddingDp,
+            doorUpdateStrategy = doorUpdateStrategy,
             snoozeInFlight = snoozeAction is SnoozeAction.Sending,
             watchInstallInFlight = watchInstallAction is WatchInstallAction.Sending,
             onInstallOnWatchTap = resolved::installOnWatch,
@@ -245,6 +249,7 @@ fun ProfileContent(
             onDiagnosticsTap = onNavigateToDiagnostics,
             onLayoutDebugChange = resolved::setLayoutDebugEnabled,
             onNavRailTap = { navRailSheetOpen = true },
+            onDoorUpdatesTap = { doorUpdatesSheetOpen = true },
             onSimulatedVoiceTap = { simulatedVoiceSheetOpen = true },
         )
         SnackbarHost(
@@ -333,6 +338,14 @@ fun ProfileContent(
             onTopPaddingDpChange = resolved::setNavigationRailTopPaddingDp,
             onTopPaddingDpReset = resolved::resetNavigationRailTopPaddingDp,
             onDismiss = { navRailSheetOpen = false },
+        )
+    }
+
+    if (doorUpdatesSheetOpen) {
+        DoorUpdatesBottomSheet(
+            selected = doorUpdateStrategy,
+            onSelect = resolved::setDoorUpdateStrategy,
+            onDismiss = { doorUpdatesSheetOpen = false },
         )
     }
 

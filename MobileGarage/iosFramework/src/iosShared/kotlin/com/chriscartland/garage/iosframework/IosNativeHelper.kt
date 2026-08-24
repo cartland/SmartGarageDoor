@@ -24,6 +24,7 @@ import com.chriscartland.garage.datalocal.DataStoreFactory
 import com.chriscartland.garage.datalocal.DatabaseFactory
 import com.chriscartland.garage.domain.model.AppConfig
 import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorUpdateStrategyId
 import platform.Foundation.NSBundle
 
 /**
@@ -96,6 +97,7 @@ class IosNativeHelper {
             serverConfigKey = "",
             snoozeNotificationsOption = true,
             remoteButtonPushEnabled = true,
+            defaultDoorUpdateStrategy = DoorUpdateStrategyId.POLL,
         )
     }
 }

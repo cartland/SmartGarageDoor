@@ -42,6 +42,7 @@ import androidx.compose.material.icons.outlined.NotificationsPaused
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.SettingsVoice
 import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material.icons.outlined.VerticalAlignCenter
 import androidx.compose.material.icons.outlined.Watch
 import androidx.compose.material3.CircularProgressIndicator
@@ -63,6 +64,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
+import com.chriscartland.garage.domain.model.DoorUpdateStrategyOverride
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.model.NavigationRailLayout
 import com.chriscartland.garage.domain.model.WatchAppStatus
@@ -129,6 +131,7 @@ fun SettingsContent(
     layoutDebugEnabled: Boolean,
     navigationRailItemPosition: NavigationRailItemPosition,
     navigationRailTopPaddingDp: Int,
+    doorUpdateStrategy: DoorUpdateStrategyOverride,
     modifier: Modifier = Modifier,
     snoozeInFlight: Boolean = false,
     watchInstallInFlight: Boolean = false,
@@ -143,6 +146,7 @@ fun SettingsContent(
     onDiagnosticsTap: () -> Unit = {},
     onLayoutDebugChange: (Boolean) -> Unit = {},
     onNavRailTap: () -> Unit = {},
+    onDoorUpdatesTap: () -> Unit = {},
     onSimulatedVoiceTap: () -> Unit = {},
 ) {
     LazyColumn(
@@ -340,6 +344,16 @@ fun SettingsContent(
                     )
                     HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
                     SettingsRow(
+                        icon = Icons.Outlined.Sync,
+                        title = stringResource(R.string.settings_developer_door_updates_row_title),
+                        subtitle = stringResource(
+                            DoorUpdateStrategyLabels.title(doorUpdateStrategy),
+                        ),
+                        showChevron = true,
+                        onClick = onDoorUpdatesTap,
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(start = DividerInset.ListItem))
+                    SettingsRow(
                         icon = Icons.Outlined.SettingsVoice,
                         title = stringResource(R.string.settings_developer_simulated_voice_title),
                         subtitle = stringResource(R.string.settings_developer_simulated_voice_subtitle),
@@ -502,6 +516,7 @@ fun SettingsContentSignedOutPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            doorUpdateStrategy = DoorUpdateStrategyOverride.PLATFORM_DEFAULT,
             navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
         )
     }
@@ -524,6 +539,7 @@ fun SettingsContentCheckingPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            doorUpdateStrategy = DoorUpdateStrategyOverride.PLATFORM_DEFAULT,
             navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
         )
     }
@@ -547,6 +563,7 @@ fun SettingsContentSignedInBasicPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            doorUpdateStrategy = DoorUpdateStrategyOverride.PLATFORM_DEFAULT,
             navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
         )
     }
@@ -570,6 +587,7 @@ fun SettingsContentSignedInAllowlistedPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.TopAligned,
+            doorUpdateStrategy = DoorUpdateStrategyOverride.PLATFORM_DEFAULT,
             navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
         )
     }
@@ -593,6 +611,7 @@ fun SettingsContentPermissionDeniedPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            doorUpdateStrategy = DoorUpdateStrategyOverride.PLATFORM_DEFAULT,
             navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
         )
     }
@@ -618,6 +637,7 @@ fun SettingsContentWatchInstallPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            doorUpdateStrategy = DoorUpdateStrategyOverride.PLATFORM_DEFAULT,
             navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
         )
     }
@@ -644,6 +664,7 @@ fun SettingsContentWatchInstalledPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            doorUpdateStrategy = DoorUpdateStrategyOverride.PLATFORM_DEFAULT,
             navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
         )
     }
@@ -672,6 +693,7 @@ fun SettingsContentWatchInstalledUnknownVersionPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            doorUpdateStrategy = DoorUpdateStrategyOverride.PLATFORM_DEFAULT,
             navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
         )
     }
@@ -698,6 +720,7 @@ fun SettingsContentSnoozeInFlightPreview() {
             versionCode = "182",
             layoutDebugEnabled = false,
             navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
+            doorUpdateStrategy = DoorUpdateStrategyOverride.PLATFORM_DEFAULT,
             navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
             snoozeInFlight = true,
         )

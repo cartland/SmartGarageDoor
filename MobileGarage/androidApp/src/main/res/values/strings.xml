@@ -94,6 +94,22 @@
     <string name="settings_developer_function_list_title">Function list</string>
     <string name="settings_developer_layout_debug_title">Layout debug colors</string>
     <string name="settings_developer_layout_debug_subtitle">Tints chrome regions to visualize layout boundaries</string>
+    <!--
+      Door-update strategy picker (Settings > Developer > Door updates).
+      Sentence case, no em dashes, per the string style rule. The shared
+      enum names a behavior; these are Android's words for it, which is
+      why "push" may say FCM here and something else on iOS (ADR-035).
+    -->
+    <string name="settings_developer_door_updates_row_title">Door updates</string>
+    <string name="settings_developer_door_updates_sheet_title">Door updates</string>
+    <string name="settings_developer_door_updates_default_title">Platform default</string>
+    <string name="settings_developer_door_updates_default_subtitle">Whatever this build ships with. On Android that is FCM push.</string>
+    <string name="settings_developer_door_updates_push_title">Push only</string>
+    <string name="settings_developer_door_updates_push_subtitle">Wait for FCM. No requests on a timer.</string>
+    <string name="settings_developer_door_updates_poll_title">Poll while open</string>
+    <string name="settings_developer_door_updates_poll_subtitle">Check every 15 seconds while the app is on screen. What iOS ships today.</string>
+    <string name="settings_developer_door_updates_push_refresh_title">Push, refresh on open</string>
+    <string name="settings_developer_door_updates_push_refresh_subtitle">Wait for FCM, and check once each time the app comes back.</string>
     <string name="settings_developer_nav_rail_row_title">Nav rail</string>
     <string name="settings_developer_nav_rail_row_subtitle">%1$s · %2$d dp</string>
     <string name="settings_developer_nav_rail_sheet_title">Nav rail</string>

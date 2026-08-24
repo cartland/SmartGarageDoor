@@ -1,5 +1,6 @@
 package com.chriscartland.garage.domain.repository
 
+import com.chriscartland.garage.domain.model.DoorUpdateStrategyOverride
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import kotlinx.coroutines.flow.Flow
 
@@ -60,6 +61,20 @@ interface AppSettingsRepository {
      * Settings → Developer → "Nav rail top padding". Default 0.
      */
     val navigationRailTopPaddingDp: Setting<Int>
+
+    /**
+     * Developer-only: overrides how the app keeps door state fresh while
+     * it runs. UI gate: Settings → Developer → "Door updates". Default
+     * [DoorUpdateStrategyOverride.PLATFORM_DEFAULT], which resolves to
+     * [com.chriscartland.garage.domain.model.AppConfig.defaultDoorUpdateStrategy]
+     * — FCM push on Android, polling on iOS.
+     *
+     * Swapping this is live: `DoorUpdateManager` collects this flow and
+     * cancels the running strategy the moment the value changes, so a
+     * developer can compare push against polling on one device without a
+     * relaunch. See `docs/DOOR_UPDATE_STRATEGY.md`.
+     */
+    val doorUpdateStrategy: Setting<DoorUpdateStrategyOverride>
 
     // --- Test-notification sandbox (diagnostic feature) ---
     // Three values the TestNotificationRepository reconciles to. Kept separate

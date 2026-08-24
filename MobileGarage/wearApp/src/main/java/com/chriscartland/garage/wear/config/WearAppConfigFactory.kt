@@ -18,6 +18,7 @@
 package com.chriscartland.garage.wear.config
 
 import com.chriscartland.garage.domain.model.AppConfig
+import com.chriscartland.garage.domain.model.DoorUpdateStrategyId
 import com.chriscartland.garage.wear.BuildConfig
 
 /**
@@ -37,5 +38,8 @@ object WearAppConfigFactory {
             // Snooze management stays a phone concern.
             snoozeNotificationsOption = false,
             remoteButtonPushEnabled = true,
+            // Declared for completeness only: the watch does not run
+            // AppStartup, so no DoorUpdateManager exists here to honor it.
+            defaultDoorUpdateStrategy = DoorUpdateStrategyId.PUSH,
         )
 }

@@ -19,11 +19,13 @@ package com.chriscartland.garage
 
 import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.model.ActionError
+import com.chriscartland.garage.domain.model.AppConfig
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.ButtonHealth
 import com.chriscartland.garage.domain.model.ButtonHealthError
 import com.chriscartland.garage.domain.model.ButtonHealthState
+import com.chriscartland.garage.domain.model.DoorUpdateStrategyId
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.domain.repository.ButtonHealthFcmRepository
@@ -32,16 +34,19 @@ import com.chriscartland.garage.domain.repository.DoorResolvedFcmRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
 import com.chriscartland.garage.domain.repository.UserScopedCache
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
+import com.chriscartland.garage.testcommon.FakeAppSettingsRepository
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
 import com.chriscartland.garage.usecase.AppStartup
+import com.chriscartland.garage.usecase.AppVisibilityState
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultCheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.DoorResolvedFcmSubscriptionManager
+import com.chriscartland.garage.usecase.DoorUpdateManager
 import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
@@ -49,7 +54,10 @@ import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.InitialDoorFetchManager
 import com.chriscartland.garage.usecase.LogAppEventUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
+import com.chriscartland.garage.usecase.PollDoorUpdateStrategy
 import com.chriscartland.garage.usecase.PruneDiagnosticsLogUseCase
+import com.chriscartland.garage.usecase.PushDoorUpdateStrategy
+import com.chriscartland.garage.usecase.PushWithForegroundRefreshDoorUpdateStrategy
 import com.chriscartland.garage.usecase.RegisterFcmUseCase
 import com.chriscartland.garage.usecase.RunStartupDiagnosticsMaintenanceUseCase
 import com.chriscartland.garage.usecase.SeedDiagnosticsCountersFromRoomUseCase
@@ -174,6 +182,34 @@ class AppStartupTest {
         )
     }
 
+    private fun createDoorUpdateManager(
+        scope: TestScope,
+        logger: FakeAppLoggerRepository,
+        counters: FakeDiagnosticsCountersRepository,
+    ): DoorUpdateManager {
+        val doorRepo = FakeDoorRepository()
+        val visibility = AppVisibilityState()
+        val logAppEvent = LogAppEventUseCase(logger, counters)
+        val fetchCurrent = FetchCurrentDoorEventUseCase(doorRepo)
+        return DoorUpdateManager(
+            pushStrategy = PushDoorUpdateStrategy(),
+            pollStrategy = PollDoorUpdateStrategy(fetchCurrent, visibility, logAppEvent),
+            pushWithForegroundRefreshStrategy =
+                PushWithForegroundRefreshDoorUpdateStrategy(fetchCurrent, visibility, logAppEvent),
+            appSettings = FakeAppSettingsRepository(),
+            appConfig = AppConfig(
+                baseUrl = "https://example.invalid",
+                recentEventCount = 100,
+                serverConfigKey = "",
+                snoozeNotificationsOption = true,
+                remoteButtonPushEnabled = true,
+                defaultDoorUpdateStrategy = DoorUpdateStrategyId.PUSH,
+            ),
+            scope = scope.backgroundScope,
+            dispatcher = testDispatcher,
+        )
+    }
+
     private fun createAppStartup(
         scope: TestScope,
         logger: FakeAppLoggerRepository = FakeAppLoggerRepository(),
@@ -185,6 +221,7 @@ class AppStartupTest {
         val buttonHealthMgr = createButtonHealthFcmSubscriptionManager(scope)
         val doorResolvedMgr = createDoorResolvedFcmSubscriptionManager(scope)
         val initialDoorFetchMgr = createInitialDoorFetchManager(scope, logger, counters)
+        val doorUpdateMgr = createDoorUpdateManager(scope, logger, counters)
         // UnconfinedTestDispatcher for the IO dispatcher so AppStartup's
         // fire-and-forget launches resolve synchronously inside the test.
         // backgroundScope by itself has subtle interactions with
@@ -216,6 +253,7 @@ class AppStartupTest {
             buttonHealthFcmSubscriptionManager = buttonHealthMgr,
             doorResolvedFcmSubscriptionManager = doorResolvedMgr,
             initialDoorFetchManager = initialDoorFetchMgr,
+            doorUpdateManager = doorUpdateMgr,
             signOutCacheClearManager = signOutCacheClearMgr,
             externalScope = scope.backgroundScope,
             dispatchers = TestDispatcherProvider(ioDispatcher),
@@ -252,6 +290,7 @@ class AppStartupTest {
                     "startButtonHealthFcmSubscription",
                     "startDoorResolvedFcmSubscription",
                     "startInitialDoorFetch",
+                    "startDoorUpdates",
                     "startSignOutCacheClear",
                     "logFcmSubscribe",
                     "runDiagnosticsMaintenance",

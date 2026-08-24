@@ -26,6 +26,7 @@ import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorUpdateStrategyOverride
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.model.NavigationRailLayout
@@ -58,7 +59,10 @@ import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 private const val SNOOZE_ACTION_RESET_DELAY_MS = 10_000L
@@ -154,6 +158,15 @@ interface ProfileViewModel {
     val navigationRailTopPaddingDp: StateFlow<Int>
 
     /**
+     * Developer-only: which door-update strategy the app runs, as the
+     * stored OVERRIDE rather than the resolved id — the picker's job is to
+     * show what was chosen, including "whatever this platform defaults to".
+     * Persisted in DataStore; `DoorUpdateManager` swaps strategies live
+     * when it changes. UI gate: Settings → Developer → "Door updates".
+     */
+    val doorUpdateStrategy: StateFlow<DoorUpdateStrategyOverride>
+
+    /**
      * Whether the paired watch has the Wear OS app. Drives the Settings
      * "Watch" section: hidden until a connected watch is detected, then a
      * green check (installed) or an install call-to-action.
@@ -238,6 +251,8 @@ interface ProfileViewModel {
     fun setNavigationRailTopPaddingDp(value: Int)
 
     fun resetNavigationRailTopPaddingDp()
+
+    fun setDoorUpdateStrategy(value: DoorUpdateStrategyOverride)
 }
 
 class DefaultProfileViewModel(
@@ -286,6 +301,27 @@ class DefaultProfileViewModel(
     private val _navigationRailTopPaddingDp =
         MutableStateFlow<Int>(NavigationRailLayout.DEFAULT_TOP_PADDING_DP)
     override val navigationRailTopPaddingDp: StateFlow<Int> = _navigationRailTopPaddingDp
+
+    // A `stateIn` pass-through, NOT a MutableStateFlow mirror: G3 bans a
+    // VM-owned MutableStateFlow whose type argument is a :domain type, and
+    // `ViewModelDomainMirrorKonsistTest` enforces it. The nav-rail settings
+    // above are still mirrors only because they predate the rule and sit on
+    // its burn-down list — this is the shape that list is burning down TO,
+    // so a new one must not be added to it.
+    //
+    // Seeding with PLATFORM_DEFAULT is honest rather than a placeholder: it
+    // is the persisted default, so the one frame before DataStore's first
+    // read shows the value that is actually in force unless an override
+    // exists, and an override corrects it immediately.
+    override val doorUpdateStrategy: StateFlow<DoorUpdateStrategyOverride> =
+        appSettings
+            .observeDoorUpdateStrategy()
+            .flowOn(dispatchers.io)
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.Eagerly,
+                initialValue = DoorUpdateStrategyOverride.PLATFORM_DEFAULT,
+            )
 
     // ADR-022: pass the UseCase's cached StateFlow through by reference.
     // A VM-local mirror would re-seed to Unknown on every fresh
@@ -451,6 +487,12 @@ class DefaultProfileViewModel(
     override fun setLayoutDebugEnabled(enabled: Boolean) {
         viewModelScope.launch(dispatchers.io) {
             appSettings.setLayoutDebugEnabled(enabled)
+        }
+    }
+
+    override fun setDoorUpdateStrategy(value: DoorUpdateStrategyOverride) {
+        viewModelScope.launch(dispatchers.io) {
+            appSettings.setDoorUpdateStrategy(value)
         }
     }
 

@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.model.DoorUpdateStrategyOverride
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.model.NavigationRailLayout
@@ -198,6 +199,7 @@ private fun SettingsPaneBody(modifier: Modifier) {
         layoutDebugEnabled = false,
         navigationRailItemPosition = NavigationRailItemPosition.CenteredVertically,
         navigationRailTopPaddingDp = NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
+        doorUpdateStrategy = DoorUpdateStrategyOverride.PLATFORM_DEFAULT,
         modifier = modifier,
     )
 }

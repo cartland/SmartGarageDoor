@@ -40,7 +40,12 @@ enum AppConfigFactory {
             recentEventCount: dev.recentEventCount,
             serverConfigKey: nonEmptyString("GARAGE_SERVER_CONFIG_KEY") ?? dev.serverConfigKey,
             snoozeNotificationsOption: dev.snoozeNotificationsOption,
-            remoteButtonPushEnabled: dev.remoteButtonPushEnabled
+            remoteButtonPushEnabled: dev.remoteButtonPushEnabled,
+            // iOS receives no door pushes today, so polling while visible is
+            // what makes the screen live. Swap this to
+            // `.pushWithForegroundRefresh` once APNs delivery is verified on a
+            // device; a user can already try either from Settings → Developer.
+            defaultDoorUpdateStrategy: dev.defaultDoorUpdateStrategy
         )
     }
 }

@@ -57,6 +57,12 @@ final class SettingsViewModelWrapper: ObservableObject {
     @Published private(set) var developerAccess: Bool?
     @Published private(set) var functionListAccess: Bool?
 
+    /// Developer-only: which door-update strategy the app is set to. iOS
+    /// defaults to polling because it receives no door pushes today; the
+    /// picker exists so that can be compared against push once APNs
+    /// delivery works, without a new build.
+    @Published private(set) var doorUpdateStrategy: DoorUpdateStrategyOverride = .platformDefault
+
     /// Duration options exposed to the UI, in display order.
     ///
     /// Iterated from the shared enum rather than hand-listed, so the set and its
@@ -87,6 +93,7 @@ final class SettingsViewModelWrapper: ObservableObject {
         applyAction(vm.snoozeAction.value)
         developerAccess = vm.developerAccess.value?.boolValue
         functionListAccess = vm.functionListAccess.value?.boolValue
+        doorUpdateStrategy = vm.doorUpdateStrategy.value
         refreshNotificationPermission()
 
         // `self?.` per iteration (not `guard let self` up front) — holding self
@@ -112,6 +119,10 @@ final class SettingsViewModelWrapper: ObservableObject {
         tasks.append(Task { @MainActor [weak self] in
             guard let stream = self?.vm.functionListAccess else { return }
             for await v in stream { self?.functionListAccess = v?.boolValue }
+        })
+        tasks.append(Task { @MainActor [weak self] in
+            guard let stream = self?.vm.doorUpdateStrategy else { return }
+            for await v in stream { self?.doorUpdateStrategy = v }
         })
     }
 
@@ -222,6 +233,13 @@ final class SettingsViewModelWrapper: ObservableObject {
     /// only when the last server round-trip is stale. Android parity —
     /// its Settings entry calls the same VM method.
     func revalidateSnooze() { vm.revalidateSnoozeIfStale() }
+
+    /// Persist a new door-update strategy. `DoorUpdateManager` swaps the
+    /// running strategy as soon as the setting lands, so this takes effect
+    /// without relaunching.
+    func setDoorUpdateStrategy(_ value: DoorUpdateStrategyOverride) {
+        vm.setDoorUpdateStrategy(value: value)
+    }
 
     func snooze(_ option: SnoozeDurationUIOption) { vm.snoozeOpenDoorsNotifications(snoozeDuration: option) }
 

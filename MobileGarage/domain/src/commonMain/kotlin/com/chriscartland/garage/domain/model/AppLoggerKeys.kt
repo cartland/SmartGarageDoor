@@ -11,6 +11,12 @@ object AppLoggerKeys {
     const val FCM_SUBSCRIBE_TOPIC = "fcm_subscribe_topic"
     const val ON_CREATE_FCM_SUBSCRIBE_TOPIC = "on_create_fcm_subscribe_topic"
 
+    /** A [DoorUpdateStrategyId.POLL] interval tick fetched the current door event. */
+    const val POLL_CURRENT_DOOR = "poll_current_door"
+
+    /** The app became visible and a strategy refreshed the current door event. */
+    const val FOREGROUND_REFRESH_CURRENT_DOOR = "foreground_refresh_current_door"
+
     // Stale data
     const val EXCEEDED_EXPECTED_TIME_WITHOUT_FCM = "exceeded_expected_time_without_fcm"
     const val TIME_WITHOUT_FCM_IN_EXPECTED_RANGE = "time_without_fcm_in_expected_range"

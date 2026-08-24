@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.usecase
 
+import com.chriscartland.garage.domain.model.DoorUpdateStrategyOverride
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
 import kotlinx.coroutines.flow.Flow
@@ -59,4 +60,10 @@ class AppSettingsUseCase(
     suspend fun setNavigationRailTopPaddingDp(value: Int) = settings.navigationRailTopPaddingDp.set(value)
 
     suspend fun restoreNavigationRailTopPaddingDpDefault() = settings.navigationRailTopPaddingDp.restoreDefault()
+
+    fun observeDoorUpdateStrategy(): Flow<DoorUpdateStrategyOverride> = settings.doorUpdateStrategy.flow
+
+    suspend fun setDoorUpdateStrategy(value: DoorUpdateStrategyOverride) = settings.doorUpdateStrategy.set(value)
+
+    suspend fun restoreDoorUpdateStrategyDefault() = settings.doorUpdateStrategy.restoreDefault()
 }

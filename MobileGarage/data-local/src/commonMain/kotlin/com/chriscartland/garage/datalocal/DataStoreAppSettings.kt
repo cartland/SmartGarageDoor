@@ -23,6 +23,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.chriscartland.garage.domain.model.DoorUpdateStrategyOverride
 import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.model.NavigationRailLayout
 import com.chriscartland.garage.domain.repository.AppSettingsRepository
@@ -62,6 +63,13 @@ class DataStoreAppSettings(
             dataStore,
             "NAVIGATION_RAIL_TOP_PADDING_DP",
             NavigationRailLayout.DEFAULT_TOP_PADDING_DP,
+        )
+    override val doorUpdateStrategy: Setting<DoorUpdateStrategyOverride> =
+        DataStoreEnumSetting(
+            dataStore = dataStore,
+            key = "DOOR_UPDATE_STRATEGY",
+            default = DoorUpdateStrategyOverride.PLATFORM_DEFAULT,
+            valueOf = DoorUpdateStrategyOverride::valueOf,
         )
     override val testNotificationCurrentTopic: Setting<String> =
         DataStoreStringSetting(dataStore, "TEST_NOTIFICATION_CURRENT_TOPIC", "")
