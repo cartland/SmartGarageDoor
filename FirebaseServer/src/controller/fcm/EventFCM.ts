@@ -17,7 +17,7 @@
 import * as firebase from 'firebase-admin';
 
 import { SensorEvent, SensorEventAsStringMap } from '../../model/SensorEvent';
-import { AndroidMessagePriority, TopicMessage, AndroidConfig } from '../../model/FCM';
+import { AndroidMessagePriority, TopicMessage, AndroidConfig, ApnsConfig, ApnsPushType } from '../../model/FCM';
 import { buildTimestampToFcmTopic } from '../../model/FcmTopic';
 
 /**
@@ -65,6 +65,23 @@ export function resetImpl(): void { _instance = new DefaultEventFCMService(); }
 /**
  * Pure helper — builds the FCM payload for a sensor event. No side effects.
  * Covered by EventFCMTest.ts and reused by DefaultEventFCMService.
+ *
+ * `apns` (docs/DOOR_UPDATE_STRATEGY.md § Phase 2, added alongside the
+ * client-side door-update-strategy seam): a data-only FCM message reaches
+ * an Apple device only when it carries `apns.payload.aps['content-available']
+ * = 1`. Without this block the message was accepted by FCM and delivered
+ * to every subscribed Android device exactly as before, but silently
+ * dropped for iOS — there was nothing for APNs to forward. Purely
+ * additive: Android ignores an `apns` block entirely, and FCM applies
+ * `android` / `apns` configs only to the platform they name, so this
+ * changes nothing about what already reaches Android devices on the same
+ * topic.
+ *
+ * No `alert` / `sound` / `badge` on the `aps` dict, deliberately — this is
+ * a silent background wake, not a user-visible notification. The client's
+ * `AppDelegate.didReceiveRemoteNotification` (shared `FcmPayloadParser` →
+ * `ReceiveFcmDoorEventUseCase`) has been correct since #915; it was always
+ * this block that was missing.
  */
 export function getFCMDataFromEvent(buildTimestamp: string, currentEvent: SensorEvent): TopicMessage {
   const message = <TopicMessage>{};
@@ -73,5 +90,11 @@ export function getFCMDataFromEvent(buildTimestamp: string, currentEvent: Sensor
   message.android = <AndroidConfig>{};
   message.android.collapse_key = 'sensor_event_update';
   message.android.priority = AndroidMessagePriority.HIGH;
+  message.apns = <ApnsConfig>{};
+  message.apns.headers = {
+    'apns-push-type': ApnsPushType.BACKGROUND,
+    'apns-priority': '5',
+  };
+  message.apns.payload = { aps: { 'content-available': 1 } };
   return message;
 }
