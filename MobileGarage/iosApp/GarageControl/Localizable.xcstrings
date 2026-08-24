@@ -151,6 +151,9 @@
     "Counters": {
       "extractionState": "manual"
     },
+    "Default (poll)": {
+      "extractionState": "manual"
+    },
     "Deregister FCM": {
       "extractionState": "manual"
     },
@@ -194,6 +197,9 @@
       "extractionState": "manual"
     },
     "Door status": {
+      "extractionState": "manual"
+    },
+    "Door updates": {
       "extractionState": "manual"
     },
     "Door was misaligned": {
@@ -307,6 +313,9 @@
     "Opening, taking longer than expected": {
       "extractionState": "manual"
     },
+    "Poll while open": {
+      "extractionState": "manual"
+    },
     "Preparing…": {
       "extractionState": "manual"
     },
@@ -314,6 +323,12 @@
       "extractionState": "manual"
     },
     "Prune diagnostics log": {
+      "extractionState": "manual"
+    },
+    "Push only": {
+      "extractionState": "manual"
+    },
+    "Push, refresh on open": {
       "extractionState": "manual"
     },
     "Ready": {
