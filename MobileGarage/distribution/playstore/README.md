@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-06-11
+last_verified: 2026-08-23
 ---
 
 # Play Store listing assets
@@ -16,6 +16,13 @@ generators do NOT write here — they write to the committed generated dir
 (`MobileGarage/screenshots/store/`) and you copy the images you want into this
 directory by hand, then PR them. Both dirs are committed. **The full procedure
 is the `play-store-assets` skill** (`/play-store-assets`).
+
+**Listing TEXT is not tracked here.** The title, short description and full
+description live only in the Play Console and have no reviewable copy in this
+repo — so a Console edit leaves no record and no PR to read. (The App Store side
+does have one: `MobileGarage/distribution/appstore/LISTING.md`.) Only images and
+`distribution/whatsnew/` are under version control today. Noted 2026-08-23; not
+yet remedied.
 
 **Screenshots** are published from here by the dispatch-only `Play Listing
 Images` workflow:
