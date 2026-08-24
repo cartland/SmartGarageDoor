@@ -20,6 +20,23 @@ package com.chriscartland.garage.domain.model
 /**
  * How this app keeps its door state fresh while it is running.
  *
+ * **This enum is a vocabulary, not a framework.** Each constant states a
+ * POLICY — what an implementation must promise — and deliberately says
+ * nothing about how to achieve it. Implement it wherever it fits: an
+ * app-scoped manager, a ViewModel, a platform lifecycle callback, or
+ * nothing at all when the platform gets the behavior for free. Two
+ * implementations of the same constant are not duplication to be cleaned
+ * up; they are two hosts with different constraints agreeing on what they
+ * promise.
+ *
+ * That is already the situation. `PUSH` on the phone is implemented by
+ * the platform's FCM handler plus a strategy object that waits;
+ * `POLL` on iOS is implemented by `DoorUpdateManager` +
+ * `PollDoorUpdateStrategy`, app-scoped, and by `WearHomeViewModel` on
+ * the watch, screen-scoped with its own cadence, because the cadence
+ * depends on ViewModel state an app-scoped manager cannot read. Both
+ * honestly declare `POLL`.
+ *
  * The constants name a BEHAVIOR, never a transport. Push on Android is
  * FCM; push on iOS is FCM→APNs — same declared behavior, different
  * plumbing, and the plumbing is a platform fact the shared layer has no
@@ -36,29 +53,44 @@ package com.chriscartland.garage.domain.model
  */
 enum class DoorUpdateStrategyId {
     /**
-     * The server pushes every door event; the client runs no timer of its
-     * own. Android's behavior since the beginning, and correct there —
-     * data FCM wakes the process reliably, even in Doze.
+     * **Promise:** door events arrive because the server sends them. The
+     * client starts no timer and makes no request of its own.
      *
-     * This is also the "nothing happens on a timer" value tests want: the
-     * strategy does no work, so a test that wants a quiet app selects it.
+     * Android's behavior since the beginning, and correct there — data
+     * FCM wakes the process reliably, even in Doze. Unavailable on any
+     * platform with no push registration (the watch has none).
+     *
+     * This is also the "nothing happens on a timer" value tests want: an
+     * implementation does no work, so a test that wants a quiet app
+     * selects it.
      */
     PUSH,
 
     /**
-     * Fetch the current door event on a fixed interval while the app is
-     * visible, and once immediately whenever it becomes visible. No push
-     * involvement at all.
+     * **Promise:** while the user can see the door, its state is refetched
+     * on an interval, and once immediately on becoming visible. While they
+     * cannot see it, nothing runs. No push involvement at all.
+     *
+     * The interval is deliberately NOT part of the promise. iOS polls
+     * every 15s; the watch polls every 10s and tightens to 2s while a
+     * press is waiting on the door, because it can see that and iOS
+     * cannot. An implementation that varies its cadence with what the user
+     * is doing is honoring this constant, not bending it.
+     *
+     * Nor is "visible" defined here — it means whatever the smallest unit
+     * the host can observe is. On iOS that is the app (`scenePhase`); on
+     * the watch it is the one hero screen.
      *
      * iOS ships this today — not because polling is better, but because
      * iOS receives no door pushes at all right now, and a poll needs
-     * nothing from Apple, from the server, or from a release cycle.
+     * nothing from Apple, from the server, or from a release cycle. The
+     * watch ships it because push was never available to it.
      */
     POLL,
 
     /**
-     * The server pushes, AND the app refreshes once every time it becomes
-     * visible. No interval timer.
+     * **Promise:** the server pushes, AND the state is refetched once
+     * every time the user can see the door again. No interval timer.
      *
      * The intended iOS destination once push delivery works there. The
      * foreground refresh is not belt-and-braces: iOS budgets and throttles

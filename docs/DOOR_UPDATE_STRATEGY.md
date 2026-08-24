@@ -180,17 +180,23 @@ missed a refactor. It is a case of **one policy with two legitimate
 hosts**, and the declaration in `AppConfig` currently states the policy
 without enforcing it.
 
-Two consequences worth acting on, tracked but not yet done:
+**Two implementations of `POLL` is the intended end state, not a pending
+refactor.** The enum is a vocabulary, not a framework: each constant
+states what an implementation must promise and says nothing about how.
+Sharing the loop was considered and rejected — `DoorRefreshLoop` is
+already parameterized on `isVisible` and could take Wear's sources, but
+unifying would make the *mechanism* the shared thing, which is the
+config-bag trade this design already declined once when it chose three
+named strategies over one parameterized loop. It would also mean bending a
+screen-scoped VM around an app-scoped utility to deduplicate a `while`
+and a `delay`.
 
-1. The missing backoff is a real gap, not a cosmetic one. The watch's
-   network path is explicitly the least reliable in the system (BT relay,
-   or Wi-Fi at the garage), and a garage-network outage has it retrying
-   every 10 seconds indefinitely.
-2. `DoorRefreshLoop` is already parameterized on `isVisible` — it does not
-   care *whose* visibility that is. Giving it an urgency input and letting
-   Wear pass its own two sources would leave one tested loop with two sets
-   of inputs, rather than two loops. That is the shape a "declare the
-   policy, host it per platform" split would take.
+What IS worth acting on: **Wear's loop has no failure backoff.** It
+discards the fetch result and sleeps a fixed 10s, so a garage-network
+outage has the watch retrying every 10 seconds indefinitely — on the least
+reliable network path in the system (BT relay, or Wi-Fi at the garage).
+That is a defect in Wear's implementation, fixable in place, and entirely
+independent of whether the two hosts ever merge.
 
 ## 4. Rollout
 

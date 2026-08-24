@@ -29,8 +29,19 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 
 /**
- * One way of keeping door state fresh while the app runs — the swappable
- * half of `DoorUpdateManager`.
+ * How the APP-SCOPED host implements the policies — the swappable half of
+ * `DoorUpdateManager`.
+ *
+ * **This interface is not the definition of a strategy.**
+ * [DoorUpdateStrategyId] is: it names the policies and states what each
+ * one promises. This is one mechanism for honoring them, suited to a host
+ * that lives for the whole process and can be handed a coroutine to
+ * cancel. A different host is free to honor the same policy its own way
+ * and should not be bent into this shape — `WearHomeViewModel` honors
+ * `POLL` with a screen-scoped loop whose cadence depends on ViewModel
+ * state this layer cannot even read (`:usecase` cannot import
+ * `:viewmodel`). That is two hosts agreeing on a promise, which is the
+ * point of the enum, not duplication waiting to be factored out.
  *
  * **A strategy decides WHEN to ask, never what the answer means.** Every
  * implementation ends at `DoorRepository.fetchCurrentDoorEvent()` (or at
