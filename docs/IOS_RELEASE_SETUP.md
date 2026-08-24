@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-07-24
+last_verified: 2026-08-23
 ---
 
 # iOS App Setup & Release Runbook
@@ -131,7 +131,10 @@ Xcode (⌘R). Real push *delivery* requires a physical device.
 use cloud signing (`-allowProvisioningUpdates`), which has `xcodebuild` mint an
 Apple Distribution certificate on demand.
 
-**Why that was changed (ios/12, 2026-08-01).** Certificates are a small,
+**Why that was changed (#1191, 2026-08-01).** (It merged 39 minutes *after* the `ios/12` tag was
+pushed, so `ios/12` still ran the old cloud-signing path and failed on it. The first release this
+code actually signed was `ios/14` on 2026-08-18 — see "Scoping the profile specifier" below for
+what `ios/13` hit in between.) Certificates are a small,
 account-wide, *capped* resource — Apple allows only a small number of Apple
 Distribution certs per account (commonly two; the exact figure has varied by
 account type and era, and the portal is the authority). The number does not
@@ -148,7 +151,14 @@ error: No profiles for 'com.chriscartland.garage' were found
 The second line is a knock-on: with no Distribution cert available, Xcode falls
 back to looking for a *Development* profile and finds none. **Nothing reaches
 App Store Connect when this happens** — export and upload are skipped, so the
-build number stays free and the same tag can be re-run once signing is fixed.
+build number stays free. Empirically: after both `ios/12` and `ios/13` failed,
+the CI pre-flight still reported `Highest existing build on App Store Connect:
+11`.
+
+Re-running the same tag only helps when the fix lives **outside the repo** — a
+secret, a portal action. A tag-triggered workflow runs the workflow file **from
+the tagged commit**, so any fix to `release-ios.yml` itself requires a new tag;
+that is why the `ios/13` fix shipped as `ios/14` rather than a re-run.
 
 ### The three secrets
 
@@ -169,15 +179,27 @@ quietly return to the path that exhausted the quota.
 Requires a Mac and the Apple Developer portal. A certificate is only useful with
 its **private key**, which exists solely on the machine that generated the
 signing request — so a cert previously minted by CI cloud signing **cannot be
-exported**, because its key died with the runner. If the account is at the cap
-and none of the existing certs has a local key, revoking one is not optional.
+exported**, because its key died with the runner.
 
-1. **Free a slot if needed.** [Certificates][certs] → revoke an unused Apple
-   Distribution cert. (Revoking invalidates builds signed with it that have not
-   yet shipped; TestFlight builds already uploaded are unaffected.)
+**Try creating the new certificate before revoking anything.** Cloud signing's
+managed certs occupy their own bucket, so a cap reached by CI does not
+necessarily mean the manual slot is full. On 2026-08-18 the portal listed
+exactly one `Distribution Managed` cert — the one CI had been minting against —
+and still accepted a brand-new manual *Apple Distribution* cert with no
+revocation at all. Revoke only if step 3 is actually refused.
+
+1. **Only if step 3 is refused: free a slot.** [Certificates][certs] → revoke an
+   unused Apple Distribution cert. (Revoking invalidates builds signed with it
+   that have not yet shipped; TestFlight builds already uploaded are
+   unaffected.) See the note above — this was NOT needed in 2026-08.
 2. **Generate a signing request.** Keychain Access → *Certificate Assistant* →
    *Request a Certificate From a Certificate Authority* → save to disk. This is
-   what creates the private key locally.
+   what creates the private key locally. Set *Request is:* **Saved to disk**,
+   leave *CA Email Address* blank, and leave the key-pair defaults alone.
+
+   On macOS 26 **Keychain Access is no longer in Utilities and Spotlight does
+   not index it** — it lives at
+   `/System/Library/CoreServices/Applications/Keychain Access.app`.
 3. **Create the certificate.** [Certificates][certs] → **+** → *Apple
    Distribution* → upload the request → download the `.cer` → double-click to
    install into the login keychain.
@@ -202,6 +224,89 @@ and none of the existing certs has a local key, revoking one is not optional.
 
 [certs]: https://developer.apple.com/account/resources/certificates/list
 [profiles]: https://developer.apple.com/account/resources/profiles/list
+
+### Verifying what you produced
+
+Worth doing before the secrets go anywhere: a wrong `.p12` costs a whole release
+cycle to discover.
+
+```bash
+# Certificate: type, team, validity. Expect "Apple Distribution: <name> (TEAM)".
+openssl x509 -inform DER -in distribution.cer -noout -subject -issuer -dates
+
+# The private key is present iff the identity is listed here.
+security find-identity -v -p codesigning
+
+# Profile: app id, distribution-ness, push environment.
+security cms -D -i profile.mobileprovision > /tmp/p.plist
+/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' /tmp/p.plist
+/usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' /tmp/p.plist   # false
+/usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' /tmp/p.plist  # production
+/usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' /tmp/p.plist            # must NOT exist
+
+# What is actually inside the .p12 (prompts for its password).
+/usr/bin/openssl pkcs12 -in dist.p12 -nodes | grep -E "friendlyName|BEGIN.*PRIVATE KEY"
+```
+
+Two traps on that last command:
+
+- **Use `/usr/bin/openssl`.** Homebrew's OpenSSL 3.x rejects a Keychain-exported
+  `.p12` (legacy PBES1/RC2 encryption); macOS's own LibreSSL reads it natively.
+  With the Homebrew build you would need `-legacy`.
+- **Do not redirect stderr.** openssl writes its password prompt there, so
+  `2>/dev/null` turns a prompt into a silent hang or a blind failure.
+
+A correct single-identity export shows **two** `friendlyName` lines — one for the
+certificate bag, one for the private-key bag, the latter named after the CSR's
+Common Name — and exactly one `BEGIN PRIVATE KEY`. Two identities would show
+four friendlyNames and two keys. `Apple Development` appearing at all means the
+wrong row was selected in Keychain Access, and your personal development key is
+about to be uploaded to CI.
+
+### Scoping the profile specifier
+
+`PROVISIONING_PROFILE_SPECIFIER` is written to a gitignored
+`MobileGarage/iosApp/Signing.local.xcconfig` and pulled in by an optional
+`#include?` from the committed `Secrets.xcconfig`. It is deliberately **not** on
+the `xcodebuild` command line, and that is load-bearing.
+
+Command-line build settings apply to **every target in the build graph**. With
+the specifier there, all ~20 Swift Package dependencies inherit a profile they
+cannot carry, and `ios/13` failed roughly twenty times over with:
+
+```
+error: Firebase_FirebaseAuth does not support provisioning profiles, but
+       provisioning profile "Garage iOS Cert Expires 2027-08-18" has been
+       manually specified
+```
+
+It is the *only* signing setting the packages reject. `CODE_SIGN_STYLE`,
+`DEVELOPMENT_TEAM` and `CODE_SIGN_IDENTITY` stay on the command line, which is
+also the only level that outranks the `CODE_SIGN_STYLE: Automatic` declared for
+the target in `project.yml`.
+
+**Moving all four into the xcconfig does not work.** Xcode precedence puts a
+target's `.pbxproj` settings *above* its xcconfig, so `Automatic` wins while the
+specifier still lands, and the archive fails with `conflicting provisioning
+settings`. Verified locally before #1226 was pushed.
+
+Because the file is gitignored and the include is optional, it exists on CI
+alone — a local Xcode build keeps Automatic signing and needs no distribution
+profile.
+
+After archiving, the workflow asserts the archive embeds the profile UUID it
+installed. A silent signing fallback is the failure mode this whole file guards
+against, so it should not be inferred from `xcodebuild` declining to complain.
+
+**A local archive cannot stand in for CI here.** CI imports into a throwaway
+keychain and grants codesign access with `security set-key-partition-list`; a
+local run uses your login keychain, a different mechanism. Driving `codesign`
+headlessly against the login keychain fails with `errSecInternalComponent` — a
+GUI authorization prompt nothing can answer — which tells you nothing about CI
+either way. Local archives are still worth running to catch *configuration*
+errors (they caught both #1226 bugs, including one wrong first attempt), but let
+CI prove the keychain path, and do not loosen your login keychain's ACLs chasing
+it.
 
 ### Expiry
 
