@@ -191,12 +191,25 @@ named strategies over one parameterized loop. It would also mean bending a
 screen-scoped VM around an app-scoped utility to deduplicate a `while`
 and a `delay`.
 
-What IS worth acting on: **Wear's loop has no failure backoff.** It
-discards the fetch result and sleeps a fixed 10s, so a garage-network
-outage has the watch retrying every 10 seconds indefinitely — on the least
-reliable network path in the system (BT relay, or Wi-Fi at the garage).
-That is a defect in Wear's implementation, fixable in place, and entirely
-independent of whether the two hosts ever merge.
+**Wear's missing failure backoff is correct — do not add one.** The loop
+discards the fetch result and sleeps a fixed 10s, which on the phone would
+be a defect. On the watch it is bounded by construction: `onVisible()` /
+`onHidden()` are wired to `Lifecycle.Event.ON_START` / `ON_STOP` in
+`WearApp.kt`, the app declares no ambient or always-on mode, and
+`keepScreenOn` is capped at 15s per trigger. So the loop lives exactly as
+long as someone is looking at the watch — seconds to a minute — and a
+network outage costs a couple of requests per viewing session, not an
+unbounded retry.
+
+Backoff would also work against the watch's whole point. The user is
+looking at the screen *right now*; the moment the network recovers is
+exactly when they want fresh state, and a backed-off loop would be asleep
+for it. The phone backs off because its loop can run for as long as the
+app is foregrounded, which is unbounded; the watch's cannot.
+
+(An earlier revision of this document claimed the opposite — that the
+watch retried "every 10 seconds indefinitely" and needed fixing. That was
+wrong: it assumed a foreground lifetime the watch does not have.)
 
 ## 4. Rollout
 

@@ -273,7 +273,19 @@ class WearHomeViewModel(
         }
     }
 
-    /** Screen hidden: stop polling (the watch app does no background work). */
+    /**
+     * Screen hidden: stop polling (the watch app does no background work).
+     *
+     * This is also what makes the loop's lack of failure backoff correct
+     * rather than a defect — do not add one. `onVisible` / `onHidden` are
+     * driven by `ON_START` / `ON_STOP`, the app declares no ambient or
+     * always-on mode, and [KEEP_SCREEN_ON_MILLIS] caps any wake at 15s, so
+     * the loop lives only while someone is looking at the watch. A network
+     * outage costs a couple of requests per viewing session, and backing
+     * off would leave the loop asleep at the one moment the user is
+     * staring at the screen waiting for recovery. The phone backs off
+     * because its foreground lifetime is unbounded; this one is not.
+     */
     fun onHidden() {
         refreshJob?.cancel()
         refreshJob = null
