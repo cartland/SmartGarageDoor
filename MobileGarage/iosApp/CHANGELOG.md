@@ -19,6 +19,20 @@ Versioning mirrors Android (see `MobileGarage/CHANGELOG.md` § versioning):
 major = rewrite or core-experience shift; minor = a user-facing feature added or
 removed; patch = fixes, polish, refactors. iOS uses independent `ios/N` tags.
 
+## 0.2.0
+
+- **The door status is now live.** While the app is on screen it refetches the
+  door state every 15 seconds, and immediately each time you come back to it.
+  Before this, the status only updated when the app launched or when you pulled
+  to refresh — the phone could sit open showing a door that had long since
+  moved. Polling stops the moment the app leaves the screen, so nothing runs in
+  the background.
+- **Groundwork for push.** The update mechanism is a swappable strategy shared
+  with Android; once background push delivery is verified on real devices, iOS
+  will switch to push with a refresh on return, and devices that never touched
+  the setting follow automatically. A developer-gated picker (Settings →
+  Developer → Door updates) allows comparing the strategies live.
+
 ## 0.1.4
 
 - **Settings now uses iOS's own word for the app's identifier.** The About
