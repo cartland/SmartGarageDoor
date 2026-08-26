@@ -227,7 +227,7 @@ Android's default is `PUSH`, which is the behavior it has always had:
 Android makes no request it was not already making. iOS's default is
 `POLL`, which is the first time it has ever updated live.
 
-**Phase 2 — server APNs config: code complete, NOT deployed.**
+**Phase 2 — server APNs config: DEPLOYED in `server/37` (2026-08-26).**
 `getFCMDataFromEvent` (`EventFCM.ts`) now sets
 `apns.payload.aps['content-available'] = 1`, `apns-push-type: background`,
 `apns-priority: 5`. `model/FCM.ts` gained `ApnsConfig` / `ApnsHeaders` /
@@ -249,12 +249,16 @@ mechanism here.
 
 This is an **additive** change to a message Android already ignores the
 unknown parts of — FCM applies `android`/`apns` configs only to the
-platform they name — but it is on the path that carries every Android
-device's updates, so **deployment is deliberately withheld**: merging to
-`main` does not deploy Cloud Functions (this repo only deploys via a
-tagged `release-firebase.sh` run), and that release — its own `server/N`,
-a changelog entry, and a check that Android still receives events
-afterward — is a separate, explicit action for whoever runs it.
+platform they name. Deployed 2026-08-26 as `server/37` (23/23 functions
+"Successful update operation"; the workflow's own Deploy-complete guard
+passed). Post-deploy verification: a `validate_only` FCM v1 send of the
+exact production message shape (data + android + apns) was **accepted by
+FCM** — closing the "does firebase-admin/FCM accept the block at runtime"
+gap without delivering anything. The definitive Android check remains the
+next real door event, but a shape rejection — the failure mode that could
+have darkened Android — is now excluded. The client counterpart shipped
+the same day: `ios/15` (0.2.0) to TestFlight Internal, polling by
+default.
 
 **Phase 3 — flip iOS to `PUSH_WITH_FOREGROUND_REFRESH`.** Once Phase 2 is
 verified on a real device (the simulator cannot receive real pushes),
