@@ -75,6 +75,22 @@ arrive: `FCMService` and `AppDelegate` call into shared code, they are not
 polled by it. There is no `expect`/`actual` and no bridge interface for
 lifecycle.
 
+Since 2026-08-30 the sink's value is `Visibility(isVisible, epoch)`, not a
+bare Boolean, and the epoch increments on every `false → true` transition.
+This exists because "the user came back" is an EVENT, and an
+equality-conflated `StateFlow<Boolean>` cannot reliably carry one: the
+platform's `false` and `true` writes are synchronous in its callbacks, but
+a collector suspended for both (fast lock/unlock; the iOS process
+suspending before the IO dispatcher ran) conflates them to
+`true == true`, never wakes, and the return fetch silently doesn't happen
+— the user stares at a stale screen for up to a full poll interval. With
+the epoch, every genuine return is a distinct value, so `collectLatest`
+always restarts and the immediate fetch always fires. Proven by
+`DoorUpdateStrategyTest.aReturnThatConflatesWithTheDepartureStillFetchesImmediately`,
+which fails against the Boolean version. Platform over-reporting (Android
+fires per-Activity; rotation goes 1 → 2 → 1) does not bump the epoch, so
+no spurious refetches.
+
 ### Naming
 
 The constants name a **behavior**, not a transport: `PUSH`, `POLL`,
