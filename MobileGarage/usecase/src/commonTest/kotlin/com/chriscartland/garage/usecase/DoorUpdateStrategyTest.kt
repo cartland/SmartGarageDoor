@@ -130,6 +130,39 @@ class DoorUpdateStrategyTest {
         }
 
     @Test
+    fun aReturnThatConflatesWithTheDepartureStillFetchesImmediately() =
+        runTest {
+            val doorRepo = FakeDoorRepository()
+            val visibility = AppVisibilityState()
+            backgroundScope.launch { pollStrategy(doorRepo, visibility).run() }
+
+            visibility.setVisible(true)
+            runCurrent()
+            assertEquals(1, doorRepo.fetchCurrentDoorEventCount)
+            advanceTimeBy(5_000)
+            runCurrent()
+
+            // The user leaves and comes back before the collector runs —
+            // which is what a fast lock/unlock, an app-switcher bounce, or
+            // the iOS process suspending between the two writes looks like
+            // from the IO dispatcher's point of view. Both writes land
+            // (the platform callbacks are synchronous); only COLLECTION is
+            // deferred, and a conflating StateFlow<Boolean> then shows the
+            // collector true -> true: no change, no wake, no fetch. The
+            // user is staring at the screen and the next fetch is up to a
+            // full interval away. Coming back must always fetch NOW.
+            visibility.setVisible(false)
+            visibility.setVisible(true)
+            runCurrent()
+
+            assertEquals(
+                2,
+                doorRepo.fetchCurrentDoorEventCount,
+                "a conflated away-and-back must still trigger the immediate return fetch",
+            )
+        }
+
+    @Test
     fun pollStopsWhenTheAppIsNoLongerVisible() =
         runTest {
             val doorRepo = FakeDoorRepository()

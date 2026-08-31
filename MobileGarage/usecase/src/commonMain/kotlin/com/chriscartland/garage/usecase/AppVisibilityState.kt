@@ -43,25 +43,51 @@ import kotlinx.coroutines.flow.StateFlow
  * as a candidate input.
  */
 class AppVisibilityState {
-    private val _isVisible = MutableStateFlow(false)
+    /**
+     * Visibility plus a count of how many times it has become true.
+     *
+     * The epoch is what makes "the user came back" survive conflation. A
+     * plain `StateFlow<Boolean>` cannot express it reliably: the platform
+     * writes `false` then `true` synchronously in its callbacks, but a
+     * collector that was suspended for both writes (a fast lock/unlock;
+     * the iOS process suspending before the IO dispatcher ran) compares
+     * conflated `true` against its last-seen `true`, sees no change, and
+     * never wakes — so the return fetch silently doesn't happen and the
+     * user stares at a stale screen for up to a full poll interval.
+     * `epoch` differs on every genuine return, so the conflated value is
+     * still distinct and the collector always restarts. Proven by
+     * `DoorUpdateStrategyTest.aReturnThatConflatesWithTheDepartureStillFetchesImmediately`,
+     * which fails against the Boolean version.
+     */
+    data class Visibility(
+        val isVisible: Boolean,
+        val epoch: Long,
+    )
+
+    private val _visibility = MutableStateFlow(Visibility(isVisible = false, epoch = 0))
 
     /**
-     * `true` between the platform's "became visible" and "stopped being
-     * visible" callbacks. Starts `false`: the app has not told us it is
-     * visible yet, and claiming visibility we were never told about is
-     * the failure that would keep a poll running in the background.
+     * Current visibility. Starts not-visible with epoch 0: the app has
+     * not told us it is visible yet, and claiming visibility we were
+     * never told about is the failure that would keep a poll running in
+     * the background.
      */
-    val isVisible: StateFlow<Boolean> = _isVisible
+    val visibility: StateFlow<Visibility> = _visibility
 
     /**
      * Report a visibility change. Idempotent — repeated identical values
-     * are dropped by `MutableStateFlow`'s equality conflation, so a
-     * platform that over-reports (Android fires per-Activity; a
-     * configuration change stops one and starts another) costs nothing.
+     * return early, so a platform that over-reports (Android fires
+     * per-Activity; a configuration change stops one and starts another)
+     * neither costs anything nor inflates the epoch. Only a real
+     * `false -> true` transition counts as a return.
      */
     fun setVisible(visible: Boolean) {
-        if (_isVisible.value == visible) return
+        val current = _visibility.value
+        if (current.isVisible == visible) return
         Logger.d { "AppVisibilityState: visible=$visible" }
-        _isVisible.value = visible
+        _visibility.value = Visibility(
+            isVisible = visible,
+            epoch = if (visible) current.epoch + 1 else current.epoch,
+        )
     }
 }

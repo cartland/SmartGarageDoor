@@ -122,7 +122,7 @@ class PollDoorUpdateStrategy(
 
     override suspend fun run() {
         DoorRefreshLoop.runWhileVisible(
-            isVisible = appVisibility.isVisible,
+            visibility = appVisibility.visibility,
             intervalMillis = intervalMillis,
             maxBackoffMillis = maxBackoffMillis,
             firstFetchKey = AppLoggerKeys.FOREGROUND_REFRESH_CURRENT_DOOR,
@@ -167,7 +167,7 @@ class PushWithForegroundRefreshDoorUpdateStrategy(
 
     override suspend fun run() {
         DoorRefreshLoop.runWhileVisible(
-            isVisible = appVisibility.isVisible,
+            visibility = appVisibility.visibility,
             intervalMillis = null,
             maxBackoffMillis = maxBackoffMillis,
             firstFetchKey = AppLoggerKeys.FOREGROUND_REFRESH_CURRENT_DOOR,
@@ -210,7 +210,7 @@ internal object DoorRefreshLoop {
      * and fire one last request into the background.
      */
     suspend fun runWhileVisible(
-        isVisible: StateFlow<Boolean>,
+        visibility: StateFlow<AppVisibilityState.Visibility>,
         intervalMillis: Long?,
         maxBackoffMillis: Long,
         firstFetchKey: String,
@@ -218,8 +218,14 @@ internal object DoorRefreshLoop {
         logAppEvent: LogAppEventUseCase,
         fetch: suspend () -> AppResult<DoorEvent, FetchError>,
     ) {
-        isVisible.collectLatest { visible ->
-            if (!visible) return@collectLatest
+        // Collected as (isVisible, epoch), not a bare Boolean: the epoch is
+        // what guarantees a fetch on EVERY return, including one whose
+        // departure was conflated away while this collector was suspended —
+        // see AppVisibilityState.Visibility. collectLatest then treats each
+        // return as a fresh value: cancel whatever was in flight (usually a
+        // mid-interval delay) and start over with the immediate fetch.
+        visibility.collectLatest { v ->
+            if (!v.isVisible) return@collectLatest
             var backoffMillis = 0L
             var first = true
             while (true) {
