@@ -19,6 +19,18 @@ Versioning mirrors Android (see `MobileGarage/CHANGELOG.md` § versioning):
 major = rewrite or core-experience shift; minor = a user-facing feature added or
 removed; patch = fixes, polish, refactors. iOS uses independent `ios/N` tags.
 
+## 0.2.1
+
+- **Coming back to the app now always fetches immediately.** 0.2.0's live
+  status refreshed on return, but the signal for "the user came back" could be
+  lost when leaving and returning happened faster than the app could observe —
+  a quick lock and unlock, or iOS suspending the app at just the wrong moment.
+  When that happened the screen sat on its old reading until the next 15-second
+  tick, which read as the app feeling slow to wake. Every return — unlocking
+  the phone, switching back from another app, closing Control Center — now
+  reliably triggers an immediate fetch, so the door state on screen is at most
+  one network round-trip old the moment you look at it.
+
 ## 0.2.0
 
 - **The door status is now live.** While the app is on screen it refetches the
