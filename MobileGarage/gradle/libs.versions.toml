@@ -20,7 +20,7 @@ accompanistPermissions = "0.37.3"
 activityCompose = "1.13.0"
 agp = "8.10.1"
 androidxCore = "1.16.0"
-androidxNavigation = "2.9.8"
+androidxNavigation = "2.10.0"
 androidxNavigation3 = "1.0.0-alpha02"
 jbLifecycle = "2.10.0-beta01"
 # datastore is PINNED at 1.1.7 for the same reason as kermit below: 1.2.1's
