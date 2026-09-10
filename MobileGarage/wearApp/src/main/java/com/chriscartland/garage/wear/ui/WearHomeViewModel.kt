@@ -27,6 +27,10 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.presentation.DataFreshness
+import com.chriscartland.garage.presentation.DataFreshnessMapper
+import com.chriscartland.garage.usecase.AppSettleWindow
+import com.chriscartland.garage.usecase.AppVisibilityState
 import com.chriscartland.garage.usecase.ButtonAckToken
 import com.chriscartland.garage.usecase.ButtonStateMachine
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
@@ -40,10 +44,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
@@ -100,11 +106,44 @@ class WearHomeViewModel(
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
     private val fetchCurrentDoorEventUseCase: FetchCurrentDoorEventUseCase,
     private val dispatchers: DispatcherProvider,
+    private val appVisibilityState: AppVisibilityState,
+    private val appSettleWindow: AppSettleWindow,
     private val appVersion: String,
 ) : ViewModel() {
     /** Pass-through of the repository StateFlows (ADR-022 — no re-wrapping). */
     val authState: StateFlow<AuthState> = observeAuthState()
     val currentDoorEvent: StateFlow<DoorEvent?> = observeDoorEvents.current()
+
+    /**
+     * How much the watch trusts what is on the dial, and whether it may say
+     * so out loud — the same three-way verdict the phone and iOS render, from
+     * the same shared mapper.
+     *
+     * The watch's own bar for "not current" is simply *having no door event
+     * at all*, which on this device is the state of every single launch: the
+     * local data source is in-memory, so nothing survives the process. There
+     * is deliberately no check-in staleness input here — the watch runs no
+     * `CheckInStalenessManager`, and inventing a second, weaker definition of
+     * stale for one platform is exactly the drift `DataFreshness` exists to
+     * prevent. A fetch failure likewise does not register: this loop discards
+     * its results (see [onVisible]) and a failed poll leaves `hasData` false,
+     * which already reads as not-current.
+     *
+     * `Eagerly` because both upstreams are in-memory StateFlows — running the
+     * combine for the life of the ViewModel costs nothing, and the initial
+     * value makes the first frame correct rather than a flash of FRESH.
+     */
+    val freshness: StateFlow<DataFreshness> =
+        combine(currentDoorEvent, appSettleWindow.isSettling) { event, settling ->
+            wearFreshness(event, settling)
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = wearFreshness(
+                currentDoorEvent.value,
+                appSettleWindow.isSettling.value,
+            ),
+        )
 
     private val stateMachine = ButtonStateMachine(
         doorPosition = observeDoorEvents.position(),
@@ -259,8 +298,19 @@ class WearHomeViewModel(
         }
     }
 
-    /** Screen became visible: start the foreground refresh loop. */
+    /**
+     * Screen became visible: start the foreground refresh loop, and open the
+     * settle window.
+     *
+     * The watch reports its own visibility here because this ViewModel IS its
+     * lifecycle host — there is no Application-level Activity count and no
+     * scene phase to read. `setVisible` is idempotent and only a real
+     * `false -> true` counts as a return, so the `refreshJob` early-return
+     * below and this call agree without either having to check the other.
+     */
     fun onVisible() {
+        appVisibilityState.setVisible(true)
+        appSettleWindow.start()
         if (refreshJob?.isActive == true) return
         refreshJob = viewModelScope.launch(dispatchers.io) {
             while (true) {
@@ -287,6 +337,7 @@ class WearHomeViewModel(
      * because its foreground lifetime is unbounded; this one is not.
      */
     fun onHidden() {
+        appVisibilityState.setVisible(false)
         refreshJob?.cancel()
         refreshJob = null
     }
@@ -407,6 +458,26 @@ class WearHomeViewModel(
     }
 
     companion object {
+        /**
+         * The watch's reading of [DataFreshnessMapper] — see [freshness] for
+         * why only "have we heard anything at all" feeds it.
+         *
+         * A companion function rather than a lambda inline in the combine so
+         * the flow and its own initial value provably run the same rule; a
+         * duplicated expression there is precisely how a first frame comes to
+         * disagree with every frame after it.
+         */
+        private fun wearFreshness(
+            event: DoorEvent?,
+            isSettling: Boolean,
+        ): DataFreshness =
+            DataFreshnessMapper.freshness(
+                hasData = event != null,
+                isCheckInStale = false,
+                isFetchError = false,
+                isSettling = isSettling,
+            )
+
         /**
          * Hold duration required to confirm a press (the radial indicator
          * sweep time).

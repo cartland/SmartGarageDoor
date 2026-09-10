@@ -17,6 +17,7 @@
 | `testNotificationSandbox` | input | USER_ACTION | `TestNotificationRepository` | — | `FunctionListViewModel` (invoke) |
 | `nowEpochSeconds` | input | CLOCK | `LiveClock` | — | `DoorHistoryViewModel` (direct), `HomeViewModel` (direct) |
 | `isCheckInStale` | input | CLOCK | `CheckInStalenessManager` | — | `DoorHistoryViewModel` (direct), `HomeViewModel` (direct) |
+| `isSettling` | input | CLOCK | `AppSettleWindow` | — | `HomeViewModel` (direct) |
 | `watchCompanion` | input | POLL | `WearCompanionRepository` | — | — |
 | `buttonHealthDisplay` | derived | — | `ComputeButtonHealthDisplayUseCase` | eager | `HomeViewModel` |
 | `effectiveSnoozeState` | derived | — | `ComputeEffectiveSnoozeStateUseCase` | eager | `ProfileViewModel` |
@@ -48,6 +49,7 @@ graph LR
     testNotificationSandbox(["testNotificationSandbox · USER_ACTION"])
     nowEpochSeconds(["nowEpochSeconds · CLOCK"])
     isCheckInStale(["isCheckInStale · CLOCK"])
+    isSettling(["isSettling · CLOCK"])
     watchCompanion(["watchCompanion · POLL"])
     buttonHealthDisplay["buttonHealthDisplay"]
     effectiveSnoozeState["effectiveSnoozeState"]
@@ -78,6 +80,7 @@ graph LR
     ObserveTestNotificationStateUseCase --> FunctionListViewModel
     isCheckInStale --> DoorHistoryViewModel
     isCheckInStale --> HomeViewModel
+    isSettling --> HomeViewModel
     nowEpochSeconds --> DoorHistoryViewModel
     nowEpochSeconds --> HomeViewModel
     currentDoorEvent -. reacts .-> isCheckInStale

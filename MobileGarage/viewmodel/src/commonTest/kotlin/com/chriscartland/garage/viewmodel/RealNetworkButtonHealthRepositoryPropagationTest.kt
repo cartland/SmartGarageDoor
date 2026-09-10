@@ -171,6 +171,7 @@ class RealNetworkButtonHealthRepositoryPropagationTest {
             checkDoorCommandUseCase = CheckDoorCommandUseCase(authRepo, FakeDoorCommandRepository()),
             checkInStalenessManager = stalenessManager,
             liveClock = liveClock,
+            appSettleWindow = FakeAppSettleWindow(),
             buttonHealthDisplay = computeButtonHealth(),
             appVersion = "test",
             fetchOnInit = false,

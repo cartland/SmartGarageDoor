@@ -43,6 +43,7 @@ import com.chriscartland.garage.usecase.AppStartup
 import com.chriscartland.garage.usecase.AppVisibilityState
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
+import com.chriscartland.garage.usecase.DefaultAppSettleWindow
 import com.chriscartland.garage.usecase.DefaultCheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.DoorResolvedFcmSubscriptionManager
@@ -218,6 +219,11 @@ class AppStartupTest {
         val fcmManager = createFcmManager(scope)
         val stalenessManager = createStalenessManager(scope)
         val liveClock = createLiveClock(scope)
+        val settleWindow = DefaultAppSettleWindow(
+            appVisibilityState = AppVisibilityState(),
+            scope = scope.backgroundScope,
+            dispatcher = testDispatcher,
+        )
         val buttonHealthMgr = createButtonHealthFcmSubscriptionManager(scope)
         val doorResolvedMgr = createDoorResolvedFcmSubscriptionManager(scope)
         val initialDoorFetchMgr = createInitialDoorFetchManager(scope, logger, counters)
@@ -245,6 +251,7 @@ class AppStartupTest {
             fcmRegistrationManager = fcmManager,
             checkInStalenessManager = stalenessManager,
             liveClock = liveClock,
+            appSettleWindow = settleWindow,
             logAppEvent = LogAppEventUseCase(logger, counters),
             runStartupDiagnosticsMaintenance = RunStartupDiagnosticsMaintenanceUseCase(
                 seed = SeedDiagnosticsCountersFromRoomUseCase(logger, counters),
@@ -287,6 +294,7 @@ class AppStartupTest {
                     "startFcmRegistration",
                     "startCheckInStaleness",
                     "startLiveClock",
+                    "startAppSettleWindow",
                     "startButtonHealthFcmSubscription",
                     "startDoorResolvedFcmSubscription",
                     "startInitialDoorFetch",

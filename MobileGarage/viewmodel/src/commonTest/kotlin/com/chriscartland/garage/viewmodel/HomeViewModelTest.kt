@@ -131,6 +131,9 @@ class HomeViewModelTest {
     ): DefaultHomeViewModel {
         authRepository.setAuthState(authState)
         val stalenessManager = FakeCheckInStalenessManager()
+        // Settled unless a test says otherwise — see FakeAppSettleWindow for
+        // why the fake's default is the opposite of production's.
+        val settleWindow = FakeAppSettleWindow()
         val liveClock = DefaultLiveClock(
             clock = AppClock { 0L },
             scope = scope,
@@ -166,6 +169,7 @@ class HomeViewModelTest {
             ),
             checkInStalenessManager = stalenessManager,
             liveClock = liveClock,
+            appSettleWindow = settleWindow,
             buttonHealthDisplay = computeButtonHealth(),
             appVersion = "test",
             fetchOnInit = fetchOnInit,

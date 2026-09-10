@@ -33,7 +33,16 @@ abstract class ArchitectureCheckTask : DefaultTask() {
         // watch reuses shared logic but must stay lean (no Room/DataStore,
         // no phone ViewModels). Widening this list is a conscious
         // architecture decision, not a default.
-        ":wearApp" to listOf(":domain", ":data", ":usecase"),
+        //
+        // `:presentation-model` was added deliberately: it is a pure-Kotlin
+        // module over `:domain` alone — no Room, no DataStore, no ViewModels,
+        // nothing the leanness rule is protecting against — and its entire
+        // purpose is the cross-platform presentation verdicts (ADR-035
+        // "shared decides, platform words it"). Keeping the watch out of it
+        // would not have made the watch smaller; it would have made the watch
+        // reimplement `DataFreshness`, which is the drift that type exists to
+        // prevent.
+        ":wearApp" to listOf(":domain", ":data", ":usecase", ":presentation-model"),
         ":android-screenshot-tests" to listOf("*"),
         ":iosFramework" to listOf("*"),
         ":macrobenchmark" to listOf("*"),

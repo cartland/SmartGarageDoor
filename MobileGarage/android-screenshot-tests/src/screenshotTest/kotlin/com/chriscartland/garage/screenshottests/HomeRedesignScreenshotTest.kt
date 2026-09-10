@@ -35,6 +35,8 @@ import com.chriscartland.garage.ui.home.HomeContentRemotePillOnlinePreview
 import com.chriscartland.garage.ui.home.HomeContentRemotePillUnauthorizedPreview
 import com.chriscartland.garage.ui.home.HomeContentRemotePillUnknownPreview
 import com.chriscartland.garage.ui.home.HomeContentSendingToDoorPreview
+import com.chriscartland.garage.ui.home.HomeContentSettledStalePreview
+import com.chriscartland.garage.ui.home.HomeContentSettlingPreview
 import com.chriscartland.garage.ui.home.HomeContentSignedOutPreview
 import com.chriscartland.garage.ui.home.HomeContentStaleBannerPreview
 import com.chriscartland.garage.ui.theme.AppTheme
@@ -73,6 +75,34 @@ fun HomeContentClosedSignedInPreviewTest() {
 @Composable
 fun HomeContentConnectingPreviewTest() {
     AppTheme { HomeContentConnectingPreview() }
+}
+
+// The settle-window pair. Their VALUE is in being compared: same door, same
+// words, and a banner in exactly one of them. Keep them adjacent in the
+// gallery so a reviewer sees the escalation rather than two unrelated cards.
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeContentSettlingPreviewTest() {
+    AppTheme { HomeContentSettlingPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeContentSettledStalePreviewTest() {
+    AppTheme { HomeContentSettledStalePreview() }
 }
 
 @PreviewTest

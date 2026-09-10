@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.ui.home
 
+import com.chriscartland.garage.presentation.DataFreshness
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -119,6 +120,50 @@ class DeviceCheckInTest {
         // we don't render "-30 sec ago".
         val display = DeviceCheckIn.format(lastCheckInSeconds = 1_000L, nowSeconds = 970L)
         assertEquals("Just now", display.durationLabel)
+        assertFalse(display.isStale)
+    }
+
+    /**
+     * The settle window silences the pill's RED, never its words. Same aged
+     * heartbeat as [format_aboveStaleThreshold_isStale] (whose default
+     * `freshness` is STALE); only the alarm differs.
+     */
+    @Test
+    fun format_settling_keepsTheLabelButDropsTheAlarm() {
+        val display = DeviceCheckIn.format(
+            lastCheckInSeconds = 0L,
+            nowSeconds = 661L,
+            freshness = DataFreshness.SETTLING,
+        )
+        assertEquals("11 min 1 sec ago", display.durationLabel)
+        assertFalse("the pill must not alarm inside the settle window", display.isStale)
+    }
+
+    /**
+     * Positive control for the pair above: with the window expired the same
+     * inputs DO alarm. Without this, a `freshness.isSpoken` that had
+     * degenerated to always-false would satisfy the settling test and the
+     * suite would go green while the pill had quietly stopped working.
+     */
+    @Test
+    fun format_spoken_alarmsOnTheSameAgedCheckIn() {
+        val display = DeviceCheckIn.format(
+            lastCheckInSeconds = 0L,
+            nowSeconds = 661L,
+            freshness = DataFreshness.STALE,
+        )
+        assertEquals("11 min 1 sec ago", display.durationLabel)
+        assertTrue("the pill must alarm once the window has passed", display.isStale)
+    }
+
+    /** A fresh heartbeat never alarms, whatever the verdict. */
+    @Test
+    fun format_freshCheckInNeverAlarmsEvenWhenSpoken() {
+        val display = DeviceCheckIn.format(
+            lastCheckInSeconds = 0L,
+            nowSeconds = 60L,
+            freshness = DataFreshness.STALE,
+        )
         assertFalse(display.isStale)
     }
 }

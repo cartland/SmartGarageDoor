@@ -44,21 +44,31 @@ object HomeAlertMapper {
      * @param notificationRequestCount how many times the user tapped the
      *   permission banner's action this session; passed through verbatim into
      *   [HomeAlert.PermissionMissing.attemptCount] for the escalation copy.
+     * @param freshness gates the two FRESHNESS banners — and only those. Both
+     *   [HomeAlert.Stale] and [HomeAlert.FetchError] are statements about how
+     *   current the data is, and both carry a Retry, so both wait for
+     *   [DataFreshness.isSpoken]. Before that the screen still shows the
+     *   condition, as a muted door; it just does not put it into words while
+     *   the return fetch that will resolve it is still in flight. The
+     *   permission banner is deliberately NOT gated: a missing notification
+     *   permission is a standing configuration fact, not a thing that is
+     *   about to resolve itself, so it has nothing to wait for.
      */
     fun toHomeAlerts(
         currentDoorEvent: LoadingResult<DoorEvent?>,
         isCheckInStale: Boolean,
         notificationPermissionGranted: Boolean,
         notificationRequestCount: Int,
+        freshness: DataFreshness,
     ): List<HomeAlert> =
         buildList {
-            if (isCheckInStale) {
+            if (freshness.isSpoken && isCheckInStale) {
                 add(HomeAlert.Stale)
             }
             if (!notificationPermissionGranted) {
                 add(HomeAlert.PermissionMissing(attemptCount = notificationRequestCount))
             }
-            if (currentDoorEvent is LoadingResult.Error) {
+            if (freshness.isSpoken && currentDoorEvent is LoadingResult.Error) {
                 add(
                     HomeAlert.FetchError(
                         truncatedException = currentDoorEvent.exception

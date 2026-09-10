@@ -18,6 +18,7 @@ package com.chriscartland.garage.viewmodel
 
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.DoorWarning
 import com.chriscartland.garage.usecase.VoiceDoorState
 import kotlin.test.Test
@@ -40,6 +41,8 @@ class HomeDoorStateMapperTest {
             event = DoorEvent(doorPosition = DoorPosition.CLOSED, lastChangeTimeSeconds = 900L),
             isCheckInStale = true,
             nowEpochSeconds = 1000L,
+            isFetchError = false,
+            isSettling = false,
         )
         assertEquals(true, state.isCheckInStale)
         // Stale cache must never pass the direction gate (the
@@ -53,6 +56,8 @@ class HomeDoorStateMapperTest {
             event = DoorEvent(doorPosition = DoorPosition.CLOSED, lastChangeTimeSeconds = 900L),
             isCheckInStale = false,
             nowEpochSeconds = 1000L,
+            isFetchError = false,
+            isSettling = false,
         )
         assertNull(state.warning)
         assertEquals(false, state.isCheckInStale)
@@ -73,6 +78,8 @@ class HomeDoorStateMapperTest {
             ),
             isCheckInStale = false,
             nowEpochSeconds = 1000L,
+            isFetchError = false,
+            isSettling = false,
         )
         assertEquals(DoorWarning.OpeningTooLong, state.warning)
         assertEquals(VoiceDoorState.STUCK, state.voice)
@@ -84,9 +91,73 @@ class HomeDoorStateMapperTest {
             event = null,
             isCheckInStale = false,
             nowEpochSeconds = 1000L,
+            isFetchError = false,
+            isSettling = false,
         )
         assertNull(state.warning)
         assertNull(state.sinceStatus)
         assertEquals(VoiceDoorState.UNKNOWN, state.voice)
+    }
+
+    /**
+     * Freshness is a field of the SAME node as the stale pill, so the muted
+     * art and the banner that explains it are computed from one snapshot.
+     * The three cases below walk the whole escalation from a single input
+     * changing.
+     */
+    @Test
+    fun aCurrentDoorIsFresh() {
+        val state = HomeDoorStateMapper.compute(
+            event = DoorEvent(doorPosition = DoorPosition.CLOSED, lastChangeTimeSeconds = 900L),
+            isCheckInStale = false,
+            nowEpochSeconds = 1000L,
+            isFetchError = false,
+            isSettling = false,
+        )
+        assertEquals(DataFreshness.FRESH, state.freshness)
+    }
+
+    @Test
+    fun aStaleDoorInsideTheWindowIsMutedButUnspoken() {
+        val state = HomeDoorStateMapper.compute(
+            event = DoorEvent(doorPosition = DoorPosition.CLOSED, lastChangeTimeSeconds = 900L),
+            isCheckInStale = true,
+            nowEpochSeconds = 1000L,
+            isFetchError = false,
+            isSettling = true,
+        )
+        assertEquals(DataFreshness.SETTLING, state.freshness)
+        // Still the stale pill, still a refused voice gate — the settle
+        // window changes how LOUD the screen is, never what is true.
+        assertEquals(true, state.isCheckInStale)
+        assertEquals(VoiceDoorState.UNKNOWN, state.voice)
+    }
+
+    @Test
+    fun aStaleDoorOutsideTheWindowIsSpoken() {
+        val state = HomeDoorStateMapper.compute(
+            event = DoorEvent(doorPosition = DoorPosition.CLOSED, lastChangeTimeSeconds = 900L),
+            isCheckInStale = true,
+            nowEpochSeconds = 1000L,
+            isFetchError = false,
+            isSettling = false,
+        )
+        assertEquals(DataFreshness.STALE, state.freshness)
+    }
+
+    /** A failed refresh keeps the door it was showing, and says so. */
+    @Test
+    fun aFetchErrorIsNotCurrentEvenWithAGoodEvent() {
+        val state = HomeDoorStateMapper.compute(
+            event = DoorEvent(doorPosition = DoorPosition.OPEN, lastChangeTimeSeconds = 900L),
+            isCheckInStale = false,
+            nowEpochSeconds = 1000L,
+            isFetchError = true,
+            isSettling = false,
+        )
+        assertEquals(DataFreshness.STALE, state.freshness)
+        // The event survives: stale-while-revalidate means the last good
+        // reading stays on screen, muted rather than erased.
+        assertEquals(900L, state.sinceStatus?.sinceEpochSeconds)
     }
 }
