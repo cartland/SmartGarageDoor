@@ -18,6 +18,8 @@
 package com.chriscartland.garage.wear.ui
 
 import androidx.annotation.StringRes
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -36,6 +38,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -60,10 +63,12 @@ import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.wear.R
 import com.chriscartland.garage.wear.auth.WearGoogleSignIn
 import com.chriscartland.garage.wear.di.WearSignInConfig
 import com.chriscartland.garage.wear.ui.theme.WearDoorColors
+import com.chriscartland.garage.wear.ui.theme.WearFreshnessTint
 import kotlinx.coroutines.launch
 
 /**
@@ -87,6 +92,7 @@ fun HeroScreen(
     val buttonState by viewModel.buttonState.collectAsStateWithLifecycle()
     val isHolding by viewModel.isHolding.collectAsStateWithLifecycle()
     val signInError by viewModel.signInError.collectAsStateWithLifecycle()
+    val freshness by viewModel.freshness.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -95,6 +101,7 @@ fun HeroScreen(
         doorPosition = doorEvent?.doorPosition ?: DoorPosition.UNKNOWN,
         lastChangeTimeSeconds = doorEvent?.lastChangeTimeSeconds,
         hasDoorData = doorEvent != null,
+        freshness = freshness,
         authState = authState,
         buttonState = buttonState,
         isHolding = isHolding,
@@ -133,6 +140,7 @@ fun HeroScreenContent(
     doorPosition: DoorPosition,
     lastChangeTimeSeconds: Long?,
     hasDoorData: Boolean,
+    freshness: DataFreshness,
     authState: AuthState,
     buttonState: RemoteButtonState,
     isHolding: Boolean,
@@ -160,6 +168,7 @@ fun HeroScreenContent(
         doorPosition = doorPosition,
         lastChangeTimeSeconds = lastChangeTimeSeconds,
         hasDoorData = hasDoorData,
+        freshness = freshness,
         authState = authState,
         buttonState = buttonState,
         signInError = signInError,
@@ -193,6 +202,7 @@ internal fun HeroScreenLayout(
     doorPosition: DoorPosition,
     lastChangeTimeSeconds: Long?,
     hasDoorData: Boolean,
+    freshness: DataFreshness,
     authState: AuthState,
     buttonState: RemoteButtonState,
     signInError: Boolean,
@@ -216,6 +226,7 @@ internal fun HeroScreenLayout(
                     lastChangeTimeSeconds = lastChangeTimeSeconds,
                     animationMemory = animationMemory,
                     suppressWarningOverlay = !hasDoorData,
+                    freshness = freshness,
                     onHoldStart = onHoldStart,
                     onHoldEnd = onHoldEnd,
                     modifier = Modifier
@@ -241,7 +252,7 @@ internal fun HeroScreenLayout(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = HeroScreenMappers.doorStateLabel(doorPosition, hasDoorData),
+                        text = HeroScreenMappers.doorStateLabel(doorPosition, hasDoorData, freshness),
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                     )
@@ -302,12 +313,13 @@ internal fun HeroScreenLayout(
                         lastChangeTimeSeconds = lastChangeTimeSeconds,
                         animationMemory = animationMemory,
                         suppressWarningOverlay = !hasDoorData,
+                        freshness = freshness,
                         onHoldStart = onHoldStart,
                         onHoldEnd = onHoldEnd,
                         modifier = Modifier.fillMaxWidth(DOOR_WIDTH_FRACTION_SIGNED_OUT),
                     )
                     Text(
-                        text = HeroScreenMappers.doorStateLabel(doorPosition, hasDoorData),
+                        text = HeroScreenMappers.doorStateLabel(doorPosition, hasDoorData, freshness),
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                     )
@@ -393,6 +405,7 @@ private fun GarageDoorTarget(
     lastChangeTimeSeconds: Long?,
     animationMemory: DoorAnimationMemory,
     suppressWarningOverlay: Boolean,
+    freshness: DataFreshness,
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
     modifier: Modifier = Modifier,
@@ -426,13 +439,28 @@ private fun GarageDoorTarget(
             },
         contentAlignment = Alignment.Center,
     ) {
+        // Grey and dim the moment the watch is unsure this is current — which
+        // on this device is every launch, since nothing survives the process.
+        // Animated, so the first successful poll resolves the dial into colour
+        // instead of snapping; on a wrist that motion is itself the signal
+        // that the watch just heard from the garage.
+        val doorColor by animateColorAsState(
+            targetValue = WearFreshnessTint.tint(WearDoorColors.forPosition(doorPosition), freshness),
+            label = "doorFreshnessColor",
+        )
+        val doorAlpha by animateFloatAsState(
+            targetValue = WearFreshnessTint.alphaFor(freshness),
+            label = "doorFreshnessAlpha",
+        )
         WearGarageIcon(
             doorPosition = doorPosition,
             animationMemory = animationMemory,
             lastChangeTimeSeconds = lastChangeTimeSeconds,
-            color = WearDoorColors.forPosition(doorPosition),
+            color = doorColor,
             suppressWarningOverlay = suppressWarningOverlay,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = doorAlpha },
         )
     }
 }
@@ -471,16 +499,30 @@ internal object HeroScreenMappers {
      * No door event at all (cold start) renders the calm "Connecting…"
      * headline — mirrors the phone Home card. A real server-reported
      * UNKNOWN event (hasDoorData = true) keeps the "Unknown" label.
+     *
+     * "Connecting…" only stays honest for so long. Once [freshness] reaches
+     * [DataFreshness.STALE] — the settle window elapsed and the watch still
+     * has nothing — the label becomes "No signal", because at that point
+     * "Connecting…" is describing an attempt that is not going well as
+     * though it were going fine. This is the ONE text change the settle
+     * window unlocks on the watch; the round mask leaves no room for the
+     * banner the phone shows, so the headline does that job here.
+     *
+     * Deliberately NOT keyed on [freshness] alone: a watch that HAS a door
+     * event keeps naming the door, muted, exactly as before. Replacing a
+     * known position with "No signal" would throw away the last thing we
+     * actually know at the moment it becomes most useful.
      */
     @Composable
     fun doorStateLabel(
         doorPosition: DoorPosition,
         hasDoorData: Boolean,
+        freshness: DataFreshness,
     ): String =
-        if (!hasDoorData) {
-            stringResource(R.string.door_state_connecting)
-        } else {
-            doorStateLabel(doorPosition)
+        when {
+            hasDoorData -> doorStateLabel(doorPosition)
+            freshness.isSpoken -> stringResource(R.string.door_state_no_signal)
+            else -> stringResource(R.string.door_state_connecting)
         }
 
     @Composable
@@ -566,6 +608,7 @@ private fun HeroScreenContentReadyPreview() {
             doorPosition = DoorPosition.CLOSED,
             lastChangeTimeSeconds = null,
             hasDoorData = true,
+            freshness = DataFreshness.FRESH,
             authState = PREVIEW_USER,
             buttonState = RemoteButtonState.Ready,
             isHolding = false,
@@ -587,6 +630,7 @@ private fun HeroScreenContentHoldingPreview() {
             doorPosition = DoorPosition.CLOSED,
             lastChangeTimeSeconds = null,
             hasDoorData = true,
+            freshness = DataFreshness.FRESH,
             authState = PREVIEW_USER,
             buttonState = RemoteButtonState.AwaitingConfirmation,
             isHolding = true,
@@ -608,6 +652,7 @@ private fun HeroScreenContentInferredPositionPreview() {
             doorPosition = DoorPosition.OPENING,
             lastChangeTimeSeconds = null,
             hasDoorData = true,
+            freshness = DataFreshness.FRESH,
             authState = PREVIEW_USER,
             buttonState = RemoteButtonState.Ready,
             isHolding = false,
@@ -628,6 +673,7 @@ private fun HeroScreenContentSignedOutPreview() {
             doorPosition = DoorPosition.OPEN,
             lastChangeTimeSeconds = null,
             hasDoorData = true,
+            freshness = DataFreshness.FRESH,
             authState = AuthState.Unauthenticated,
             buttonState = RemoteButtonState.Ready,
             isHolding = false,

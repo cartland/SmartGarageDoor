@@ -17,6 +17,8 @@
 package com.chriscartland.garage.viewmodel
 
 import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.presentation.DataFreshness
+import com.chriscartland.garage.presentation.DataFreshnessMapper
 import com.chriscartland.garage.presentation.DoorWarning
 import com.chriscartland.garage.presentation.DoorWarningMapper
 import com.chriscartland.garage.presentation.SinceStatus
@@ -55,6 +57,14 @@ data class HomeDoorState(
      * check-ins project to states that refuse a spoken command.
      */
     val voice: VoiceDoorState,
+    /**
+     * How much this snapshot is to be trusted, AND how loudly the screen may
+     * say so — see [DataFreshness]. A field of this node rather than a flow of
+     * its own for the same G7 reason as the rest: the muted door art and the
+     * banner that explains it must never disagree, and they would if the
+     * colour came from one collected copy and the words from another.
+     */
+    val freshness: DataFreshness,
 )
 
 /**
@@ -65,15 +75,32 @@ data class HomeDoorState(
  * collected copies.
  */
 object HomeDoorStateMapper {
+    /**
+     * @param isFetchError the last fetch failed. Kept separate from [event]
+     *   because a failed refresh does not erase the previous good value
+     *   (stale-while-revalidate) — the event still renders, it is only its
+     *   trustworthiness that changed.
+     * @param isSettling the app is inside `AppSettleWindow`'s grace period,
+     *   which downgrades every "something is wrong" verdict from words to a
+     *   colour. See [DataFreshness].
+     */
     fun compute(
         event: DoorEvent?,
         isCheckInStale: Boolean,
         nowEpochSeconds: Long,
+        isFetchError: Boolean,
+        isSettling: Boolean,
     ): HomeDoorState =
         HomeDoorState(
             warning = DoorWarningMapper.forEvent(event),
             sinceStatus = SinceStatusMapper.forEvent(event?.lastChangeTimeSeconds, nowEpochSeconds),
             isCheckInStale = isCheckInStale,
             voice = VoiceDoorStateMapper.project(event?.doorPosition, isCheckInStale),
+            freshness = DataFreshnessMapper.freshness(
+                hasData = event != null,
+                isCheckInStale = isCheckInStale,
+                isFetchError = isFetchError,
+                isSettling = isSettling,
+            ),
         )
 }

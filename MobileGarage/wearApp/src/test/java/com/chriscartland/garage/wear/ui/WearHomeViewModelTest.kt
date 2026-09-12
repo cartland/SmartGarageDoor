@@ -29,7 +29,9 @@ import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
+import com.chriscartland.garage.usecase.AppVisibilityState
 import com.chriscartland.garage.usecase.ButtonStateMachine
+import com.chriscartland.garage.usecase.DefaultAppSettleWindow
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
@@ -75,6 +77,8 @@ class WearHomeViewModelTest {
     private lateinit var authRepository: FakeAuthRepository
     private lateinit var doorRepository: FakeDoorRepository
     private lateinit var remoteButtonRepository: FakeRemoteButtonRepository
+    private lateinit var appVisibilityState: AppVisibilityState
+    private lateinit var settleWindow: DefaultAppSettleWindow
 
     @After
     fun tearDown() {
@@ -87,6 +91,16 @@ class WearHomeViewModelTest {
         authRepository = FakeAuthRepository()
         doorRepository = FakeDoorRepository()
         remoteButtonRepository = FakeRemoteButtonRepository()
+        appVisibilityState = AppVisibilityState()
+        // The REAL window on the test scheduler, not a fake: on the watch the
+        // ViewModel is the lifecycle host, so `onVisible` reporting visibility
+        // and the window reacting to it are one behaviour and worth exercising
+        // together. `advanceTimeBy` drives it deterministically.
+        settleWindow = DefaultAppSettleWindow(
+            appVisibilityState = appVisibilityState,
+            scope = backgroundScope,
+            dispatcher = testDispatcher,
+        )
         return WearHomeViewModel(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
             observeAuthState = ObserveAuthStateUseCase(authRepository),
@@ -94,6 +108,8 @@ class WearHomeViewModelTest {
             signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
             fetchCurrentDoorEventUseCase = FetchCurrentDoorEventUseCase(doorRepository),
             dispatchers = TestDispatcherProvider(testDispatcher),
+            appVisibilityState = appVisibilityState,
+            appSettleWindow = settleWindow,
             appVersion = "wear-test",
         )
     }

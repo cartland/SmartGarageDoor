@@ -43,8 +43,11 @@ import com.chriscartland.garage.domain.repository.DoorCommandRepository
 import com.chriscartland.garage.domain.repository.DoorRepository
 import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 import com.chriscartland.garage.domain.repository.ServerConfigRepository
+import com.chriscartland.garage.usecase.AppSettleWindow
+import com.chriscartland.garage.usecase.AppVisibilityState
 import com.chriscartland.garage.usecase.CheckDoorCommandUseCase
 import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
+import com.chriscartland.garage.usecase.DefaultAppSettleWindow
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.ObserveAuthStateUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
@@ -126,6 +129,8 @@ abstract class WearComponent(
     abstract val serverConfigRepository: ServerConfigRepository
     abstract val doorRepository: DoorRepository
     abstract val remoteButtonRepository: RemoteButtonRepository
+    abstract val appVisibilityState: AppVisibilityState
+    abstract val appSettleWindow: AppSettleWindow
     abstract val localDoorDataSource: LocalDoorDataSource
     abstract val networkDoorDataSource: NetworkDoorDataSource
     abstract val networkConfigDataSource: NetworkConfigDataSource
@@ -141,6 +146,8 @@ abstract class WearComponent(
         signInWithGoogle: SignInWithGoogleUseCase,
         fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
         dispatchers: DispatcherProvider,
+        appVisibilityState: AppVisibilityState,
+        appSettleWindow: AppSettleWindow,
         appVersion: String,
     ): WearHomeViewModel =
         WearHomeViewModel(
@@ -150,6 +157,8 @@ abstract class WearComponent(
             signInWithGoogleUseCase = signInWithGoogle,
             fetchCurrentDoorEventUseCase = fetchCurrentDoorEvent,
             dispatchers = dispatchers,
+            appVisibilityState = appVisibilityState,
+            appSettleWindow = appSettleWindow,
             appVersion = appVersion,
         )
 
@@ -230,6 +239,33 @@ abstract class WearComponent(
     @Provides
     @WearSingleton
     fun provideDispatcherProvider(): DispatcherProvider = DefaultDispatcherProvider()
+
+    @Provides
+    @WearSingleton
+    fun provideAppVisibilityState(): AppVisibilityState = AppVisibilityState()
+
+    /**
+     * The watch's own settle window. Same shared machinery the phone and iOS
+     * use — the watch just reports its visibility from `WearHomeViewModel`'s
+     * `onVisible` / `onHidden` (which are already wired to `ON_START` /
+     * `ON_STOP`) instead of from an Application or a scene phase.
+     *
+     * Started by the ViewModel rather than an `AppStartup`: the watch has no
+     * such entry point, and the window is only meaningful while a screen is
+     * on anyway.
+     */
+    @Provides
+    @WearSingleton
+    fun provideAppSettleWindow(
+        appVisibilityState: AppVisibilityState,
+        applicationScope: CoroutineScope,
+        dispatchers: DispatcherProvider,
+    ): AppSettleWindow =
+        DefaultAppSettleWindow(
+            appVisibilityState = appVisibilityState,
+            scope = applicationScope,
+            dispatcher = dispatchers.io,
+        )
 
     @Provides
     @WearSingleton

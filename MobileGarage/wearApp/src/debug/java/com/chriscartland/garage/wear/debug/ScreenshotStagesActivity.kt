@@ -29,6 +29,7 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.domain.model.VoiceIntent
+import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.usecase.VoiceCommandIgnoreReason
 import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
@@ -52,7 +53,13 @@ import com.chriscartland.garage.wear.ui.WearVoiceViewModel
  *     -e stage connecting|closed|inferred|holding|submitted|bloom|moving|open|signed_out|sign_in_error|settings|settings_bottom|settings_local|voice_ready|voice_listening|voice_hearing|voice_armed|voice_committing|voice_sent|voice_refused
  *
  * Stages mirror the hero interaction narrative:
- *   connecting    — cold start, no door event yet: "Connecting…", no ⚠ badge
+ *   connecting    — cold start, no door event yet, still inside the settle
+ *                   window: the dial grey and dim, the label the calm
+ *                   "Connecting…", no ⚠ badge
+ *   no_signal     — the same launch after the settle window expired. Identical
+ *                   picture; the headline is now "No signal". Captured beside
+ *                   `connecting` because the pair IS the design: waiting
+ *                   escalates by adding a word, never by changing the art
  *   closed        — green closed door, "Hold to open"
  *   inferred      — a position with no affirmative sensor reading (Opening),
  *                   so the hint stops predicting: "Hold to press the remote"
@@ -190,6 +197,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             doorPosition = fixture.doorPosition,
                             lastChangeTimeSeconds = null,
                             hasDoorData = fixture.hasDoorData,
+                            freshness = fixture.freshness,
                             authState = fixture.authState,
                             buttonState = fixture.buttonState,
                             signInError = fixture.signInError,
@@ -204,6 +212,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             doorPosition = fixture.doorPosition,
                             lastChangeTimeSeconds = null,
                             hasDoorData = fixture.hasDoorData,
+                            freshness = fixture.freshness,
                             authState = fixture.authState,
                             buttonState = fixture.buttonState,
                             isHolding = fixture.isHolding,
@@ -328,16 +337,35 @@ class ScreenshotStagesActivity : ComponentActivity() {
         val isHolding: Boolean = false,
         val signInError: Boolean = false,
         val hasDoorData: Boolean = true,
+        /**
+         * Defaults to FRESH so every stage that is about the BUTTON keeps
+         * rendering a normal, full-colour door — those fixtures are not making
+         * a claim about freshness and should not accidentally start making
+         * one.
+         */
+        val freshness: DataFreshness = DataFreshness.FRESH,
         /** Non-null pins the ring directly instead of letting it animate. */
         val ring: ConfirmRingState? = null,
     )
 
     private fun fixtureFor(stage: String): StageFixture =
         when (stage) {
+            // The first seconds of every launch: nothing heard yet, so the dial
+            // is grey and dim and the label still reads the calm "Connecting…".
             STAGE_CONNECTING -> StageFixture(
                 DoorPosition.UNKNOWN,
                 RemoteButtonState.Ready,
                 hasDoorData = false,
+                freshness = DataFreshness.SETTLING,
+            )
+            // The same launch five seconds later. The pair is the whole point
+            // of capturing this one: side by side they show that waiting
+            // escalates by ADDING a word, not by changing the picture.
+            STAGE_NO_SIGNAL -> StageFixture(
+                DoorPosition.UNKNOWN,
+                RemoteButtonState.Ready,
+                hasDoorData = false,
+                freshness = DataFreshness.STALE,
             )
             STAGE_INFERRED -> StageFixture(DoorPosition.OPENING, RemoteButtonState.Ready)
             STAGE_HOLDING -> StageFixture(
@@ -376,6 +404,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
     private companion object {
         const val STAGE_EXTRA = "stage"
         const val STAGE_CONNECTING = "connecting"
+        const val STAGE_NO_SIGNAL = "no_signal"
         const val STAGE_CLOSED = "closed"
         const val STAGE_INFERRED = "inferred"
         const val STAGE_HOLDING = "holding"

@@ -108,7 +108,7 @@ fun HomeContent(
     // moved to `presentation-model`, no longer computed by `HomeMapper`).
     val status = HomeMapper
         .toHomeStatusDisplay(currentDoorEvent, doorState.isCheckInStale)
-        .copy(warning = doorState.warning)
+        .copy(warning = doorState.warning, freshness = doorState.freshness)
     // The elapsed bucket comes from the shared VM (ADR-031); this layer only
     // formats clock time + localized units.
     val sinceLine = rememberSinceLine(doorState.sinceStatus, now, zone)
@@ -117,11 +117,13 @@ fun HomeContent(
         isCheckInStale = doorState.isCheckInStale,
         notificationPermissionGranted = notificationPermissionState.status.isGranted,
         notificationRequestCount = permissionRequestCount,
+        freshness = doorState.freshness,
     )
     val homeAuthState = HomeMapper.toHomeAuthState(authState)
     val deviceCheckIn = DeviceCheckIn.format(
         lastCheckInSeconds = currentDoorEvent.data?.lastCheckInTimeSeconds,
         nowSeconds = nowEpochSeconds,
+        freshness = doorState.freshness,
     )
 
     HomeContentInternal(

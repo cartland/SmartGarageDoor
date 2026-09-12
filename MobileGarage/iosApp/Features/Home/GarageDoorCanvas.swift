@@ -64,6 +64,15 @@ struct GarageDoorView: View {
     /// not a door in trouble, and a warning badge would misattribute it.
     /// Mirrors Android's `GarageIcon(suppressWarningOverlay = )`.
     var suppressWarningOverlay: Bool = false
+    /// Drains the door's colour to grey while the app is not sure this reading
+    /// is current — the shared verdict, rendered the same way on all three
+    /// platforms (Android's `FreshnessTint.tint`, Wear's `WearFreshnessTint`).
+    ///
+    /// Defaults to `.fresh` because most callers are History rows and previews
+    /// showing PAST events, where freshness is not a meaningful question — a
+    /// snapshot of yesterday's door is not stale, it is history. Only the live
+    /// Home door passes a real verdict.
+    var freshness: DataFreshness = .fresh
 
     @Environment(\.colorScheme) private var scheme
     /// Shared replay memory (`:domain` `DoorAnimationMemory`), injected at the
@@ -71,7 +80,10 @@ struct GarageDoorView: View {
     @Environment(\.doorAnimationMemory) private var memory
 
     var body: some View {
-        let rgb = DoorPalette.doorRGB(for: position, stale: isStale, scheme: scheme)
+        let baseRGB = DoorPalette.doorRGB(for: position, stale: isStale, scheme: scheme)
+        let rgb = DataFreshnessMapper.shared.isMuted(freshness: freshness)
+            ? DoorPalette.desaturated(baseRGB)
+            : baseRGB
         let color = Color(rgb: rgb)
         let darkColor = Color(rgb: DoorPalette.blendWithBlackHalf(rgb))
         ZStack {
@@ -394,6 +406,25 @@ private enum DoorPalette {
         case .unknown: pair = stale ? unknownStale : unknownFresh
         }
         return scheme == .dark ? pair.dark : pair.light
+    }
+
+    /// Drain the hue out of a door colour, keeping its perceived lightness —
+    /// what a non-`.fresh` `DataFreshness` looks like.
+    ///
+    /// Done to the COLOUR rather than with SwiftUI's `.saturation(0)` filter,
+    /// deliberately. The filter measured only ~70% desaturated in the recorded
+    /// snapshot (a door pixel that reads `spread=117` fresh came back at 35
+    /// rather than 0), so "grey" would have meant something visibly different
+    /// on iOS than on the two Compose apps. Greying the source colour is exact,
+    /// and it routes through the same shared `FreshnessTint.luma` weights
+    /// Android and Wear use, so all three drain by exactly the same amount.
+    static func desaturated(_ rgb: Int) -> Int {
+        let r = Float((rgb >> 16) & 0xFF) / 255
+        let g = Float((rgb >> 8) & 0xFF) / 255
+        let b = Float(rgb & 0xFF) / 255
+        let luma = FreshnessTint.shared.luma(red: r, green: g, blue: b)
+        let v = Int((luma * 255).rounded())
+        return (v << 16) | (v << 8) | v
     }
 
     /// Halve each channel — equivalent to Android's

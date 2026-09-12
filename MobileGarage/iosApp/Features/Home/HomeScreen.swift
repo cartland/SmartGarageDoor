@@ -39,6 +39,7 @@ struct HomeScreen: View {
             buttonHealth: wrapper.buttonHealth,
             authState: wrapper.authState,
             hasDoorData: wrapper.hasDoorData,
+            freshness: wrapper.freshness,
             alerts: wrapper.alerts,
             checkIn: wrapper.checkIn,
             onButtonTap: { wrapper.onButtonTap() },
@@ -86,6 +87,14 @@ struct HomeContentView: View {
     /// heard yet", which should not look like a fault. Mirrors Android's
     /// `HomeStatusDisplay.hasData`.
     let hasDoorData: Bool
+    /// How current the data is AND how loudly the card may say so.
+    ///
+    /// `.settling` and `.stale` both render the hero desaturated and dimmed;
+    /// only `.stale` lets the banner stack carry a freshness banner (the
+    /// shared `HomeAlertMapper` enforces that half). The ordering is the
+    /// design: doubt arrives as a colour, which costs the reader nothing, and
+    /// only earns a sentence if it outlives the settle window.
+    let freshness: DataFreshness
     /// Resolved alert banners (ADR-031 Phase 4) shown above the Status card.
     /// Empty in the steady state; the shared `HomeAlertMapper` decides when a
     /// stale / permission / fetch-error banner applies.
@@ -121,6 +130,7 @@ struct HomeContentView: View {
         buttonHealth: ButtonHealthItem?,
         authState: AuthDisplayState,
         hasDoorData: Bool,
+        freshness: DataFreshness,
         alerts: [HomeAlertItem],
         checkIn: DeviceCheckInItem,
         onButtonTap: @escaping () -> Void,
@@ -137,6 +147,7 @@ struct HomeContentView: View {
         self.buttonHealth = buttonHealth
         self.authState = authState
         self.hasDoorData = hasDoorData
+        self.freshness = freshness
         self.alerts = alerts
         self.checkIn = checkIn
         self.onButtonTap = onButtonTap
@@ -170,7 +181,8 @@ struct HomeContentView: View {
                         // Nothing has been heard yet, so there is nothing to warn
                         // about — an alarm badge here would blame the door for
                         // the app's own empty cache.
-                        suppressWarningOverlay: !hasDoorData
+                        suppressWarningOverlay: !hasDoorData,
+                        freshness: freshness
                     )
                     .frame(height: 160)
                     .frame(maxWidth: .infinity)
@@ -208,6 +220,20 @@ struct HomeContentView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, GarageSpacing.tight)
+                // Dim whenever the app is unsure this is current — during the
+                // settle window as well as after it, and saying exactly the
+                // same words either way. Animated, so the return fetch (which
+                // usually lands well inside the window) resolves the card
+                // rather than snapping it.
+                //
+                // The GREY half is not here: `GarageDoorView` drains its own
+                // colour from the shared `FreshnessTint.luma`, the way both
+                // Compose apps do. SwiftUI's `.saturation(0)` was tried at this
+                // level first and only got about 70% of the way there in a
+                // recorded snapshot, which would have made "grey" mean
+                // something measurably different on iOS.
+                .opacity(Double(FreshnessTint.shared.alphaFor(freshness: freshness)))
+                .animation(.easeInOut(duration: 0.25), value: freshness)
             } header: {
                 // Pill right-aligned in the section header, mirroring Android's
                 // `DeviceCheckInPill` in the "Status" header row.
@@ -681,6 +707,7 @@ private struct HomeInfoSheetView: View {
             buttonHealth: ButtonHealthItem(label: "Unauthorized", kind: .unauthorized),
             authState: .signedOut,
             hasDoorData: true,
+            freshness: .fresh,
             alerts: [],
             checkIn: DeviceCheckInItem(label: previewText("23 min ago"), isStale: true),
             onButtonTap: {},
@@ -703,6 +730,7 @@ private struct HomeInfoSheetView: View {
             buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
             authState: .signedIn,
             hasDoorData: true,
+            freshness: .fresh,
             alerts: [],
             checkIn: DeviceCheckInItem(label: previewText("1 min ago"), isStale: false),
             onButtonTap: {},
@@ -725,6 +753,7 @@ private struct HomeInfoSheetView: View {
             buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
             authState: .signedIn,
             hasDoorData: true,
+            freshness: .fresh,
             alerts: [],
             checkIn: DeviceCheckInItem(label: previewText("1 min ago"), isStale: false),
             onButtonTap: {},
@@ -747,6 +776,11 @@ private struct HomeInfoSheetView: View {
             buttonHealth: ButtonHealthItem(label: previewText("Unavailable · 11 min ago"), kind: .offline),
             authState: .signedIn,
             hasDoorData: true,
+            // `.stale`, because a card carrying a Retry banner is by
+            // definition past the settle window — the banners and the muting
+            // are two halves of one verdict, and a fixture showing the words
+            // on an un-muted card would be a state production cannot reach.
+            freshness: .stale,
             alerts: [
                 HomeAlertItem(
                     id: "stale",
@@ -842,6 +876,9 @@ private struct HomeInfoSheetView: View {
 /// Cold start with an empty cache: `.unknown` position, but the copy says
 /// Connecting and the door wears no warning badge — the app has not heard yet,
 /// which is not the door's fault. Mirrors Android's `HomeContentConnectingPreview`.
+///
+/// `.settling`, so the card is grey and dim: this is the first second of a
+/// launch, and the app has not earned the right to say anything is wrong yet.
 #Preview("Home connecting") {
     NavigationStack {
         HomeContentView(
@@ -854,8 +891,39 @@ private struct HomeInfoSheetView: View {
             buttonHealth: nil,
             authState: .signedIn,
             hasDoorData: false,
+            freshness: .settling,
             alerts: [],
             checkIn: DeviceCheckInItem(label: nil, isStale: false),
+            onButtonTap: {},
+            onSignIn: {},
+            onRefresh: {},
+            onAlertAction: { _ in }
+        )
+    }
+}
+
+/// A warm start on a door whose check-in has aged out, still inside the settle
+/// window. THE fixture for the bug this feature fixes: the card is muted and
+/// the banner stack is EMPTY. Compare with "Home with alerts", which is this
+/// same state a few seconds later — same picture, plus the words.
+#Preview("Home settling") {
+    NavigationStack {
+        HomeContentView(
+            doorPosition: .open,
+            lastChangeTimeSeconds: nil,
+            sinceLine: previewText("Since 8:15 AM · 1 hr 5 min"),
+            warningText: nil,
+            isCheckInStale: true,
+            buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
+            buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
+            authState: .signedIn,
+            hasDoorData: true,
+            freshness: .settling,
+            alerts: [],
+            // Same words as the stale pill in "Home with alerts", without the
+            // red — the alarm styling is gated on `isSpoken` too, so the pill
+            // is not the one thing left shouting over a quieted card.
+            checkIn: DeviceCheckInItem(label: previewText("23 min ago"), isStale: false),
             onButtonTap: {},
             onSignIn: {},
             onRefresh: {},
@@ -879,6 +947,7 @@ private struct HomeInfoSheetView: View {
             buttonHealth: nil,
             authState: .checking,
             hasDoorData: true,
+            freshness: .fresh,
             alerts: [],
             checkIn: DeviceCheckInItem(label: previewText("1 min ago"), isStale: false),
             onButtonTap: {},
@@ -901,6 +970,7 @@ private struct HomeInfoSheetView: View {
             buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
             authState: .signedIn,
             hasDoorData: true,
+            freshness: .fresh,
             alerts: [],
             checkIn: DeviceCheckInItem(label: previewText("1 min ago"), isStale: false),
             onButtonTap: {},

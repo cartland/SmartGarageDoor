@@ -30,6 +30,7 @@ import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.usecase.AppSettleWindow
 import com.chriscartland.garage.usecase.ButtonAckToken
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
 import com.chriscartland.garage.usecase.ButtonStateMachine
@@ -175,6 +176,7 @@ class DefaultHomeViewModel(
     private val checkDoorCommandUseCase: CheckDoorCommandUseCase,
     private val checkInStalenessManager: CheckInStalenessManager,
     private val liveClock: LiveClock,
+    appSettleWindow: AppSettleWindow,
     override val buttonHealthDisplay: StateFlow<ButtonHealthDisplay>,
     private val appVersion: String,
     // Default false — cold-start fetch lives in `InitialDoorFetchManager`
@@ -209,6 +211,11 @@ class DefaultHomeViewModel(
     // MutableStateFlow(false) mirror + collector until the T1 widening).
     private val checkInStale: StateFlow<Boolean> = checkInStalenessManager.isCheckInStale
 
+    // ADR-022 pass-through, same shape as `checkInStale` above. Feeds the
+    // freshness field of the node below: inside the window a not-current
+    // door is rendered muted and wordless, outside it the screen may say so.
+    private val isSettling: StateFlow<Boolean> = appSettleWindow.isSettling
+
     // The whole door-status surface as ONE derived node (G7,
     // docs/DATA_GRAPH_PLAN.md): a single combine + a single pure
     // transform replaces the former three independent stateIns
@@ -218,15 +225,28 @@ class DefaultHomeViewModel(
     // (Eagerly, ComputeButtonHealthDisplayUseCase pattern) so a fresh
     // screen entry reads the correct state on first composition.
     override val doorState: StateFlow<HomeDoorState> =
-        combine(_currentDoorEvent, checkInStale, nowEpochSeconds) { event, stale, now ->
-            HomeDoorStateMapper.compute(event.data, stale, now)
+        combine(
+            _currentDoorEvent,
+            checkInStale,
+            nowEpochSeconds,
+            isSettling,
+        ) { event, stale, now, settling ->
+            HomeDoorStateMapper.compute(
+                event = event.data,
+                isCheckInStale = stale,
+                nowEpochSeconds = now,
+                isFetchError = event is LoadingResult.Error,
+                isSettling = settling,
+            )
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = HomeDoorStateMapper.compute(
-                _currentDoorEvent.value.data,
-                checkInStale.value,
-                nowEpochSeconds.value,
+                event = _currentDoorEvent.value.data,
+                isCheckInStale = checkInStale.value,
+                nowEpochSeconds = nowEpochSeconds.value,
+                isFetchError = _currentDoorEvent.value is LoadingResult.Error,
+                isSettling = isSettling.value,
             ),
         )
 

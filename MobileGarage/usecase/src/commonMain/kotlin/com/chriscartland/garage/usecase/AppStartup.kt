@@ -38,6 +38,7 @@ class AppStartup(
     private val fcmRegistrationManager: FcmRegistrationManager,
     private val checkInStalenessManager: CheckInStalenessManager,
     private val liveClock: LiveClock,
+    private val appSettleWindow: AppSettleWindow,
     private val logAppEvent: LogAppEventUseCase,
     private val runStartupDiagnosticsMaintenance: RunStartupDiagnosticsMaintenanceUseCase,
     private val buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager,
@@ -67,6 +68,10 @@ class AppStartup(
         Logger.d { "AppStartup: Starting live clock" }
         liveClock.start()
         actions.add("startLiveClock")
+
+        Logger.d { "AppStartup: Starting app settle window" }
+        appSettleWindow.start()
+        actions.add("startAppSettleWindow")
 
         Logger.d { "AppStartup: Starting button health FCM subscription manager" }
         buttonHealthFcmSubscriptionManager.start()

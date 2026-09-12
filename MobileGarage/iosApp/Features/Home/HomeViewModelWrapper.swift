@@ -50,6 +50,19 @@ final class HomeViewModelWrapper: ObservableObject {
     @Published private(set) var warningText: DisplayText?
     @Published private(set) var lastChangeTimeSeconds: Int64?
     @Published private(set) var isCheckInStale: Bool = false
+    /// How current the door data is AND how loudly the screen may say so.
+    ///
+    /// This is what stopped Home from flashing a Retry banner on every warm
+    /// start: the return fetch normally lands well inside the shared settle
+    /// window, so the card just sits grey and dim for a moment and then
+    /// resolves, with nothing said. Only a doubt that OUTLIVES the window
+    /// reaches `.stale` and unlocks the banners.
+    ///
+    /// Seeded `.settling` rather than `.fresh` for the same reason
+    /// `DefaultAppSettleWindow` seeds `true`: at construction the app is, by
+    /// definition, starting, and a first frame claiming freshness we have not
+    /// verified is the flash in the other direction.
+    @Published private(set) var freshness: DataFreshness = .settling
     /// Resolved device check-in pill (ADR-031 Phase 5). The shared
     /// `CheckInStatusMapper` buckets the heartbeat age + decides staleness; this
     /// wrapper formats the "… ago" string per-UI (mirrors Android's
@@ -181,7 +194,8 @@ final class HomeViewModelWrapper: ObservableObject {
             currentDoorEvent: result,
             isCheckInStale: isCheckInStale,
             notificationPermissionGranted: notificationGranted,
-            notificationRequestCount: notificationRequestCount
+            notificationRequestCount: notificationRequestCount,
+            freshness: freshness
         )
         alerts = typed.map { Self.resolve($0) }
     }
@@ -284,7 +298,18 @@ final class HomeViewModelWrapper: ObservableObject {
         applySince(door.sinceStatus)
         let staleChanged = isCheckInStale != door.isCheckInStale
         isCheckInStale = door.isCheckInStale
-        if staleChanged { rebuildAlerts() }
+        // Freshness gates the two banners that carry a Retry, so a change in
+        // it has to rebuild the stack even when nothing else moved — that IS
+        // the transition from a muted card to a card with words on it.
+        let freshnessChanged = freshness != door.freshness
+        freshness = door.freshness
+        if staleChanged || freshnessChanged {
+            rebuildAlerts()
+            // The pill's alarm styling is gated on the same verdict, so it has
+            // to be rebuilt here too — otherwise it would keep whatever colour
+            // it happened to be given by the last clock tick.
+            rebuildCheckIn()
+        }
     }
 
     /// Builds the "Since {time} · {duration}" line from the shared typed
@@ -426,15 +451,29 @@ final class HomeViewModelWrapper: ObservableObject {
             lastCheckInEpochSeconds: latestDoorResult?.data?.lastCheckInTimeSeconds,
             nowEpochSeconds: latestNowEpochSeconds
         )
-        checkIn = Self.resolveCheckIn(status)
+        checkIn = Self.resolveCheckIn(status, freshness: freshness)
     }
 
-    private static func resolveCheckIn(_ status: CheckInStatus) -> DeviceCheckInItem {
+    /// The pill's LABEL always tells the truth ("23 min ago"); only its ALARM
+    /// styling waits for `isSpoken`.
+    ///
+    /// Without this the pill was the one thing still shouting on arrival — a
+    /// bright red chip sitting directly above a card the settle window had
+    /// gone to the trouble of quieting. The rule that resolves it is worth
+    /// stating: colour that ALARMS is gated on `isSpoken`, colour that merely
+    /// withholds confidence (the greyed door) is gated on `isMuted`. So the
+    /// escalation reads quiet → loud, and nothing is ever hidden — the number
+    /// of minutes is on screen the whole time either way.
+    private static func resolveCheckIn(
+        _ status: CheckInStatus,
+        freshness: DataFreshness
+    ) -> DeviceCheckInItem {
         switch onEnum(of: status) {
         case .noData:
             return DeviceCheckInItem(label: nil, isStale: false)
         case .reported(let reported):
-            return DeviceCheckInItem(label: agoText(reported.age), isStale: reported.isStale)
+            let alarming = reported.isStale && DataFreshnessMapper.shared.isSpoken(freshness: freshness)
+            return DeviceCheckInItem(label: agoText(reported.age), isStale: alarming)
         }
     }
 

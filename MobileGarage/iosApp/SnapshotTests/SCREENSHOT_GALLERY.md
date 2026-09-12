@@ -5,7 +5,7 @@
 
 A browsable visual reference of every SwiftUI `#Preview` in the iOS app, captured via Prefire + swift-snapshot-testing. These are reference images, **not** pixel-perfect gating tests — they are regenerated, never asserted.
 
-**31 snapshot(s)** across 1 group(s).
+**32 snapshot(s)** across 1 group(s).
 
 ## Table of contents
 - [PreviewTests.generated](#previewtestsgenerated)
@@ -71,6 +71,9 @@ A browsable visual reference of every SwiftUI `#Preview` in the iOS app, capture
 
 ### Home-opening-too-long-warning.1
 <img src="__Snapshots__/PreviewTests.generated/Home-opening-too-long-warning.1.png" width="240" />
+
+### Home-settling.1
+<img src="__Snapshots__/PreviewTests.generated/Home-settling.1.png" width="240" />
 
 ### Home-sign-in-row.1
 <img src="__Snapshots__/PreviewTests.generated/Home-sign-in-row.1.png" width="240" />

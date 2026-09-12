@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.ui.home
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -62,6 +65,7 @@ import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.DoorHeadline
 import com.chriscartland.garage.presentation.DoorHeadlineMapper
 import com.chriscartland.garage.presentation.DoorWarning
@@ -80,6 +84,7 @@ import com.chriscartland.garage.ui.RouteContent
 import com.chriscartland.garage.ui.theme.ButtonSpacing
 import com.chriscartland.garage.ui.theme.CardPadding
 import com.chriscartland.garage.ui.theme.DoorColorState
+import com.chriscartland.garage.ui.theme.FreshnessTint
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.ParagraphSpacing
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
@@ -120,6 +125,16 @@ data class HomeStatusDisplay(
     val warning: DoorWarning? = null,
     /** Drives the muted "stale" door color and disables animation when true. */
     val isStale: Boolean = false,
+    /**
+     * How current this snapshot is AND how loudly the card may say so.
+     *
+     * [DataFreshness.SETTLING] and [DataFreshness.STALE] both render the hero
+     * desaturated and dimmed; only [DataFreshness.STALE] unlocks the banners
+     * above the card. Defaults to [DataFreshness.FRESH] so the many fixtures
+     * that predate the settle window keep rendering the plain, un-muted
+     * presentation they were written to check.
+     */
+    val freshness: DataFreshness = DataFreshness.FRESH,
     /**
      * False only while no door event exists at all (cold start, empty cache).
      * The card then renders the calm connecting presentation — "Connecting…"
@@ -335,9 +350,25 @@ private fun HomeStatusCardBody(
         DoorColorState.CLOSED -> colorSet.closed
         DoorColorState.UNKNOWN -> colorSet.unknown
     }
+    // The whole card goes grey and dim the moment the app is unsure this is
+    // current — including during the settle window, when it is still saying
+    // exactly the same words. That ordering is the point: the colour arrives
+    // first and costs the reader nothing, and only if the doubt outlives the
+    // window does the screen spend a sentence on it. Animated so a return
+    // fetch landing mid-window resolves the card rather than snapping it.
+    val mutedColor = FreshnessTint.tint(doorColor, status.freshness)
+    val heroColor by animateColorAsState(
+        targetValue = mutedColor,
+        label = "doorFreshnessColor",
+    )
+    val heroAlpha by animateFloatAsState(
+        targetValue = FreshnessTint.alphaFor(status.freshness),
+        label = "doorFreshnessAlpha",
+    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer { alpha = heroAlpha }
             .padding(CardPadding.Tall),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -354,7 +385,7 @@ private fun HomeStatusCardBody(
             GarageIcon(
                 doorPosition = status.doorPosition,
                 static = false,
-                color = doorColor,
+                color = heroColor,
                 modifier = Modifier.size(160.dp),
                 // Identifies the motion event so the slide replays once per
                 // event (cold-open / first view) rather than on every fresh
@@ -671,6 +702,30 @@ private object HomePreviewData {
         doorPosition = DoorPosition.UNKNOWN,
         lastChangeTimeSeconds = null,
         hasData = false,
+        // The first seconds of a launch really are SETTLING, so the cold-start
+        // fixture says so: muted art, and the calm "Connecting…" copy it
+        // already had.
+        freshness = DataFreshness.SETTLING,
+    )
+
+    /**
+     * A warm start on a door whose check-in has aged out, still inside the
+     * settle window — the state the settling feature exists for. Same door and
+     * same words as [openStatus]; only the confidence differs.
+     */
+    val settlingOpenStatus = HomeStatusDisplay(
+        doorPosition = DoorPosition.OPEN,
+        lastChangeTimeSeconds = null,
+        isStale = true,
+        freshness = DataFreshness.SETTLING,
+    )
+
+    /** The same warm start once the window has expired. */
+    val staleOpenStatus = HomeStatusDisplay(
+        doorPosition = DoorPosition.OPEN,
+        lastChangeTimeSeconds = null,
+        isStale = true,
+        freshness = DataFreshness.STALE,
     )
     val openingTooLongStatus = HomeStatusDisplay(
         doorPosition = DoorPosition.OPENING_TOO_LONG,
@@ -691,6 +746,16 @@ private object HomePreviewData {
     val staleCheckIn = DeviceCheckInDisplay(
         durationLabel = "23 min ago",
         isStale = true,
+    )
+
+    /**
+     * The same aged heartbeat as [staleCheckIn], rendered without its alarm —
+     * what the pill looks like inside the settle window. Same words, no red.
+     * See `DeviceCheckIn.format`'s `freshness` parameter.
+     */
+    val settlingCheckIn = DeviceCheckInDisplay(
+        durationLabel = "23 min ago",
+        isStale = false,
     )
 
     // Cold-start pill: label must equal DeviceCheckIn's no-data output so the
@@ -781,7 +846,10 @@ fun HomeContentOpeningTooLongPreview() =
 fun HomeContentStaleBannerPreview() =
     PreviewScreenSurface {
         HomeContent(
-            status = HomePreviewData.openStatus,
+            // STALE, not the default FRESH: a stale banner and an un-muted
+            // card is a combination production cannot produce, since the
+            // banner is gated on the very verdict that mutes the card.
+            status = HomePreviewData.staleOpenStatus,
             sinceLine = HomePreviewData.OPEN_SINCE_LINE,
             authState = HomeAuthState.SignedIn,
             remoteButtonState = RemoteButtonState.Ready,
@@ -817,6 +885,43 @@ fun HomeContentSignedOutPreview() =
             sinceLine = HomePreviewData.OPEN_SINCE_LINE,
             authState = HomeAuthState.SignedOut,
             deviceCheckIn = HomePreviewData.freshCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
+        )
+    }
+
+// The settle window, as a before/after pair. Review these two together: the
+// picture is IDENTICAL and only the banner differs, which is the whole design
+// — arriving on a stale door costs the reader a colour, and only a doubt that
+// outlives five seconds costs them a sentence. If a future change makes the
+// muted look appear or disappear between these two, that is the regression.
+
+// Inside the window: door greyed and dimmed, and not one word about it.
+@Preview(heightDp = 900)
+@Composable
+fun HomeContentSettlingPreview() =
+    PreviewScreenSurface {
+        HomeContent(
+            status = HomePreviewData.settlingOpenStatus,
+            sinceLine = HomePreviewData.OPEN_SINCE_LINE,
+            authState = HomeAuthState.SignedIn,
+            deviceCheckIn = HomePreviewData.settlingCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
+        )
+    }
+
+// Five seconds later: same muted card, now with the banner it earned.
+@Preview(heightDp = 900)
+@Composable
+fun HomeContentSettledStalePreview() =
+    PreviewScreenSurface {
+        HomeContent(
+            status = HomePreviewData.staleOpenStatus,
+            sinceLine = HomePreviewData.OPEN_SINCE_LINE,
+            authState = HomeAuthState.SignedIn,
+            alerts = listOf(HomePreviewData.staleAlert),
+            deviceCheckIn = HomePreviewData.staleCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Online,
             modifier = Modifier.padding(horizontal = Spacing.Screen),
         )

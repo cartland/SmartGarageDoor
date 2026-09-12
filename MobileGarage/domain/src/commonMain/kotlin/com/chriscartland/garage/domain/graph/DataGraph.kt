@@ -91,6 +91,7 @@ object DataGraph {
         TEST_NOTIFICATION_SANDBOX("testNotificationSandbox"),
         NOW_EPOCH_SECONDS("nowEpochSeconds"),
         IS_CHECK_IN_STALE("isCheckInStale"),
+        IS_SETTLING("isSettling"),
         WATCH_COMPANION("watchCompanion"),
         BUTTON_HEALTH_DISPLAY("buttonHealthDisplay"),
         EFFECTIVE_SNOOZE_STATE("effectiveSnoozeState"),

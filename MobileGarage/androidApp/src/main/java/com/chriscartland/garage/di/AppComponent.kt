@@ -89,6 +89,7 @@ import com.chriscartland.garage.domain.repository.UserScopedCache
 import com.chriscartland.garage.domain.repository.WearCompanionRepository
 import com.chriscartland.garage.fcm.FirebaseMessagingBridge
 import com.chriscartland.garage.usecase.AppSettingsUseCase
+import com.chriscartland.garage.usecase.AppSettleWindow
 import com.chriscartland.garage.usecase.AppStartup
 import com.chriscartland.garage.usecase.AppVisibilityState
 import com.chriscartland.garage.usecase.ApplyButtonHealthFcmUseCase
@@ -101,6 +102,7 @@ import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ClearDiagnosticsUseCase
 import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
 import com.chriscartland.garage.usecase.ComputeEffectiveSnoozeStateUseCase
+import com.chriscartland.garage.usecase.DefaultAppSettleWindow
 import com.chriscartland.garage.usecase.DefaultCheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.DefaultReceiveFcmDoorEventUseCase
@@ -222,6 +224,7 @@ abstract class AppComponent(
     abstract val fcmRegistrationManager: FcmRegistrationManager
     abstract val checkInStalenessManager: CheckInStalenessManager
     abstract val liveClock: LiveClock
+    abstract val appSettleWindow: AppSettleWindow
     abstract val receiveFcmDoorEventUseCase: ReceiveFcmDoorEventUseCase
     abstract val appClock: AppClock
     abstract val dispatcherProvider: DispatcherProvider
@@ -373,6 +376,7 @@ abstract class AppComponent(
         checkDoorCommand: CheckDoorCommandUseCase,
         checkInStalenessManager: CheckInStalenessManager,
         liveClock: LiveClock,
+        appSettleWindow: AppSettleWindow,
         computeButtonHealthDisplay: ComputeButtonHealthDisplayUseCase,
         appVersion: String,
     ): DefaultHomeViewModel =
@@ -391,6 +395,7 @@ abstract class AppComponent(
             checkDoorCommandUseCase = checkDoorCommand,
             checkInStalenessManager = checkInStalenessManager,
             liveClock = liveClock,
+            appSettleWindow = appSettleWindow,
             buttonHealthDisplay = computeButtonHealthDisplay(),
             appVersion = appVersion,
         )
@@ -994,6 +999,19 @@ abstract class AppComponent(
 
     @Provides
     @Singleton
+    fun provideAppSettleWindow(
+        appVisibilityState: AppVisibilityState,
+        applicationScope: CoroutineScope,
+        dispatchers: DispatcherProvider,
+    ): AppSettleWindow =
+        DefaultAppSettleWindow(
+            appVisibilityState = appVisibilityState,
+            scope = applicationScope,
+            dispatcher = dispatchers.io,
+        )
+
+    @Provides
+    @Singleton
     fun provideInitialDoorFetchManager(
         fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
         fetchRecentDoorEvents: FetchRecentDoorEventsUseCase,
@@ -1066,6 +1084,7 @@ abstract class AppComponent(
         fcmRegistrationManager: FcmRegistrationManager,
         checkInStalenessManager: CheckInStalenessManager,
         liveClock: LiveClock,
+        appSettleWindow: AppSettleWindow,
         logAppEvent: LogAppEventUseCase,
         runStartupDiagnosticsMaintenance: RunStartupDiagnosticsMaintenanceUseCase,
         buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager,
@@ -1080,6 +1099,7 @@ abstract class AppComponent(
             fcmRegistrationManager = fcmRegistrationManager,
             checkInStalenessManager = checkInStalenessManager,
             liveClock = liveClock,
+            appSettleWindow = appSettleWindow,
             logAppEvent = logAppEvent,
             runStartupDiagnosticsMaintenance = runStartupDiagnosticsMaintenance,
             buttonHealthFcmSubscriptionManager = buttonHealthFcmSubscriptionManager,

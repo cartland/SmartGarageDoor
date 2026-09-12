@@ -20,6 +20,7 @@ package com.chriscartland.garage.ui.home
 import com.chriscartland.garage.presentation.CheckInAge
 import com.chriscartland.garage.presentation.CheckInStatus
 import com.chriscartland.garage.presentation.CheckInStatusMapper
+import com.chriscartland.garage.presentation.DataFreshness
 
 /**
  * Display state for the device check-in indicator. Carries pre-formatted
@@ -54,9 +55,26 @@ data class DeviceCheckInDisplay(
  *   stale. Defaults to the shared 11-minute threshold.
  */
 object DeviceCheckIn {
+    /**
+     * @param freshness gates only the pill's ALARM styling, never its label.
+     *   The number of minutes is on screen throughout; what waits for
+     *   [DataFreshness.isSpoken] is the red. Without this the pill was the one
+     *   thing still shouting on arrival — a bright chip directly above a card
+     *   the settle window had gone to the trouble of quieting. The rule it
+     *   follows is worth stating: colour that ALARMS is gated on `isSpoken`,
+     *   colour that merely withholds confidence (the greyed door) is gated on
+     *   `isMuted`, so the escalation reads quiet → loud and nothing is hidden.
+     *   iOS applies the identical rule in `HomeViewModelWrapper.resolveCheckIn`.
+     */
     fun format(
         lastCheckInSeconds: Long?,
         nowSeconds: Long,
+        // Defaults to STALE — "the settle window has already passed" — so
+        // every existing caller keeps the behaviour it had before the gate
+        // existed. The default errs toward SHOWING the alarm, never toward
+        // suppressing it, which is the safe direction for a default to err in
+        // when the thing being gated is a warning.
+        freshness: DataFreshness = DataFreshness.STALE,
         staleThresholdSeconds: Long = CheckInStatusMapper.STALE_THRESHOLD_SECONDS,
     ): DeviceCheckInDisplay =
         when (
@@ -71,7 +89,7 @@ object DeviceCheckIn {
             is CheckInStatus.Reported ->
                 DeviceCheckInDisplay(
                     durationLabel = label(status.age),
-                    isStale = status.isStale,
+                    isStale = status.isStale && freshness.isSpoken,
                 )
         }
 

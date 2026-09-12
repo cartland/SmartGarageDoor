@@ -162,6 +162,10 @@ dependencies {
     implementation(project(":domain"))
     implementation(project(":data"))
     implementation(project(":usecase"))
+    // The watch renders the same shared presentation verdicts the phone and
+    // iOS do (DataFreshness + FreshnessTint), so the three cannot drift on
+    // what "not current" looks like.
+    implementation(project(":presentation-model"))
     implementation(libs.kermit)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.core.ktx)

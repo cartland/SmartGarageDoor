@@ -61,7 +61,7 @@ BOOT_TIMEOUT_SECONDS=180
 
 # Stage list mirrors ScreenshotStagesActivity.
 STAGES=(
-    connecting closed inferred holding submitted bloom moving open signed_out sign_in_error
+    connecting no_signal closed inferred holding submitted bloom moving open signed_out sign_in_error
     settings settings_bottom settings_local
     # Voice. The unprefixed stages are the LIVE surface (the real feature);
     # voice_sim_* are the rehearsal, captured at the three moments where the
@@ -244,7 +244,8 @@ GALLERY="$OUT_DIR/README.md"
 # the four voice stages landed. Now an undescribed stage is a hard failure.
 stage_description() {
     case "$1" in
-        connecting) echo "Cold start, no data yet: \"Connecting…\", no warning badge" ;;
+        connecting) echo "Cold start, inside the settle window: dial grey and dim, label still the calm \"Connecting…\", no warning badge" ;;
+        no_signal) echo "The same cold start five seconds later: identical dial, headline now \"No signal\" — waiting escalates by adding a word, not by changing the art" ;;
         closed) echo "Closed door (affirmative sensor), \"Hold to open\"" ;;
         inferred) echo "No affirmative sensor, so no prediction: \"Hold to press the remote\"" ;;
         holding) echo "Hold completing: full radial ring, the instant before the press fires" ;;

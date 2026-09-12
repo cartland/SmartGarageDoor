@@ -20,6 +20,13 @@
 
     <!-- Door state labels (same wording as the phone Home screen). -->
     <string name="door_state_connecting">Connecting…</string>
+    <!--
+      Replaces "Connecting…" once the settle window has expired and the watch
+      still has not heard from the garage. Sentence case, no em dash, per the
+      repo string style. Short because the round mask leaves very little room
+      at the bottom of the dial.
+    -->
+    <string name="door_state_no_signal">No signal</string>
     <string name="door_state_unknown">Unknown</string>
     <string name="door_state_closed">Closed</string>
     <string name="door_state_opening">Opening</string>
