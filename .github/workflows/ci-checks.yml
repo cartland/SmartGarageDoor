@@ -49,6 +49,44 @@ jobs:
         working-directory: MobileGarage
         run: ./release/clean-secrets.sh
 
+  # The 33 custom architecture checks (ADR conformance, layer boundaries,
+  # DI scoping, spacing/theme rules). Until this job existed they ran ONLY
+  # from scripts/validate.sh — i.e. only when a human remembered to — so a
+  # violation reached main unless a reviewer caught it by eye.
+  #
+  # No branch-protection change was needed to make this blocking: the
+  # required context is "Android CI Complete", which gates on the result
+  # of this whole reusable workflow, so a new job here is covered
+  # automatically (see CLAUDE.md § "Renaming a branch-protection-required
+  # gate job" for why adding a NEW required context would not be).
+  #
+  # Task membership is discovered by the `architectureChecks` aggregate in
+  # MobileGarage/build.gradle.kts, not listed here — a list in YAML would
+  # silently omit the next check someone registers.
+  architecture_checks:
+    name: Architecture Checks
+    if: inputs.android == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-android
+        with:
+          encrypt-key: ${{ secrets.ENCRYPT_KEY }}
+      # Secrets are needed because checkSingletonCaching inspects KSP
+      # output and so dependsOn(":androidApp:kspDebugKotlin").
+      # --continue reports every violation in one run rather than making
+      # the author push a fix per failing check.
+      - name: Run architecture checks
+        working-directory: MobileGarage
+        env:
+          SERVER_CONFIG_KEY: ${{ secrets.SERVER_CONFIG_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+        run: ./gradlew architectureChecks --continue -PSERVER_CONFIG_KEY="$SERVER_CONFIG_KEY" -PGOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
+      - name: Clean secrets
+        if: always()
+        working-directory: MobileGarage
+        run: ./release/clean-secrets.sh
+
   unit_tests:
     name: Unit Tests
     if: inputs.android == 'true'

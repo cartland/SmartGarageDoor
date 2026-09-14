@@ -388,6 +388,42 @@ tasks.register<architecture.AuthStateProjectionTask>("checkAuthStateProjection")
     )
 }
 
+/**
+ * Aggregate of every architecture check, so CI can enforce them all in
+ * one job (`.github/workflows/ci-checks.yml` → "Architecture Checks").
+ *
+ * Before this existed, all 33 `check*` tasks ran ONLY from
+ * `scripts/validate.sh` — i.e. only when a human remembered to. None of
+ * them ran on a pull request, so a violation reached `main` unless a
+ * reviewer caught it by eye.
+ *
+ * The membership is **discovered, not listed**: any task registered on
+ * the root project whose name matches `check[A-Z]…` joins automatically.
+ * A hand-maintained list in YAML would silently omit the next check
+ * someone adds, which is the exact failure mode this task exists to end.
+ * Deliberate consequence: registering a `check*` task opts it into CI on
+ * day one. That is the intent — an unenforced check is a comment.
+ *
+ * This task's own name must NOT match the pattern, or it would depend on
+ * itself.
+ *
+ * Per-module `checkImportBoundary` tasks live on the subprojects rather
+ * than the root, so they are named explicitly.
+ */
+tasks.register("architectureChecks") {
+    group = "verification"
+    description = "Runs every architecture check* task (root) plus per-module import-boundary checks."
+
+    // Live filtered collection: tasks registered after this block still match.
+    dependsOn(tasks.matching { it.name.matches(Regex("""check[A-Z].*""")) })
+
+    // Keep in sync with the module list in scripts/validate.sh.
+    dependsOn(
+        listOf("domain", "data", "data-local", "usecase", "presentation-model")
+            .map { ":$it:checkImportBoundary" },
+    )
+}
+
 allprojects {
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "io.gitlab.arturbosch.detekt")
