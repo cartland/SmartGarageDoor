@@ -74,6 +74,8 @@ import com.chriscartland.garage.presentation.HomeAlert
 import com.chriscartland.garage.presentation.PermissionNagLine
 import com.chriscartland.garage.presentation.PermissionNagMapper
 import com.chriscartland.garage.presentation.SinceStatus
+import com.chriscartland.garage.presentation.StatusHeadline
+import com.chriscartland.garage.presentation.StatusHeadlineMapper
 import com.chriscartland.garage.ui.DeviceCheckInPill
 import com.chriscartland.garage.ui.DoorStatusInfoBottomSheet
 import com.chriscartland.garage.ui.GarageIcon
@@ -103,7 +105,7 @@ import java.time.ZoneId
  *
  * Pure typed shape: no user-visible strings. The Composable layer resolves
  * [doorPosition] → label and [lastChangeTimeSeconds] → "Since X · Y" via
- * [doorStateLabel] / [rememberSinceLine] at render time.
+ * [statusHeadlineLabel] / [rememberSinceLine] at render time.
  *
  * @param doorPosition drives the [GarageIcon] visual + door coloring AND the
  *   headline label.
@@ -412,11 +414,12 @@ private fun HomeStatusCardBody(
             verticalArrangement = Arrangement.spacedBy(Spacing.Tight),
         ) {
             Text(
-                text = if (status.hasData) {
-                    doorStateLabel(status.doorPosition)
-                } else {
-                    stringResource(R.string.home_door_state_connecting)
-                },
+                text = statusHeadlineLabel(
+                    StatusHeadlineMapper.forDoor(
+                        doorPosition = status.doorPosition.takeIf { status.hasData },
+                        freshness = status.freshness,
+                    ),
+                ),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -523,6 +526,26 @@ private fun notificationJustificationLine(
     }
 
 /**
+ * Android wording for the shared [StatusHeadline] — including the two answers
+ * that are not about the door.
+ *
+ * "Connecting…" is honest only while the app has just started looking; once
+ * the settle window closes it becomes a claim we cannot support, so the shared
+ * [StatusHeadlineMapper] escalates it to "No signal". Before this, Android and
+ * iOS said "Connecting…" forever on an empty cache and raised no banner either
+ * — `HomeAlertMapper` has no arm for "never heard anything" — so the settle
+ * window's "then show more indicators" half never happened on the phone. Only
+ * the watch escalated.
+ */
+@Composable
+private fun statusHeadlineLabel(headline: StatusHeadline): String =
+    when (headline) {
+        is StatusHeadline.Door -> doorHeadlineLabel(headline.headline)
+        StatusHeadline.Connecting -> stringResource(R.string.home_door_state_connecting)
+        StatusHeadline.NoSignal -> stringResource(R.string.home_door_state_no_signal)
+    }
+
+/**
  * Android wording for the shared [DoorHeadline].
  *
  * Which of the nine [DoorPosition]s collapse onto the same headline is decided
@@ -531,8 +554,8 @@ private fun notificationJustificationLine(
  * anomalous in the [DoorWarning] chip below, not here.
  */
 @Composable
-private fun doorStateLabel(doorPosition: DoorPosition): String =
-    when (DoorHeadlineMapper.forPosition(doorPosition)) {
+private fun doorHeadlineLabel(headline: DoorHeadline): String =
+    when (headline) {
         DoorHeadline.OPEN -> stringResource(R.string.home_door_state_open)
         DoorHeadline.CLOSED -> stringResource(R.string.home_door_state_closed)
         DoorHeadline.OPENING -> stringResource(R.string.home_door_state_opening)
@@ -719,6 +742,18 @@ private object HomePreviewData {
         // fixture says so: muted art, and the calm "Connecting…" copy it
         // already had.
         freshness = DataFreshness.SETTLING,
+    )
+
+    /**
+     * The same launch once the settle window has expired and still nothing has
+     * been heard. Its pair with [connectingStatus] is the point: identical
+     * card, and the headline is the ONE thing that escalates.
+     */
+    val noSignalStatus = HomeStatusDisplay(
+        doorPosition = DoorPosition.UNKNOWN,
+        lastChangeTimeSeconds = null,
+        hasData = false,
+        freshness = DataFreshness.STALE,
     )
 
     /**
@@ -936,6 +971,24 @@ fun HomeContentSettledStalePreview() =
             alerts = listOf(HomePreviewData.staleAlert),
             deviceCheckIn = HomePreviewData.staleCheckIn,
             buttonHealthDisplay = ButtonHealthDisplay.Online,
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
+        )
+    }
+
+// The other escalation pair: a launch that never connects. Same card, and the
+// headline is the one thing that changes — "Connecting…" is honest only while
+// the app has just started looking. Before this, Android and iOS said it
+// forever and raised no banner either; only the watch escalated.
+@Preview(heightDp = 900)
+@Composable
+fun HomeContentNoSignalPreview() =
+    PreviewScreenSurface {
+        HomeContent(
+            status = HomePreviewData.noSignalStatus,
+            sinceLine = "",
+            authState = HomeAuthState.SignedIn,
+            deviceCheckIn = HomePreviewData.noDataCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Hidden,
             modifier = Modifier.padding(horizontal = Spacing.Screen),
         )
     }

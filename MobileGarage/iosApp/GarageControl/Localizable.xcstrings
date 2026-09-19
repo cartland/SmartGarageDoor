@@ -274,6 +274,9 @@
     "No recent door event available. Try again in a moment.": {
       "extractionState": "manual"
     },
+    "No signal": {
+      "extractionState": "manual"
+    },
     "Not receiving updates from server": {
       "extractionState": "manual"
     },

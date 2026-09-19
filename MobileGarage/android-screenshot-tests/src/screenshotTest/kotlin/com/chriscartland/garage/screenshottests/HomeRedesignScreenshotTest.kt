@@ -25,6 +25,7 @@ import com.chriscartland.garage.ui.RemoteControlInfoSheetContentPreview
 import com.chriscartland.garage.ui.home.HomeContentAwaitingConfirmationPreview
 import com.chriscartland.garage.ui.home.HomeContentClosedSignedInPreview
 import com.chriscartland.garage.ui.home.HomeContentConnectingPreview
+import com.chriscartland.garage.ui.home.HomeContentNoSignalPreview
 import com.chriscartland.garage.ui.home.HomeContentOnTabletPreview
 import com.chriscartland.garage.ui.home.HomeContentOpenSignedInPreview
 import com.chriscartland.garage.ui.home.HomeContentOpeningTooLongPreview
@@ -75,6 +76,18 @@ fun HomeContentClosedSignedInPreviewTest() {
 @Composable
 fun HomeContentConnectingPreviewTest() {
     AppTheme { HomeContentConnectingPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeContentNoSignalPreviewTest() {
+    AppTheme { HomeContentNoSignalPreview() }
 }
 
 // The settle-window pair. Their VALUE is in being compared: same door, same

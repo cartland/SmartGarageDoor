@@ -210,12 +210,30 @@ struct HomeContentView: View {
                         // String, so `cond ? statusLabel : "Connecting…"` unifies
                         // the whole expression to String and the literal loses
                         // its LocalizedStringKey treatment — it would never be
-                        // extracted for translation, silently.
-                        if hasDoorData {
+                        // extracted for translation, silently. Same reason the
+                        // three branches below are separate `Text`s.
+                        //
+                        // Which of the three applies is decided by the shared
+                        // `StatusHeadlineMapper`, not here: "Connecting…" is
+                        // honest only while the app has just started looking,
+                        // and iOS used to say it forever on an empty cache —
+                        // with no banner either, since `HomeAlertMapper` has no
+                        // arm for "never heard anything". Only the watch
+                        // escalated. Now all three do, from one rule.
+                        switch onEnum(
+                            of: StatusHeadlineMapper.shared.forDoor(
+                                doorPosition: hasDoorData ? doorPosition : nil,
+                                freshness: freshness
+                            )
+                        ) {
+                        case .door:
                             Text(doorPosition.statusLabel)
                                 .font(.title2.weight(.semibold))
-                        } else {
+                        case .connecting:
                             Text("Connecting…")
+                                .font(.title2.weight(.semibold))
+                        case .noSignal:
+                            Text("No signal")
                                 .font(.title2.weight(.semibold))
                         }
                         if !hasDoorData {
@@ -897,6 +915,37 @@ private struct HomeInfoSheetView: View {
             authState: .signedIn,
             hasDoorData: false,
             freshness: .settling,
+            alerts: [],
+            checkIn: DeviceCheckInItem(label: nil, isStale: false),
+            onButtonTap: {},
+            onSignIn: {},
+            onRefresh: {},
+            onAlertAction: { _ in }
+        )
+    }
+}
+
+/// The same cold start as "Home connecting", five seconds later: nothing has
+/// been heard and the headline has earned "No signal".
+///
+/// Review the two together — identical card, and the headline is the ONE thing
+/// that escalates. iOS used to say "Connecting…" here forever, with no banner
+/// either (`HomeAlertMapper` has no arm for "never heard anything"), so the
+/// settle window's "then show more indicators" half never happened on the
+/// phone. Only the watch escalated.
+#Preview("Home no signal") {
+    NavigationStack {
+        HomeContentView(
+            doorPosition: .unknown,
+            lastChangeTimeSeconds: nil,
+            sinceLine: nil,
+            warningText: nil,
+            isCheckInStale: false,
+            buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
+            buttonHealth: nil,
+            authState: .signedIn,
+            hasDoorData: false,
+            freshness: .stale,
             alerts: [],
             checkIn: DeviceCheckInItem(label: nil, isStale: false),
             onButtonTap: {},

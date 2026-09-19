@@ -5,7 +5,7 @@
 
 A browsable visual reference of every SwiftUI `#Preview` in the iOS app, captured via Prefire + swift-snapshot-testing. These are reference images, **not** pixel-perfect gating tests — they are regenerated, never asserted.
 
-**32 snapshot(s)** across 1 group(s).
+**33 snapshot(s)** across 1 group(s).
 
 ## Table of contents
 - [PreviewTests.generated](#previewtestsgenerated)
@@ -65,6 +65,9 @@ A browsable visual reference of every SwiftUI `#Preview` in the iOS app, capture
 
 ### Home-connecting.1
 <img src="__Snapshots__/PreviewTests.generated/Home-connecting.1.png" width="240" />
+
+### Home-no-signal.1
+<img src="__Snapshots__/PreviewTests.generated/Home-no-signal.1.png" width="240" />
 
 ### Home-open-signed-in.1
 <img src="__Snapshots__/PreviewTests.generated/Home-open-signed-in.1.png" width="240" />
