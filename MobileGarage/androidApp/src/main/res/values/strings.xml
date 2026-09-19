@@ -290,6 +290,13 @@
     <!-- Home → Status card "Since X · Y" line + duration formatting. -->
     <string name="home_since_unknown">Last change time unknown</string>
     <string name="home_door_state_connecting">Connecting…</string>
+    <!--
+      Replaces "Connecting…" once the settle window has expired and the app
+      still has no door reading at all. Sentence case, no em dash, per the
+      repo string style. Matches the watch's `door_state_no_signal` so the
+      three apps describe the same state with the same words.
+    -->
+    <string name="home_door_state_no_signal">No signal</string>
     <string name="home_since_connecting">Waiting for the latest door status</string>
     <!-- "Since X · Y" line. %1$s is a time (e.g. "9:47 AM"); %2$s is a duration (e.g. "2 hr 14 min"). -->
     <string name="home_since_format">Since %1$s · %2$s</string>

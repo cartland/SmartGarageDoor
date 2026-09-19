@@ -64,6 +64,8 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.presentation.DataFreshness
+import com.chriscartland.garage.presentation.StatusHeadline
+import com.chriscartland.garage.presentation.StatusHeadlineMapper
 import com.chriscartland.garage.wear.R
 import com.chriscartland.garage.wear.auth.WearGoogleSignIn
 import com.chriscartland.garage.wear.di.WearSignInConfig
@@ -521,10 +523,15 @@ internal object HeroScreenMappers {
         hasDoorData: Boolean,
         freshness: DataFreshness,
     ): String =
-        when {
-            hasDoorData -> doorStateLabel(doorPosition)
-            freshness.isSpoken -> stringResource(R.string.door_state_no_signal)
-            else -> stringResource(R.string.door_state_connecting)
+        when (
+            StatusHeadlineMapper.forDoor(
+                doorPosition = doorPosition.takeIf { hasDoorData },
+                freshness = freshness,
+            )
+        ) {
+            is StatusHeadline.Door -> doorStateLabel(doorPosition)
+            StatusHeadline.Connecting -> stringResource(R.string.door_state_connecting)
+            StatusHeadline.NoSignal -> stringResource(R.string.door_state_no_signal)
         }
 
     @Composable

@@ -3,7 +3,7 @@
 
 # Preview Screenshot Coverage
 
-**105 / 105 (100%)**
+**106 / 106 (100%)**
 
 ## Covered
 
@@ -48,6 +48,7 @@
 - `HomeContentAwaitingConfirmationPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentClosedSignedInPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentConnectingPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
+- `HomeContentNoSignalPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentOnTabletPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentOpenSignedInPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentOpeningTooLongPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
