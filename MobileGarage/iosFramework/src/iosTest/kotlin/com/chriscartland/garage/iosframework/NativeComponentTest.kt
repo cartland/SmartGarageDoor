@@ -129,6 +129,15 @@ class NativeComponentTest {
     @Test
     fun appVisibilityStateIsSingleton() = assertSame(component.appVisibilityState, component.appVisibilityState, "appVisibilityState")
 
+    // Owns a MutableStateFlow AND the collector Job that drives it. Uncached,
+    // AppStartup would start one instance while DefaultHomeViewModel collected
+    // a different, never-started one — leaving `isSettling` pinned at its seed
+    // `true`, so the stale banner, the fetch-error banner and the red
+    // check-in pill would be suppressed forever. Silent, and invisible to
+    // every other test in the suite.
+    @Test
+    fun appSettleWindowIsSingleton() = assertSame(component.appSettleWindow, component.appSettleWindow, "appSettleWindow")
+
     // Owns the one running strategy and its idempotent start(). Two
     // instances would each run their own strategy against the same cache.
     @Test

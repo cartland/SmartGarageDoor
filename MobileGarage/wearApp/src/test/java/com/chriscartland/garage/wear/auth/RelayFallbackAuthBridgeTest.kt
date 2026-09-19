@@ -21,7 +21,6 @@ import com.chriscartland.garage.data.AuthUserInfo
 import com.chriscartland.garage.data.wearrelay.WearAuthRelayResponse
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.testcommon.FakeAuthBridge
-import com.chriscartland.garage.usecase.AppSettleWindow
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelChildren
@@ -207,22 +206,21 @@ class RelayFallbackAuthBridgeTest {
             coroutineContext.cancelChildren()
         }
 
-    /**
-     * One rule, applied to two different unknowns. The watch waits the same
-     * five seconds before admitting it cannot identify you as the phone and
-     * iOS wait before admitting they cannot vouch for the door.
-     *
-     * The constant is written out in [RelayFallbackAuthBridge] rather than
-     * imported, because the auth layer does not otherwise depend on
-     * `:usecase`. This assertion is what stops the two drifting.
-     */
-    @Test
-    fun graceMatchesTheAppWideSettleWindow() {
-        assertEquals(
-            AppSettleWindow.SETTLE_WINDOW_MILLIS,
-            RelayFallbackAuthBridge.DEFAULT_UNRESOLVED_GRACE_MILLIS,
-        )
-    }
+    // Deliberately NOT tested here: the `grace.cancelAndJoin()` ordering
+    // guarantee. `runTest`'s virtual clock serializes the grace coroutine and
+    // the polling loop deterministically, so the interleaving the join exists
+    // to forbid — a grace `null` landing after the real answer, reachable only
+    // on the genuinely multi-threaded `Dispatchers.IO` the Wear graph uses —
+    // cannot be produced in this harness. A test here would pass either way
+    // and would be worse than no test: it would read as coverage. See the
+    // comment on that call for the argument.
+    //
+    // Also no longer tested: that the grace equals the app-wide settle window.
+    // `DEFAULT_UNRESOLVED_GRACE_MILLIS` now *is*
+    // `AppSettleWindow.SETTLE_WINDOW_MILLIS`, so an assertion comparing them
+    // would be `assertEquals(x, x)` — a tautology of exactly the kind audited
+    // out of `DataFreshnessMapperTest`. The number itself is pinned once, in
+    // `AppSettleWindowTest.theWindowIsFiveSeconds`.
 
     @Test
     fun idTokenPrefersLocalThenRelay() =

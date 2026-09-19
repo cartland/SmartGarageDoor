@@ -56,6 +56,19 @@ object FreshnessTint {
     fun alphaFor(freshness: DataFreshness): Float = if (freshness.isMuted) MUTED_ALPHA else 1f
 
     /**
+     * How long the door takes to drain to grey, or to come back.
+     *
+     * Shared for the same reason `WearConfirmTiming.RING_JOURNEY_MILLIS` is:
+     * that constant exists because a hold and a voice command drew the same
+     * ring at two different speeds for four releases, and the number being
+     * written twice is what let them drift. This is the same hazard — three
+     * apps animating one transition — caught before it drifted rather than
+     * after. The two Compose apps previously used the animation defaults
+     * (springs) while iOS used a hand-written 250 ms ease.
+     */
+    const val TRANSITION_MILLIS: Int = 250
+
+    /**
      * Perceived lightness of a colour, in the same 0..1 scale as its channels.
      * Feed it back in as all three channels to get that colour with its hue
      * drained out.

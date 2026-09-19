@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.ui.theme
 
+import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.Color
 import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.FreshnessTint as SharedFreshnessTint
@@ -33,6 +35,12 @@ import com.chriscartland.garage.presentation.FreshnessTint as SharedFreshnessTin
 object FreshnessTint {
     /** [SharedFreshnessTint.alphaFor], re-exported so callers need one import. */
     fun alphaFor(freshness: DataFreshness): Float = SharedFreshnessTint.alphaFor(freshness)
+
+    /**
+     * The shared transition duration as a Compose spec, so the door drains to
+     * grey at the same pace here, on Wear and on iOS.
+     */
+    fun <T> animationSpec(): TweenSpec<T> = tween(durationMillis = SharedFreshnessTint.TRANSITION_MILLIS)
 
     /** [color] with its hue drained out, keeping its perceived lightness. */
     fun desaturate(color: Color): Color {

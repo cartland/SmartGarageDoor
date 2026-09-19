@@ -47,6 +47,7 @@ import com.chriscartland.garage.domain.model.NavigationRailItemPosition
 import com.chriscartland.garage.domain.model.NavigationRailLayout
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.WatchAppStatus
+import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.SinceStatusMapper
 import com.chriscartland.garage.presentation.demoDoorEvents
 import com.chriscartland.garage.ui.home.DeviceCheckIn
@@ -186,7 +187,19 @@ fun HomeTabStalePillPreview() {
     // `HomeTabPreview` (typical case).
     val event = demoDoorEvents.firstOrNull()
     val now = Instant.parse("2026-04-29T12:00:00Z")
-    val status = HomeMapper.toHomeStatusDisplay(LoadingResult.Complete(event))
+    // STALE, passed to BOTH the card and the pill.
+    //
+    // `DeviceCheckIn.format` defaults its `freshness` to STALE (err toward
+    // showing a warning) while `HomeStatusDisplay` defaults to FRESH (err
+    // toward not muting). Those defaults are each right on their own, but a
+    // fixture that takes both silently rendered a combination production
+    // cannot reach: a red alarm pill sitting on a fully-saturated, un-muted
+    // card. Passing the same verdict to both is what keeps this fixture
+    // honest — see CLAUDE.md's fixtures-mirror-production rule.
+    val freshness = DataFreshness.STALE
+    val status = HomeMapper
+        .toHomeStatusDisplay(LoadingResult.Complete(event))
+        .copy(freshness = freshness)
     val sinceLine = rememberSinceLine(
         SinceStatusMapper.forEvent(status.lastChangeTimeSeconds, now.epochSecond),
         now,
@@ -195,6 +208,7 @@ fun HomeTabStalePillPreview() {
     val deviceCheckIn = DeviceCheckIn.format(
         lastCheckInSeconds = now.epochSecond - (23 * 60),
         nowSeconds = now.epochSecond,
+        freshness = freshness,
     )
     TabPreviewScaffold(selectedScreen = Screen.Home) { modifier ->
         HomeStatelessContent(

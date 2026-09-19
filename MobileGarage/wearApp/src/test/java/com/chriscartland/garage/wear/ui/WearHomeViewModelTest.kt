@@ -25,10 +25,12 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
+import com.chriscartland.garage.usecase.AppSettleWindow
 import com.chriscartland.garage.usecase.AppVisibilityState
 import com.chriscartland.garage.usecase.ButtonStateMachine
 import com.chriscartland.garage.usecase.DefaultAppSettleWindow
@@ -670,6 +672,130 @@ class WearHomeViewModelTest {
             assertTrue(viewModel.signInError.value)
             viewModel.onSignInStarted()
             assertFalse(viewModel.signInError.value)
+        }
+
+    // --- Freshness on the dial (CLAUDE.md § The settle window) ---
+    //
+    // READ THIS BEFORE ADDING A TEST THAT CALLS onVisible():
+    //
+    // `onVisible()` starts an INFINITE poll loop (`while (true) { fetch;
+    // delay }`) on `viewModelScope`. When the test body ends, `runTest`
+    // drains with `advanceUntilIdle()` — and an infinite loop of delays never
+    // becomes idle, so the scheduler advances virtual time forever, burning a
+    // core. It is not a deadlock and `runTest`'s wall-clock timeout does not
+    // save you: the worker simply spins (observed at 650 s of CPU before it
+    // was killed, with an empty test report).
+    //
+    // `onHidden()` stops the loop, so a passing test is fine. The trap is a
+    // FAILING one: an assertion throws, `onHidden()` never runs, and the
+    // failure you needed to see presents as an eleven-minute hang with no
+    // output. The tests below therefore capture the values they care about,
+    // call `onHidden()`, and only then assert — so a wrong expectation fails
+    // in milliseconds and tells you what it got.
+    //
+    // The setup comment says `onVisible` reporting visibility and the window
+    // reacting to it "are one behaviour and worth exercising together" — these
+    // are what actually exercise it. Without them `onVisible` could stop
+    // reporting visibility, or stop starting the window, and the watch would
+    // sit at a permanent SETTLING with "No signal" unreachable, green suite.
+
+    /**
+     * A launch that never hears from the garage: grey and wordless while the
+     * app is arriving, then "No signal" once the window closes. The watch
+     * starts with an empty cache on every launch (its local data source is
+     * in-memory), so this is the ordinary cold-start path, not an edge case.
+     */
+    @Test
+    fun aLaunchThatNeverConnectsGoesQuietThenSpeaks() =
+        runTest {
+            val viewModel = createViewModel()
+            // FakeDoorRepository seeds a DoorEvent() by default; this test is
+            // about a watch that has heard NOTHING, which is the real
+            // cold-start state (the local data source is in-memory).
+            doorRepository.clearCurrentDoorEvent()
+            viewModel.onVisible()
+            runCurrent()
+            val onArrival = viewModel.freshness.value
+
+            advanceTimeBy(AppSettleWindow.SETTLE_WINDOW_MILLIS + 1)
+            runCurrent()
+            val afterTheWindow = viewModel.freshness.value
+
+            // Stop the poll loop BEFORE asserting - see the note above.
+            viewModel.onHidden()
+            assertEquals(DataFreshness.SETTLING, onArrival)
+            assertEquals(
+                "the watch must eventually admit it has heard nothing",
+                DataFreshness.STALE,
+                afterTheWindow,
+            )
+        }
+
+    /**
+     * Positive control: a door event arriving makes the dial confident again.
+     * Without this, a `freshness` stuck at SETTLING or STALE would satisfy the
+     * test above and the dial would simply never regain its colour.
+     */
+    @Test
+    fun hearingFromTheGarageMakesTheDialConfident() =
+        runTest {
+            val viewModel = createViewModel()
+            doorRepository.clearCurrentDoorEvent()
+            viewModel.onVisible()
+            advanceTimeBy(AppSettleWindow.SETTLE_WINDOW_MILLIS + 1)
+            runCurrent()
+            val beforeHearing = viewModel.freshness.value
+
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.CLOSED, lastCheckInTimeSeconds = 1_000L),
+            )
+            // A poll interval, not just `runCurrent()`. The watch's first poll
+            // on an empty cache returns `FetchError.NotReady`, so the
+            // `isFetchError` input is set — and it is deliberately sticky
+            // until a poll SUCCEEDS, which is the honest reading of "the last
+            // fetch failed". Arriving data alone does not clear it; the
+            // successful poll that delivered the data does. In production the
+            // two always move together, because it is the same poll.
+            advanceTimeBy(WearHomeViewModel.IDLE_POLL_MILLIS + 1)
+            runCurrent()
+            val afterHearing = viewModel.freshness.value
+
+            viewModel.onHidden()
+            assertEquals(DataFreshness.STALE, beforeHearing)
+            assertEquals(DataFreshness.FRESH, afterHearing)
+        }
+
+    /**
+     * The failed-poll case, which used to be invisible on the watch: a device
+     * that answered once and has failed every poll since kept `hasData` true
+     * for the life of the process, so the dial stayed fully saturated and
+     * confident over hours of failures. The poll result now feeds the shared
+     * `isFetchError` input.
+     */
+    @Test
+    fun aFailingPollStopsTheDialLookingConfident() =
+        runTest {
+            val viewModel = createViewModel()
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.CLOSED, lastCheckInTimeSeconds = 1_000L),
+            )
+            viewModel.onVisible()
+            advanceTimeBy(AppSettleWindow.SETTLE_WINDOW_MILLIS + 1)
+            runCurrent()
+            val whileHealthy = viewModel.freshness.value
+
+            doorRepository.setFailCurrentDoorEventFetch(true)
+            advanceTimeBy(WearHomeViewModel.IDLE_POLL_MILLIS + 1)
+            runCurrent()
+            val afterFailing = viewModel.freshness.value
+
+            viewModel.onHidden()
+            assertEquals(DataFreshness.FRESH, whileHealthy)
+            assertEquals(
+                "a door event we can no longer confirm must not be rendered as current",
+                DataFreshness.STALE,
+                afterFailing,
+            )
         }
 
     companion object {

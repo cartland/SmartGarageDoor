@@ -359,16 +359,17 @@ private fun HomeStatusCardBody(
     val mutedColor = FreshnessTint.tint(doorColor, status.freshness)
     val heroColor by animateColorAsState(
         targetValue = mutedColor,
+        animationSpec = FreshnessTint.animationSpec(),
         label = "doorFreshnessColor",
     )
     val heroAlpha by animateFloatAsState(
         targetValue = FreshnessTint.alphaFor(status.freshness),
+        animationSpec = FreshnessTint.animationSpec(),
         label = "doorFreshnessAlpha",
     )
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer { alpha = heroAlpha }
             .padding(CardPadding.Tall),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -376,7 +377,19 @@ private fun HomeStatusCardBody(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(180.dp),
+                .height(180.dp)
+                // The dim lands on the door ART ONLY, never on the text below.
+                //
+                // It used to wrap this whole Column, which dimmed the door's
+                // own warning chip ("Opening, taking longer than expected") to
+                // 55% as well — and STALE is an indefinite state, not a
+                // transient one, so the single most important sentence on the
+                // card was the one the feature permanently made hardest to
+                // read. Scoping it here also makes Android, iOS and Wear agree:
+                // all three now mute the art and leave every word at full
+                // contrast, which is what "grey and dim, but no text change"
+                // should have meant all along.
+                .graphicsLayer { alpha = heroAlpha },
             contentAlignment = Alignment.Center,
         ) {
             // Live state — animate motion (OPENING/CLOSING tween, terminal/error

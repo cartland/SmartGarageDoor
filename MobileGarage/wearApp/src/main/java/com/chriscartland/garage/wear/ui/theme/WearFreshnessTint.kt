@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.wear.ui.theme
 
+import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.Color
 import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.FreshnessTint
@@ -34,6 +36,9 @@ import com.chriscartland.garage.presentation.FreshnessTint
 object WearFreshnessTint {
     /** [FreshnessTint.alphaFor], re-exported so callers need one import. */
     fun alphaFor(freshness: DataFreshness): Float = FreshnessTint.alphaFor(freshness)
+
+    /** The shared transition duration as a Compose spec — see the phone's twin. */
+    fun <T> animationSpec(): TweenSpec<T> = tween(durationMillis = FreshnessTint.TRANSITION_MILLIS)
 
     /** [color] with its hue drained out, keeping its perceived lightness. */
     fun desaturate(color: Color): Color {

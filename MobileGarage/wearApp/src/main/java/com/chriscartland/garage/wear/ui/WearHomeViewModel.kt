@@ -115,33 +115,50 @@ class WearHomeViewModel(
     val currentDoorEvent: StateFlow<DoorEvent?> = observeDoorEvents.current()
 
     /**
+     * Whether the most recent foreground poll failed. Written by the loop in
+     * [onVisible]; feeds the shared `isFetchError` input below.
+     */
+    private val lastFetchFailed = MutableStateFlow(false)
+
+    /**
      * How much the watch trusts what is on the dial, and whether it may say
      * so out loud — the same three-way verdict the phone and iOS render, from
      * the same shared mapper.
      *
-     * The watch's own bar for "not current" is simply *having no door event
-     * at all*, which on this device is the state of every single launch: the
-     * local data source is in-memory, so nothing survives the process. There
-     * is deliberately no check-in staleness input here — the watch runs no
-     * `CheckInStalenessManager`, and inventing a second, weaker definition of
-     * stale for one platform is exactly the drift `DataFreshness` exists to
-     * prevent. A fetch failure likewise does not register: this loop discards
-     * its results (see [onVisible]) and a failed poll leaves `hasData` false,
-     * which already reads as not-current.
+     * Two of the three shared inputs apply here:
+     *  - `hasData` — on this device an empty cache is the state of every
+     *    single launch, because the local data source is in-memory.
+     *  - `isFetchError` — the poll loop's outcome. Without it a watch that
+     *    succeeded once rendered a confident, fully-saturated dial through
+     *    hours of subsequent failures, since `hasData` stays true for the life
+     *    of the process.
      *
-     * `Eagerly` because both upstreams are in-memory StateFlows — running the
+     * The third, `isCheckInStale`, is still false here — not on principle but
+     * for want of a clock. The watch runs no `LiveClock`, and
+     * `CheckInStatusMapper.forCheckIn` needs a `now` to compare against. (It
+     * IS reachable now that `:presentation-model` is on the watch's classpath,
+     * so this is a known gap with a known fix, not a design boundary. An
+     * earlier version of this comment claimed sharing the definition would be
+     * "drift", which had it exactly backwards.)
+     *
+     * `Eagerly` because every upstream is an in-memory StateFlow — running the
      * combine for the life of the ViewModel costs nothing, and the initial
      * value makes the first frame correct rather than a flash of FRESH.
      */
     val freshness: StateFlow<DataFreshness> =
-        combine(currentDoorEvent, appSettleWindow.isSettling) { event, settling ->
-            wearFreshness(event, settling)
+        combine(
+            currentDoorEvent,
+            appSettleWindow.isSettling,
+            lastFetchFailed,
+        ) { event, settling, failed ->
+            wearFreshness(event, settling, failed)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = wearFreshness(
                 currentDoorEvent.value,
                 appSettleWindow.isSettling.value,
+                lastFetchFailed.value,
             ),
         )
 
@@ -314,7 +331,14 @@ class WearHomeViewModel(
         if (refreshJob?.isActive == true) return
         refreshJob = viewModelScope.launch(dispatchers.io) {
             while (true) {
-                fetchCurrentDoorEventUseCase()
+                // The result is no longer discarded. A watch that succeeded
+                // once and has failed every poll since kept `hasData == true`
+                // for the life of the process, so the dial stayed fully
+                // saturated and confident over hours of failures — it would
+                // assert a six-hour-old reading as current. Feeding the
+                // outcome into `lastFetchFailed` is what lets the SHARED
+                // `isFetchError` input speak for the watch too.
+                lastFetchFailed.value = fetchCurrentDoorEventUseCase() is AppResult.Error
                 val waitingOnDoor = buttonState.value is RemoteButtonState.SendingToServer ||
                     buttonState.value is RemoteButtonState.SendingToDoor ||
                     voicePressAwaitingDoor
@@ -470,11 +494,14 @@ class WearHomeViewModel(
         private fun wearFreshness(
             event: DoorEvent?,
             isSettling: Boolean,
+            lastFetchFailed: Boolean,
         ): DataFreshness =
             DataFreshnessMapper.freshness(
                 hasData = event != null,
+                // See the `freshness` KDoc: absent for want of a clock on the
+                // watch, not by design.
                 isCheckInStale = false,
-                isFetchError = false,
+                isFetchError = lastFetchFailed,
                 isSettling = isSettling,
             )
 

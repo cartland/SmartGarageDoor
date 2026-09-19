@@ -21,7 +21,9 @@ import com.chriscartland.garage.data.AuthBridge
 import com.chriscartland.garage.data.AuthUserInfo
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.GoogleIdToken
+import com.chriscartland.garage.usecase.AppSettleWindow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -98,9 +100,20 @@ class RelayFallbackAuthBridge(
             }
             while (true) {
                 val response = relay.requestAuth(forceRefresh = false)
-                // Idempotent: only the first answer still has a grace job to
-                // stop, and cancelling a finished job is a no-op.
-                grace.cancel()
+                // cancelAndJoin, NOT cancel. `cancel()` is asynchronous and
+                // `send` on this channel can take a non-suspending fast path,
+                // so a grace coroutine already resumed from its delay could
+                // still emit `null` AFTER the real answer below — and
+                // `applicationScope` is `Dispatchers.IO`, genuinely
+                // multi-threaded, so the two really do race. That ordering
+                // would put a Sign in button over a signed-in account until
+                // the next poll 15 s later: precisely the bug this flow was
+                // rewritten to remove. Joining guarantees that if the grace
+                // emitted at all, it emitted first — giving null then user,
+                // which is the already-correct late-answer sequence.
+                // Idempotent: only the first answer still has a live grace
+                // job, and joining a finished one returns immediately.
+                grace.cancelAndJoin()
                 if (response?.signedIn == true) {
                     send(
                         AuthUserInfo(
@@ -142,14 +155,15 @@ class RelayFallbackAuthBridge(
          * waits for the phone's first answer, before conceding that it is
          * signed out and offering the button.
          *
-         * The same five seconds the rest of the app waits before it starts
-         * describing a problem (`AppSettleWindow.SETTLE_WINDOW_MILLIS`) —
-         * this is that one rule applied to identity rather than to door
-         * data. The value is written out rather than imported because the
-         * auth layer does not otherwise depend on `:usecase`; the two are
-         * pinned together by
-         * `RelayFallbackAuthBridgeTest.graceMatchesTheAppWideSettleWindow`.
+         * Literally [AppSettleWindow.SETTLE_WINDOW_MILLIS] — one rule, applied
+         * to identity instead of to door data. An earlier version wrote the
+         * number out again, justified by the claim that "the auth layer does
+         * not otherwise depend on `:usecase`"; that was simply false
+         * (`wearApp/build.gradle.kts` has depended on `:usecase` all along),
+         * so the duplicate bought nothing and needed a test to hold it in
+         * place. Referencing the constant makes the test unnecessary and the
+         * drift impossible.
          */
-        const val DEFAULT_UNRESOLVED_GRACE_MILLIS: Long = 5_000L
+        const val DEFAULT_UNRESOLVED_GRACE_MILLIS: Long = AppSettleWindow.SETTLE_WINDOW_MILLIS
     }
 }

@@ -31,6 +31,7 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.domain.repository.ButtonHealthRepository
+import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.DoorWarning
 import com.chriscartland.garage.presentation.ElapsedDuration
 import com.chriscartland.garage.testcommon.FakeAppLoggerRepository
@@ -65,6 +66,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlin.test.AfterTest
@@ -84,6 +86,17 @@ class HomeViewModelTest {
     private lateinit var doorFcmRepository: FakeDoorFcmRepository
     private lateinit var remoteButtonRepository: FakeRemoteButtonRepository
     private lateinit var buttonHealthRepository: HomeTestNoopButtonHealthRepository
+
+    /**
+     * The two ADR-015 manager fakes the VM was built with, exposed so a test
+     * can drive them after construction. Before this the settle window's fake
+     * was a local, `setSettling` was never called anywhere in the repo, and
+     * `doorState.freshness` had no assertion at all — so hardcoding
+     * `isSettling = true` in the VM (which would suppress every worded
+     * freshness indicator on phone and iOS, forever) left the suite green.
+     */
+    private lateinit var settleWindow: FakeAppSettleWindow
+    private lateinit var stalenessManager: FakeCheckInStalenessManager
 
     private val testDoorEvent =
         DoorEvent(
@@ -128,12 +141,20 @@ class HomeViewModelTest {
         // sees on first composition in production (where the IO
         // launch races the first-frame read of .value).
         runScheduler: Boolean = true,
+        // Only the freshness-wiring tests pass true. Everything else wants a
+        // settled app, so that a test asserting "the banner appears" can never
+        // be satisfied by accidental suppression.
+        initiallySettling: Boolean = false,
     ): DefaultHomeViewModel {
         authRepository.setAuthState(authState)
         val stalenessManager = FakeCheckInStalenessManager()
-        // Settled unless a test says otherwise — see FakeAppSettleWindow for
+        // Hoisted onto the test class (not a local) so a test can drive the
+        // window after construction — see the freshness-wiring tests below.
+        // Settled unless a test says otherwise; FakeAppSettleWindow explains
         // why the fake's default is the opposite of production's.
-        val settleWindow = FakeAppSettleWindow()
+        this@HomeViewModelTest.stalenessManager = stalenessManager
+        val settleWindow = FakeAppSettleWindow(initiallySettling = initiallySettling)
+        this@HomeViewModelTest.settleWindow = settleWindow
         val liveClock = DefaultLiveClock(
             clock = AppClock { 0L },
             scope = scope,
@@ -588,6 +609,111 @@ class HomeViewModelTest {
             advanceUntilIdle()
 
             assertEquals(1, buttonHealthRepository.fetchCount)
+        }
+
+    // --- Settle-window wiring (docs/CLAUDE.md § The settle window) ---
+    //
+    // These are the tests that make the phone/iOS half of the feature real.
+    // Without them the window could be disconnected from the VM entirely — or
+    // hardcoded open, suppressing every worded freshness indicator forever —
+    // and the whole suite stayed green. `HomeDoorStateMapperTest` covers the
+    // pure transform; what these cover is that the VM actually feeds it the
+    // manager's value, on the first frame and on every frame after.
+
+    /**
+     * The warm start this feature exists for: an aged check-in renders muted
+     * and WORDLESS while the window is open, then earns its words when it
+     * closes. One input changes — the window — and the verdict escalates.
+     */
+    @Test
+    fun anAgedCheckInIsMutedOnArrivalAndSpokenOnceTheWindowCloses() =
+        runTest {
+            val viewModel = createViewModel(scope = backgroundScope, initiallySettling = true)
+            stalenessManager.setStale(true)
+            runCurrent()
+
+            assertEquals(
+                DataFreshness.SETTLING,
+                viewModel.doorState.value.freshness,
+                "an arriving app must be muted but wordless",
+            )
+
+            settleWindow.setSettling(false)
+            runCurrent()
+
+            assertEquals(
+                DataFreshness.STALE,
+                viewModel.doorState.value.freshness,
+                "once the window closes the same state must be allowed to speak",
+            )
+        }
+
+    /**
+     * The first frame, which is the reason `DefaultAppSettleWindow` seeds
+     * `true` at all. `runScheduler = false` reads `doorState.value`
+     * immediately after construction — the `stateIn` `initialValue` path,
+     * before any collector body has run — which is what a real Composable
+     * sees on first composition.
+     *
+     * Without this the seeded initial value could disagree with the flow (a
+     * first-frame class of bug this repo has been bitten by more than once)
+     * and nothing would notice.
+     *
+     * The empty cache is what makes the window observable at all here: with
+     * current data the verdict is FRESH whether the window is open or not,
+     * which is correct and is exactly what
+     * `DataFreshnessMapperTest.settlingDoesNotMakeCurrentDataAnyLessFresh`
+     * pins. An earlier draft of this test asserted SETTLING over a populated
+     * cache and failed for that reason — the code was right and the test was
+     * wrong.
+     */
+    @Test
+    fun theFirstFrameAlreadyKnowsTheWindowIsOpen() =
+        runTest {
+            doorRepository.clearCurrentDoorEvent()
+            val viewModel = createViewModel(
+                scope = backgroundScope,
+                fetchOnInit = false,
+                runScheduler = false,
+                initiallySettling = true,
+            )
+            assertEquals(DataFreshness.SETTLING, viewModel.doorState.value.freshness)
+        }
+
+    /**
+     * The same first frame with the window already closed — so the pair
+     * proves the initial value is READ from the manager rather than being a
+     * hardcoded constant that happens to match.
+     */
+    @Test
+    fun theFirstFrameOfASettledAppWithNoDataIsAlreadySpoken() =
+        runTest {
+            doorRepository.clearCurrentDoorEvent()
+            val viewModel = createViewModel(
+                scope = backgroundScope,
+                fetchOnInit = false,
+                runScheduler = false,
+                initiallySettling = false,
+            )
+            assertEquals(DataFreshness.STALE, viewModel.doorState.value.freshness)
+        }
+
+    /**
+     * Positive control for the two above: with the window closed and nothing
+     * wrong, the verdict is FRESH.
+     *
+     * This is what stops the pair from passing vacuously. A `freshness` wired
+     * to a constant `SETTLING` would satisfy both tests above (the first
+     * directly, the second because SETTLING is what it asserts); only an
+     * assertion that some state is NOT muted proves the VM is reading a real
+     * value rather than a stuck one.
+     */
+    @Test
+    fun aSettledAppWithCurrentDataIsFresh() =
+        runTest {
+            val viewModel = createViewModel(scope = backgroundScope)
+            runCurrent()
+            assertEquals(DataFreshness.FRESH, viewModel.doorState.value.freshness)
         }
 }
 

@@ -97,6 +97,11 @@ class HomeDoorStateMapperTest {
         assertNull(state.warning)
         assertNull(state.sinceStatus)
         assertEquals(VoiceDoorState.UNKNOWN, state.voice)
+        // An empty cache is not current. Without this, `hasData = event != null`
+        // could degenerate to `true` and a cold start would report FRESH — an
+        // un-muted "Connecting…" card with every banner suppressed for as long
+        // as the cache stayed empty.
+        assertEquals(DataFreshness.STALE, state.freshness)
     }
 
     /**

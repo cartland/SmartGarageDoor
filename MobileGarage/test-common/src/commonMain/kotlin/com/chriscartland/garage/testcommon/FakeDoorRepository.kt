@@ -65,6 +65,19 @@ class FakeDoorRepository : DoorRepository {
         _currentDoorEvent.value = event
     }
 
+    /**
+     * Back to an empty cache — the cold-start state, where the app has no
+     * door reading at all.
+     *
+     * A separate function rather than widening [setCurrentDoorEvent] to
+     * accept null: "set it to this event" and "forget everything" are
+     * different intentions, and a nullable setter makes it easy to erase the
+     * cache by accident when a nullable local is passed through.
+     */
+    fun clearCurrentDoorEvent() {
+        _currentDoorEvent.value = null
+    }
+
     fun setRecentDoorEvents(events: List<DoorEvent>) {
         _recentDoorEvents.value = events
     }
