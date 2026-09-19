@@ -81,6 +81,15 @@ class WearComponentGraphTest {
         assertSame(component.networkDoorDataSource, component.networkDoorDataSource)
         assertSame(component.networkConfigDataSource, component.networkConfigDataSource)
         assertSame(component.networkButtonDataSource, component.networkButtonDataSource)
+        // The settle window and the visibility sink it watches. These two
+        // matter more than most: `WearHomeViewModel.onVisible()` WRITES to
+        // `appVisibilityState` and READS freshness from `appSettleWindow`, so
+        // if either were uncached the watch would report visibility into one
+        // object and consult a different, never-started one — leaving
+        // `isSettling` pinned at its seed `true` and the "No signal" headline
+        // permanently unreachable. Silent, and invisible to every other test.
+        assertSame(component.appVisibilityState, component.appVisibilityState)
+        assertSame(component.appSettleWindow, component.appSettleWindow)
     }
 
     @Test

@@ -297,6 +297,24 @@ class ComponentGraphTest {
         assertSame("LiveClock must be singleton", c.liveClock, c.liveClock)
     }
 
+    /**
+     * `DefaultAppSettleWindow` owns a `MutableStateFlow` AND the collector job
+     * that drives it, which is the shape that makes caching load-bearing
+     * rather than merely tidy.
+     *
+     * Uncached, `AppStartup` would call `start()` on one instance while
+     * `DefaultHomeViewModel` collected a different, never-started one. Its
+     * seed is `true`, so `isSettling` would stay true forever and the stale
+     * banner, the fetch-error banner and the red check-in pill would be
+     * suppressed for the life of the process — the app would silently lose the
+     * ability to report a fault, and no other test in this repo would notice.
+     */
+    @Test
+    fun appSettleWindowIsSingleton() {
+        val c = component
+        assertSame("AppSettleWindow must be singleton", c.appSettleWindow, c.appSettleWindow)
+    }
+
     @Test
     fun appDatabaseIsSingleton() {
         val c = component

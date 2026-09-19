@@ -39,11 +39,11 @@ import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDiagnosticsCountersRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
+import com.chriscartland.garage.usecase.AppSettleWindow
 import com.chriscartland.garage.usecase.AppStartup
 import com.chriscartland.garage.usecase.AppVisibilityState
 import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
-import com.chriscartland.garage.usecase.DefaultAppSettleWindow
 import com.chriscartland.garage.usecase.DefaultCheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
 import com.chriscartland.garage.usecase.DoorResolvedFcmSubscriptionManager
@@ -76,6 +76,29 @@ import org.junit.Test
 
 class AppStartupTest {
     private val testDispatcher = StandardTestDispatcher()
+
+    /**
+     * Records whether `start()` was called. Local rather than the
+     * `:viewmodel` `FakeAppSettleWindow`, which lives in that module's
+     * `commonTest` and is not visible here; hoisting it to `:test-common`
+     * would mean giving that module a `:usecase` dependency it does not
+     * otherwise have, which is more layering churn than one boolean is worth.
+     * Matches how this file already fakes `ButtonHealthRepository` and friends
+     * inline.
+     */
+    private class RecordingAppSettleWindow : AppSettleWindow {
+        override val isSettling: StateFlow<Boolean> = MutableStateFlow(true)
+
+        var started: Boolean = false
+            private set
+
+        override fun start() {
+            started = true
+        }
+    }
+
+    /** The settle-window fake handed to the most recent [createAppStartup]. */
+    private lateinit var lastSettleWindow: RecordingAppSettleWindow
 
     private fun createFcmManager(scope: TestScope): FcmRegistrationManager {
         val useCase = object : RegisterFcmUseCase {
@@ -219,11 +242,17 @@ class AppStartupTest {
         val fcmManager = createFcmManager(scope)
         val stalenessManager = createStalenessManager(scope)
         val liveClock = createLiveClock(scope)
-        val settleWindow = DefaultAppSettleWindow(
-            appVisibilityState = AppVisibilityState(),
-            scope = scope.backgroundScope,
-            dispatcher = testDispatcher,
-        )
+        // The FAKE, not the real window, so `started` can be asserted.
+        //
+        // The action-list test below checks that `run()` returns the string
+        // "startAppSettleWindow" — which would still pass if the
+        // `appSettleWindow.start()` line were deleted and only `actions.add`
+        // left behind. That mutation is the highest-consequence one in the
+        // whole feature: `isSettling` is seeded `true`, so a window that is
+        // never started leaves every worded freshness indicator on phone and
+        // iOS suppressed for the life of the process.
+        val settleWindow = RecordingAppSettleWindow()
+        this.lastSettleWindow = settleWindow
         val buttonHealthMgr = createButtonHealthFcmSubscriptionManager(scope)
         val doorResolvedMgr = createDoorResolvedFcmSubscriptionManager(scope)
         val initialDoorFetchMgr = createInitialDoorFetchManager(scope, logger, counters)
@@ -305,6 +334,27 @@ class AppStartupTest {
                 ),
                 result,
             )
+        }
+
+    /**
+     * The settle window is actually STARTED, not merely named in the action
+     * list.
+     *
+     * `onActivityCreated_returnsAllActions` asserts the string
+     * "startAppSettleWindow" appears — and would keep passing if
+     * `appSettleWindow.start()` were deleted and the `actions.add` left
+     * behind. This asserts the call. It matters more than the average startup
+     * step because the window's flag is seeded `true`: never starting it does
+     * not mean "no grace period", it means "every freshness warning
+     * suppressed forever", silently.
+     */
+    @Test
+    fun onActivityCreated_startsTheSettleWindow() =
+        runTest(testDispatcher) {
+            val startup = createAppStartup(this)
+            startup.run()
+            advanceUntilIdle()
+            assertTrue("AppSettleWindow.start() must be called", lastSettleWindow.started)
         }
 
     @Test

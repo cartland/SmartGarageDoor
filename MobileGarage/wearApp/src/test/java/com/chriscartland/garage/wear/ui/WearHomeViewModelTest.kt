@@ -25,10 +25,12 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
+import com.chriscartland.garage.usecase.AppSettleWindow
 import com.chriscartland.garage.usecase.AppVisibilityState
 import com.chriscartland.garage.usecase.ButtonStateMachine
 import com.chriscartland.garage.usecase.DefaultAppSettleWindow
@@ -670,6 +672,98 @@ class WearHomeViewModelTest {
             assertTrue(viewModel.signInError.value)
             viewModel.onSignInStarted()
             assertFalse(viewModel.signInError.value)
+        }
+
+    // --- Freshness on the dial (CLAUDE.md § The settle window) ---
+    //
+    // The setup comment says `onVisible` reporting visibility and the window
+    // reacting to it "are one behaviour and worth exercising together" — these
+    // are what actually exercise it. Without them `onVisible` could stop
+    // reporting visibility, or stop starting the window, and the watch would
+    // sit at a permanent SETTLING with "No signal" unreachable, green suite.
+
+    /**
+     * A launch that never hears from the garage: grey and wordless while the
+     * app is arriving, then "No signal" once the window closes. The watch
+     * starts with an empty cache on every launch (its local data source is
+     * in-memory), so this is the ordinary cold-start path, not an edge case.
+     */
+    @Test
+    fun aLaunchThatNeverConnectsGoesQuietThenSpeaks() =
+        runTest {
+            val viewModel = createViewModel()
+            viewModel.onVisible()
+            runCurrent()
+            assertEquals(DataFreshness.SETTLING, viewModel.freshness.value)
+
+            advanceTimeBy(AppSettleWindow.SETTLE_WINDOW_MILLIS + 1)
+            runCurrent()
+            assertEquals(
+                "the watch must eventually admit it has heard nothing",
+                DataFreshness.STALE,
+                viewModel.freshness.value,
+            )
+            viewModel.onHidden()
+        }
+
+    /**
+     * Positive control: a door event arriving makes the dial confident again.
+     * Without this, a `freshness` stuck at SETTLING or STALE would satisfy the
+     * test above and the dial would simply never regain its colour.
+     */
+    @Test
+    fun hearingFromTheGarageMakesTheDialConfident() =
+        runTest {
+            val viewModel = createViewModel()
+            viewModel.onVisible()
+            advanceTimeBy(AppSettleWindow.SETTLE_WINDOW_MILLIS + 1)
+            runCurrent()
+            assertEquals(DataFreshness.STALE, viewModel.freshness.value)
+
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.CLOSED, lastCheckInTimeSeconds = 1_000L),
+            )
+            // A poll interval, not just `runCurrent()`. The watch's first poll
+            // on an empty cache returns `FetchError.NotReady`, so the
+            // `isFetchError` input is set — and it is deliberately sticky
+            // until a poll SUCCEEDS, which is the honest reading of "the last
+            // fetch failed". Arriving data alone does not clear it; the
+            // successful poll that delivered the data does. In production the
+            // two always move together, because it is the same poll.
+            advanceTimeBy(WearHomeViewModel.IDLE_POLL_MILLIS + 1)
+            runCurrent()
+            assertEquals(DataFreshness.FRESH, viewModel.freshness.value)
+            viewModel.onHidden()
+        }
+
+    /**
+     * The failed-poll case, which used to be invisible on the watch: a device
+     * that answered once and has failed every poll since kept `hasData` true
+     * for the life of the process, so the dial stayed fully saturated and
+     * confident over hours of failures. The poll result now feeds the shared
+     * `isFetchError` input.
+     */
+    @Test
+    fun aFailingPollStopsTheDialLookingConfident() =
+        runTest {
+            val viewModel = createViewModel()
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.CLOSED, lastCheckInTimeSeconds = 1_000L),
+            )
+            viewModel.onVisible()
+            advanceTimeBy(AppSettleWindow.SETTLE_WINDOW_MILLIS + 1)
+            runCurrent()
+            assertEquals(DataFreshness.FRESH, viewModel.freshness.value)
+
+            doorRepository.setFailCurrentDoorEventFetch(true)
+            advanceTimeBy(WearHomeViewModel.IDLE_POLL_MILLIS + 1)
+            runCurrent()
+            assertEquals(
+                "a door event we can no longer confirm must not be rendered as current",
+                DataFreshness.STALE,
+                viewModel.freshness.value,
+            )
+            viewModel.onHidden()
         }
 
     companion object {

@@ -446,10 +446,12 @@ private fun GarageDoorTarget(
         // that the watch just heard from the garage.
         val doorColor by animateColorAsState(
             targetValue = WearFreshnessTint.tint(WearDoorColors.forPosition(doorPosition), freshness),
+            animationSpec = WearFreshnessTint.animationSpec(),
             label = "doorFreshnessColor",
         )
         val doorAlpha by animateFloatAsState(
             targetValue = WearFreshnessTint.alphaFor(freshness),
+            animationSpec = WearFreshnessTint.animationSpec(),
             label = "doorFreshnessAlpha",
         )
         WearGarageIcon(

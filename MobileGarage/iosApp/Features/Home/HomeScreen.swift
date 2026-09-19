@@ -186,6 +186,25 @@ struct HomeContentView: View {
                     )
                     .frame(height: 160)
                     .frame(maxWidth: .infinity)
+                    // The dim lands on the door ART ONLY, never on the text
+                    // below. It used to wrap the whole VStack, which dimmed the
+                    // door's own warning chip to 55% too — and `.stale` is an
+                    // indefinite state, so the most important sentence on the
+                    // card became the hardest to read. Scoping it here also
+                    // makes iOS, Android and Wear agree: mute the art, leave
+                    // every word at full contrast.
+                    //
+                    // Animated so the return fetch (which usually lands well
+                    // inside the window) resolves the door rather than snapping
+                    // it. Duration is shared, so the three apps settle at the
+                    // same pace.
+                    .opacity(Double(FreshnessTint.shared.alphaFor(freshness: freshness)))
+                    .animation(
+                        .easeInOut(
+                            duration: Double(FreshnessTint.shared.TRANSITION_MILLIS) / 1000.0
+                        ),
+                        value: freshness
+                    )
                     VStack(spacing: GarageSpacing.tight) {
                         // Written as if/else, not a ternary. `statusLabel` is a
                         // String, so `cond ? statusLabel : "Connecting…"` unifies
@@ -220,20 +239,6 @@ struct HomeContentView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, GarageSpacing.tight)
-                // Dim whenever the app is unsure this is current — during the
-                // settle window as well as after it, and saying exactly the
-                // same words either way. Animated, so the return fetch (which
-                // usually lands well inside the window) resolves the card
-                // rather than snapping it.
-                //
-                // The GREY half is not here: `GarageDoorView` drains its own
-                // colour from the shared `FreshnessTint.luma`, the way both
-                // Compose apps do. SwiftUI's `.saturation(0)` was tried at this
-                // level first and only got about 70% of the way there in a
-                // recorded snapshot, which would have made "grey" mean
-                // something measurably different on iOS.
-                .opacity(Double(FreshnessTint.shared.alphaFor(freshness: freshness)))
-                .animation(.easeInOut(duration: 0.25), value: freshness)
             } header: {
                 // Pill right-aligned in the section header, mirroring Android's
                 // `DeviceCheckInPill` in the "Status" header row.

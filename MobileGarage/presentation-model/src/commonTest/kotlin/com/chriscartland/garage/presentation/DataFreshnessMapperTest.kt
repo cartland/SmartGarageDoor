@@ -115,11 +115,9 @@ class DataFreshnessMapperTest {
      * Property 2: indicators accumulate. STALE keeps everything SETTLING
      * shows and adds words to it.
      *
-     * This is also the file's positive control. Every other assertion here
-     * compares two computed values, so a `freshness` that had degenerated to
-     * returning one constant would satisfy a surprising number of them; the
-     * `assertTrue(... != ...)` pair below cannot pass unless the three
-     * verdicts are genuinely distinct.
+     * The six assertions below ARE the discriminating ones — each predicate is
+     * pinned at all three verdicts, so a `isMuted`/`isSpoken` that degenerated
+     * to a constant fails here immediately.
      */
     @Test
     fun indicatorsOnlyAccumulate() {
@@ -130,9 +128,35 @@ class DataFreshnessMapperTest {
         assertEquals(false, DataFreshnessMapper.isSpoken(DataFreshness.FRESH))
         assertEquals(false, DataFreshnessMapper.isSpoken(DataFreshness.SETTLING))
         assertEquals(true, DataFreshnessMapper.isSpoken(DataFreshness.STALE))
+    }
 
-        assertTrue(DataFreshness.SETTLING != DataFreshness.STALE, "settling must not be stale")
-        assertTrue(DataFreshness.FRESH != DataFreshness.SETTLING, "fresh must not be settling")
+    /**
+     * The file's positive control: [DataFreshnessMapper.freshness] must be
+     * able to return more than one thing.
+     *
+     * Every other assertion in this file states that some input produces some
+     * verdict, and a `freshness` that had degenerated to returning a single
+     * constant would still satisfy a surprising number of them. This one
+     * cannot pass unless the function genuinely discriminates — on the settle
+     * flag alone, and on the data alone.
+     *
+     * It replaces an earlier attempt that compared two enum ENTRIES
+     * (`assertTrue(SETTLING != STALE)`), which was a tautology: two distinct
+     * enum constants can never be equal, so it could not fail under any
+     * mutation of the code under test and never called `freshness` at all.
+     * Exactly the vacuous-pass family CLAUDE.md warns about, sitting under a
+     * comment claiming to be the guard against it.
+     */
+    @Test
+    fun theMapperCanActuallyReturnMoreThanOneVerdict() {
+        assertTrue(
+            freshness(stale = true, settling = true) != freshness(stale = true, settling = false),
+            "the settle flag alone must change the verdict",
+        )
+        assertTrue(
+            freshness(stale = false) != freshness(stale = true),
+            "the data alone must change the verdict",
+        )
     }
 
     /** The enum's sugar must agree with the mapper it delegates to. */

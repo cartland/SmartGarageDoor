@@ -38,6 +38,21 @@ import kotlin.test.assertEquals
 class AppSettleWindowTest {
     private val window = AppSettleWindow.SETTLE_WINDOW_MILLIS
 
+    /**
+     * Pins the promise to a NUMBER, not just to itself.
+     *
+     * Every other test here references [AppSettleWindow.SETTLE_WINDOW_MILLIS]
+     * symbolically, and `RelayFallbackAuthBridgeTest` pins the two constants
+     * only to each other — so raising this to five minutes would keep the
+     * whole repo green while the app sat silent for five minutes on every
+     * launch. "Five seconds" is the thing that was actually asked for, so
+     * five seconds is what gets asserted.
+     */
+    @Test
+    fun theWindowIsFiveSeconds() {
+        assertEquals(5_000L, AppSettleWindow.SETTLE_WINDOW_MILLIS)
+    }
+
     private fun TestScope.newWindow(
         visibility: AppVisibilityState,
         scope: CoroutineScope,
@@ -62,10 +77,15 @@ class AppSettleWindowTest {
             assertEquals(true, settleWindow.isSettling.value)
 
             settleWindow.start()
+            // Advance well past the window BEFORE asserting. Without this the
+            // assertion passed for the wrong reason — the 5s delay simply had
+            // not elapsed yet, so it held even with the `isVisible` guard
+            // deleted. Running the clock on is what makes it actually prove
+            // that the starting `Visibility(false, 0)` is not read as "the
+            // window closed": nothing has become visible, so nothing settles,
+            // however long we wait.
+            advanceTimeBy(window * 2)
             runCurrent()
-            // The starting Visibility(false, 0) that every collector sees must
-            // NOT be read as "the window closed": nothing has become visible,
-            // so nothing has settled.
             assertEquals(true, settleWindow.isSettling.value)
         }
 
@@ -90,6 +110,79 @@ class AppSettleWindowTest {
             advanceTimeBy(2)
             runCurrent()
             assertEquals(false, settleWindow.isSettling.value)
+        }
+
+    /**
+     * THE safety property, and the one the first implementation got wrong:
+     * the window may only ever DELAY a warning, never suppress it without
+     * bound.
+     *
+     * A `delay(5_000)` restarted by `collectLatest` on every return only ever
+     * closed after five *uninterrupted* visible seconds — and nothing
+     * guarantees the app gets five uninterrupted seconds. Someone glancing at
+     * the watch for three seconds at a time (`onVisible`/`onHidden` are
+     * `ON_START`/`ON_STOP`, so every wrist-down is a departure) restarted the
+     * countdown on every glance and would NEVER have been told the garage was
+     * unreachable. Same on iOS, where a notification banner reports
+     * `.inactive`.
+     *
+     * So screen time accumulates. Two three-second glances add up to six, and
+     * the second glance speaks.
+     */
+    @Test
+    fun screenTimeAccumulatesAcrossGlancesSoShortLooksStillReachStale() =
+        runTest {
+            val visibility = AppVisibilityState()
+            val settleWindow = newWindow(visibility, backgroundScope)
+            settleWindow.start()
+
+            // Glance one: three seconds, then the wrist drops.
+            visibility.setVisible(true)
+            advanceTimeBy(3_000)
+            runCurrent()
+            assertEquals(true, settleWindow.isSettling.value, "3s is not yet 5s")
+            visibility.setVisible(false)
+            runCurrent()
+
+            // A long gap changes nothing — the countdown is paused, not reset.
+            advanceTimeBy(60_000)
+            runCurrent()
+            assertEquals(true, settleWindow.isSettling.value)
+
+            // Glance two: the remaining two seconds are all that is owed.
+            visibility.setVisible(true)
+            advanceTimeBy(2_500)
+            runCurrent()
+            assertEquals(
+                false,
+                settleWindow.isSettling.value,
+                "accumulated screen time must close the window; a glance pattern must not hold it open forever",
+            )
+        }
+
+    /**
+     * The other half of the same property: a departure must not ADD time
+     * either. Being away is neither progress nor a penalty.
+     */
+    @Test
+    fun timeSpentAwayDoesNotCountTowardTheWindow() =
+        runTest {
+            val visibility = AppVisibilityState()
+            val settleWindow = newWindow(visibility, backgroundScope)
+            settleWindow.start()
+            visibility.setVisible(true)
+            advanceTimeBy(1_000)
+            runCurrent()
+            visibility.setVisible(false)
+            runCurrent()
+
+            advanceTimeBy(window * 10)
+            runCurrent()
+            assertEquals(
+                true,
+                settleWindow.isSettling.value,
+                "hours in the background must not settle a window nobody was looking at",
+            )
         }
 
     /**
@@ -169,18 +262,36 @@ class AppSettleWindowTest {
             assertEquals(true, settleWindow.isSettling.value)
         }
 
-    /** Idempotent, so a second `AppStartup.run()` cannot stack two timers. */
+    /**
+     * Idempotent, so a second `AppStartup.run()` cannot stack two timers.
+     *
+     * The second `start()` deliberately happens AFTER the window has closed,
+     * which is the only place a duplicate collector is observable: it would be
+     * replayed the current `Visibility(true, 1)` and reopen the window behind
+     * the app's back. An earlier version of this test called `start()` three
+     * times BEFORE the first `setVisible` and was vacuous — the extra
+     * collectors then ran in lockstep with the first (same value, same 5s
+     * delay, all writing `false` at the same instant), so deleting the guard
+     * in `DefaultAppSettleWindow.start()` left the whole suite green.
+     * Empirically verified: the guard was removed and every test still passed.
+     */
     @Test
     fun startIsIdempotent() =
         runTest {
             val visibility = AppVisibilityState()
             val settleWindow = newWindow(visibility, backgroundScope)
             settleWindow.start()
-            settleWindow.start()
-            settleWindow.start()
             visibility.setVisible(true)
             advanceTimeBy(window + 1)
             runCurrent()
             assertEquals(false, settleWindow.isSettling.value)
+
+            settleWindow.start()
+            runCurrent()
+            assertEquals(
+                false,
+                settleWindow.isSettling.value,
+                "a second start must not reopen a window that has already closed",
+            )
         }
 }
