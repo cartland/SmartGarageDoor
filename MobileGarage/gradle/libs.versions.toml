@@ -28,6 +28,13 @@ jbLifecycle = "2.10.0-beta01"
 # 2.1.20 (:data-local:kspKotlinIosSimulatorArm64). Unpin with the Kotlin 2.2+
 # bump; also ignored in dependabot.yml.
 androidxDatastore = "1.1.7"
+# Wear tiles + the ProtoLayout stack they render. Pinned as a PAIR: tiles
+# 1.6.2 declares protolayout 1.4.2, but AndroidX POMs list their dependencies
+# at runtime scope, so protolayout has to be declared explicitly to reach the
+# compile classpath. Bump both together — a tiles release expects its matching
+# protolayout schema.
+androidxWearTiles = "1.6.2"
+androidxWearProtolayout = "1.4.2"
 composeBom = "2025.12.01"
 coroutines = "1.10.2"
 coroutinesTest = "1.10.2"
@@ -86,6 +93,11 @@ androidx-activity-compose = { group = "androidx.activity", name = "activity-comp
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "androidxDatastore" }
+androidx-wear-tiles = { group = "androidx.wear.tiles", name = "tiles", version.ref = "androidxWearTiles" }
+androidx-wear-tiles-renderer = { group = "androidx.wear.tiles", name = "tiles-renderer", version.ref = "androidxWearTiles" }
+androidx-wear-protolayout = { group = "androidx.wear.protolayout", name = "protolayout", version.ref = "androidxWearProtolayout" }
+androidx-wear-protolayout-material3 = { group = "androidx.wear.protolayout", name = "protolayout-material3", version.ref = "androidxWearProtolayout" }
+androidx-wear-protolayout-expression = { group = "androidx.wear.protolayout", name = "protolayout-expression", version.ref = "androidxWearProtolayout" }
 androidx-datastore-preferences-core = { group = "androidx.datastore", name = "datastore-preferences-core", version.ref = "androidxDatastore" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

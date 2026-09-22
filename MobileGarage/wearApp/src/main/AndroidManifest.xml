@@ -58,6 +58,34 @@
             android:name="com.google.android.wearable.standalone"
             android:value="true" />
 
+        <!-- The garage tile: swipe right from the watch face.
+
+             READ-ONLY. Tapping it opens MainActivity; there is no route from
+             here to the garage button, deliberately — a tile lives in a
+             carousel the user swipes through, which makes it the easiest
+             surface in the system to touch by accident, and it cannot express
+             the press-and-hold gesture that guards the button in the app.
+
+             The BIND_TILE_PROVIDER permission is what keeps the binding
+             system-only; without it any app could bind this service. -->
+        <service
+            android:name=".tile.GarageDoorTileService"
+            android:description="@string/tile_description"
+            android:exported="true"
+            android:label="@string/tile_title"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+
+            <!-- No androidx.wear.tiles.PREVIEW image yet, so the picker falls
+                 back to the app icon. A preview is a hand-drawn duplicate of
+                 the tile's design, which drifts from it the first time either
+                 changes; the honest version is generated from the tile the
+                 emulator actually renders (scripts/generate-wear-screenshots.sh
+                 now captures it). Wiring that PNG in is the follow-up. -->
+        </service>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -28,6 +28,16 @@
             android:name="com.chriscartland.garage.wear.debug.ScreenshotStagesActivity"
             android:exported="true"
             android:theme="@android:style/Theme.DeviceDefault" />
+
+        <!-- Same idea for the TILE, which needs its own activity because it is
+             ProtoLayout rather than Compose: no @Preview can show it and no
+             JVM test can see it, so an emulator render is the only way to
+             look at it at all.
+             am start -n <appId>/com.chriscartland.garage.wear.debug.TileStagesActivity                -e stage tile_closed|tile_open|tile_stale|tile_no_signal -->
+        <activity
+            android:name="com.chriscartland.garage.wear.debug.TileStagesActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.DeviceDefault" />
     </application>
 
 </manifest>

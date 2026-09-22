@@ -192,6 +192,15 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleId)
+    // The tile (swipe right from the watch face). Tiles are ProtoLayout, not
+    // Compose — a separate rendering stack that cannot see the app's
+    // Composables — so the tile re-draws the door from the same SHARED
+    // palette and freshness arithmetic instead. Brings protolayout +
+    // protolayout-material3 transitively.
+    implementation(libs.androidx.wear.tiles)
+    implementation(libs.androidx.wear.protolayout)
+    implementation(libs.androidx.wear.protolayout.material3)
+    implementation(libs.androidx.wear.protolayout.expression)
     // One preferences_pb file, holding the last-known door event, so a
     // surface that renders while the app is not running has something true
     // to show. Deliberately NOT :data-local (which would bring Room) — see
@@ -205,5 +214,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(project(":test-common"))
+    // Renders a tile layout into a plain View, so the debug TileStagesActivity
+    // can put the tile on an emulator screen for the screenshot gallery. Debug
+    // only: the real tile is inflated by the system, not by the app.
+    debugImplementation(libs.androidx.wear.tiles.renderer)
     debugImplementation(libs.androidx.ui.tooling)
 }

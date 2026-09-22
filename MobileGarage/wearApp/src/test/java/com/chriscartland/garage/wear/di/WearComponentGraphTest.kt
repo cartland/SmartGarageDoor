@@ -120,6 +120,15 @@ class WearComponentGraphTest {
         // had been written.
         assertSame(component.statusSnapshotStore, component.statusSnapshotStore)
         assertSame(component.appClock, component.appClock)
+        // The tile's presenter remembers across requests (whether the last
+        // refresh failed, what was last rendered) and the system builds a
+        // fresh TileService per request — uncached, it would read its seed
+        // values forever and the tile could never notice the door had moved.
+        assertSame(component.wearTilePresenter, component.wearTilePresenter)
+        // One object behind two interfaces. If these were separate instances
+        // the tile would wait on a hydration that never filled the cache the
+        // repository reads, and every tile render would say "No signal".
+        assertSame(component.persistedLocalDoorDataSource, component.localDoorDataSource)
     }
 
     @Test

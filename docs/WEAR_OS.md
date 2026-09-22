@@ -1061,6 +1061,132 @@ phone+watch pairing.
   needs no auth. Poll cadence: 15s, only while signed out and the app
   process is alive.
 
+## The tile (0.7.0)
+
+Swipe right from the watch face and the door is there: what it is doing, and
+how old that is.
+
+### It is read-only, and that is the design
+
+Tapping anywhere on the tile opens the app. There is no route from the tile to
+the garage button, deliberately, and `GarageDoorTileSafetyTest` asserts the
+absence rather than trusting it.
+
+The reason is the same one that makes the app's own button a press-and-HOLD
+rather than a tap. A watch screen is easy to touch by accident; a tile lives in
+a carousel the user swipes *through*, which makes it the easiest surface in the
+system to touch without meaning to. And a tile cannot express a continuous
+hold — the gesture doing the guarding everywhere else on the watch — so putting
+the door on one would mean replacing the strongest guard in the app with the
+weakest gesture available to it. The tile is where you find out; the app is
+where you act.
+
+### What "reliable" can and cannot mean here
+
+A tile is rendered by the SYSTEM, in a process that may have been started for
+the purpose, and the system decides when it is re-rendered.
+`setFreshnessIntervalMillis` is a **request**: throttled to at most once a
+minute, inexact, and counted in elapsed rather than wall-clock time. So no
+tile can promise to show the current state of anything, and one that implied
+otherwise would be actively dangerous on a door.
+
+What it can promise is **never to show a state it cannot vouch for**. Every
+render says how old the reading is, and drains the door to grey once the
+answer stops being trustworthy — the same `DataFreshness` verdict, from the
+same shared mappers, that the door screen renders. The age line is not
+decoration; it is the whole claim. A door position shown without saying how
+old it is is asking to be believed on nothing.
+
+### The one thing it does wait for
+
+`status()` suspends until the disk snapshot has been read, and nothing else.
+
+That wait exists because the system may start the process *purely* to answer
+this request, so the hydration launched at process start can still be in
+flight when the tile is asked. Without it the tile would answer "No signal"
+about a door it has on disk — a wrong reading, shown once, on a surface that
+gets one chance to be right, and exactly the failure the cache was added to
+prevent. The cost is a local file read against a request that already crossed
+a service binding to arrive.
+
+It is why `PersistedLocalDoorDataSource` answers to two interfaces —
+`LocalDoorDataSource` for the repository and `DoorSnapshotHydration` for the
+tile — bound to the SAME instance in the graph. Two instances would have the
+tile waiting on a hydration that never filled the cache the repository reads,
+and every render would say "No signal". `WearComponentGraphTest` pins the
+identity; `aRenderThatArrivesBeforeTheDiskReadStillShowsTheStoredDoor` pins
+the wait.
+
+### Answer first, refresh second
+
+`onTileRequest` must return promptly, and the watch's network path (a
+Bluetooth relay, or Wi-Fi at the garage) is the slowest in the system — so the
+tile never waits on it. It renders what is already known (hydrated from disk
+by `PersistedLocalDoorDataSource`, which is what made a tile possible at all),
+then refreshes and asks for a re-render **only if the door turned out to be
+somewhere else**.
+
+That gate is load-bearing. Every render fires a refresh, so a presenter that
+reported "changed" unconditionally would render → refresh → render forever.
+Returning false when nothing moved terminates the cycle after one extra pass;
+`WearTilePresenterTest.theReRenderRequestTerminatesInsteadOfLooping` walks the
+whole sequence rather than asserting about it. A failed refresh deliberately
+does NOT request a re-render either — a watch out of range must not redraw its
+tile on every failure — but the next render it is asked for is honest about it.
+
+### A glance is never settling
+
+`GlanceStatusMapper` (in `:presentation-model`) pins `isSettling` false, and
+this is the one decision it contributes of its own.
+
+The settle window exists because an app that has just been opened is about to
+hear from the garage within a second or two, so the five seconds it spends
+arriving should be grey and wordless rather than alarming. None of that
+reasoning survives the move to a glance surface. A tile is not arriving; it is
+being ASKED, once, and whatever it returns is what the user reads and swipes
+away from. Withholding the words there would produce a grey door with no
+explanation at the one moment somebody looked at it, and the explanation would
+arrive — if at all — after they had stopped looking. Pinned by
+`GlanceStatusMapperTest.aGlanceNeverSaysConnecting`.
+
+The type is called `GlanceStatus`, not `TileStatus`, for the ADR-035 reason: a
+complication and an iOS widget ask exactly the same question, and a name that
+answers it for one platform would settle it prematurely for the others.
+
+### Why so much of it is not ProtoLayout
+
+Tiles render through ProtoLayout, a separate stack that cannot see the app's
+Composables — so nothing on the door screen could be reused directly, and a
+tile needs a `Context` to build a layout and a renderer to inflate one. Almost
+everything that could be got wrong is therefore kept out of that stack:
+
+| Where | What | Covered by |
+|---|---|---|
+| `:presentation-model` | which verdict, which headline, which age | `GlanceStatusMapperTest` (commonTest) |
+| `WearTilePresenter` | what to render, when to ask for a re-render | `WearTilePresenterTest` (JVM) |
+| `GarageTileWords` / `GarageTileColors` | which word, which colour | `GarageTilePresentationTest` (JVM) |
+| `GarageDoorTileLayout` | the drawing | emulator screenshots — nothing else can |
+
+The last row is the reason `TileStagesActivity` exists: no `@Preview` can show
+a tile and no JVM test can see one, so an emulator render is the only way to
+look at it at all. Its stages come in the same reviewable pairs the hero stages
+use — `tile_open` vs `tile_stale` is the same door with one muted, and
+`tile_closed` vs `tile_no_signal` is something known vs nothing known.
+
+### Known gaps
+
+- **No tile-picker preview image.** The picker falls back to the app icon. A
+  `androidx.wear.tiles.PREVIEW` drawable is a hand-drawn duplicate of the
+  tile's design, which drifts from it the first time either changes; the honest
+  version is generated from the tile the emulator actually renders, which
+  `generate-wear-screenshots.sh` now captures. Wiring that PNG in is the
+  follow-up.
+- **The tile must still be added to the carousel by hand**, once, per watch.
+  Nothing in the app can do that for the user.
+- **No complication yet.** The same `GlanceStatus` would drive one; a
+  complication lives ON the watch face, so it is more glanceable still but has
+  room for only a few characters and no age line.
+
 ## What the watch remembers (0.7.0)
 
 The watch persists exactly one thing: **the last door event it could put a
@@ -1328,8 +1454,14 @@ captured from a real Wear emulator by a single script.
    port the keep rules (and verify on a device) before any wider rollout.
 3. **FCM push on the watch** (replace/augment polling; the shared
    `FcmRegistrationManager` + `MessagingBridge` seam already exists).
-4. **Tiles + complications** — the natural Wear surfaces for door status
-   (a complication showing OPEN/CLOSED; a tile with the door + one-shot arm).
+4. ~~**Tiles**~~ — **done in 0.7.0**, see § "The tile". Note the shipped
+   tile is deliberately READ-ONLY, not the "door + one-shot arm" this line
+   used to propose: a tile cannot express the press-and-hold that guards the
+   button, and it is the easiest surface in the system to touch by accident.
+   **Still open: a complication** (OPEN/CLOSED on the watch face itself). The
+   shared `GlanceStatus` already decides everything it would need; what is
+   left is the platform half plus a decision about what fits in a few
+   characters. A generated tile-picker preview image is the other follow-up.
 5. **Ambient / always-on handling** beyond the default (currently the
    activity simply stops polling when hidden).
 6. ~~**Check-in staleness on the watch**~~ — **done in 0.7.0**, see § "What

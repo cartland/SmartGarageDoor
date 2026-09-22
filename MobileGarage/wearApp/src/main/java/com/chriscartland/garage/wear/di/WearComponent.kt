@@ -58,8 +58,10 @@ import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RuleBasedVoiceIntentClassifier
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
+import com.chriscartland.garage.wear.data.DoorSnapshotHydration
 import com.chriscartland.garage.wear.data.PersistedLocalDoorDataSource
 import com.chriscartland.garage.wear.logging.LogcatAppLoggerRepository
+import com.chriscartland.garage.wear.tile.WearTilePresenter
 import com.chriscartland.garage.wear.ui.WearHomeViewModel
 import com.chriscartland.garage.wear.ui.WearLiveVoiceViewModel
 import com.chriscartland.garage.wear.ui.WearSimulatedVoiceViewModel
@@ -157,6 +159,18 @@ abstract class WearComponent(
     abstract val localDoorDataSource: LocalDoorDataSource
 
     /**
+     * The door cache as its CONCRETE type, which is what makes it one object.
+     *
+     * It answers to two interfaces — `LocalDoorDataSource` for the repository
+     * and `DoorSnapshotHydration` for the tile — and those must be the same
+     * instance or the tile would wait on a hydration that never fills the
+     * cache the repository reads. Entry-pointing the concrete type is what
+     * gives kotlin-inject something to cache; the two interface providers
+     * below just hand it back.
+     */
+    abstract val persistedLocalDoorDataSource: PersistedLocalDoorDataSource
+
+    /**
      * The typed snapshot store wrapping [statusCacheStorage], and the clock
      * the snapshot is stamped with.
      *
@@ -167,6 +181,15 @@ abstract class WearComponent(
      */
     abstract val statusSnapshotStore: StatusSnapshotStore
     abstract val appClock: AppClock
+
+    /**
+     * The tile's decisions. A `@WearSingleton` because it REMEMBERS across
+     * requests (whether the last refresh failed, and what was last rendered)
+     * and the system builds a fresh `TileService` for every request — an
+     * uncached presenter would read its seed values forever, so the tile
+     * could neither report a failed refresh nor notice the door had moved.
+     */
+    abstract val wearTilePresenter: WearTilePresenter
     abstract val networkDoorDataSource: NetworkDoorDataSource
     abstract val networkConfigDataSource: NetworkConfigDataSource
     abstract val networkButtonDataSource: NetworkButtonDataSource
@@ -330,16 +353,41 @@ abstract class WearComponent(
 
     @Provides
     @WearSingleton
-    fun provideLocalDoorDataSource(
+    fun provideWearTilePresenter(
+        observeDoorEvents: ObserveDoorEventsUseCase,
+        fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
+        hydration: DoorSnapshotHydration,
+        clock: AppClock,
+    ): WearTilePresenter =
+        WearTilePresenter(
+            observeDoorEvents = observeDoorEvents,
+            fetchCurrentDoorEvent = fetchCurrentDoorEvent,
+            hydration = hydration,
+            clock = clock,
+        )
+
+    @Provides
+    @WearSingleton
+    fun providePersistedLocalDoorDataSource(
         snapshotStore: StatusSnapshotStore,
         clock: AppClock,
         applicationScope: CoroutineScope,
-    ): LocalDoorDataSource =
+    ): PersistedLocalDoorDataSource =
         PersistedLocalDoorDataSource(
             snapshotStore = snapshotStore,
             clock = clock,
             scope = applicationScope,
         )
+
+    // The two faces of that one object. Not @WearSingleton themselves: they
+    // add no state, and the caching that matters is on the concrete provider
+    // above — scoping these as well would be harmless but would suggest there
+    // were three things here rather than one.
+    @Provides
+    fun provideLocalDoorDataSource(source: PersistedLocalDoorDataSource): LocalDoorDataSource = source
+
+    @Provides
+    fun provideDoorSnapshotHydration(source: PersistedLocalDoorDataSource): DoorSnapshotHydration = source
 
     @Provides
     @WearSingleton

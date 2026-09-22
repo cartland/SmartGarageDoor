@@ -13,7 +13,8 @@ by a frame. A diff in any other stage means a real visual change.
 
 | Stage | Capture | Shows |
 |---|---|---|
-| connecting | <img src="wear-connecting.png" width="180" alt="connecting"> | Cold start, no data yet: "Connecting…", no warning badge |
+| connecting | <img src="wear-connecting.png" width="180" alt="connecting"> | Cold start, inside the settle window: dial grey and dim, label still the calm "Connecting…", no warning badge |
+| no_signal | <img src="wear-no_signal.png" width="180" alt="no signal"> | The same cold start five seconds later: identical dial, headline now "No signal" — waiting escalates by adding a word, not by changing the art |
 | closed | <img src="wear-closed.png" width="180" alt="closed"> | Closed door (affirmative sensor), "Hold to open" |
 | inferred | <img src="wear-inferred.png" width="180" alt="inferred"> | No affirmative sensor, so no prediction: "Hold to press the remote" |
 | holding | <img src="wear-holding.png" width="180" alt="holding"> | Hold completing: full radial ring, the instant before the press fires |
@@ -36,3 +37,7 @@ by a frame. A diff in any other stage means a real visual change.
 | voice_sim_ready | <img src="wear-voice_sim_ready.png" width="180" alt="voice sim ready"> | The rehearsal at rest: SIMULATION marker and a "Demo door" label — same layout as voice_ready, unmistakably not it |
 | voice_sim_armed | <img src="wear-voice_sim_armed.png" width="180" alt="voice sim armed"> | The rehearsal counting down: an AZURE ring instead of white, and "Would open the door" instead of "Opening" |
 | voice_sim_sent | <img src="wear-voice_sim_sent.png" width="180" alt="voice sim sent"> | The rehearsal's punchline: "Nothing was sent"; only the demo door reacts |
+| tile_closed | <img src="wear-tile_closed.png" width="180" alt="tile closed"> | The tile, swipe right from the watch face: closed door, confirmed 20 seconds ago. Read-only — a tap opens the app, it can never move the door |
+| tile_open | <img src="wear-tile_open.png" width="180" alt="tile open"> | The same tile with the door open. Review against tile_stale: identical reading, one of them muted |
+| tile_stale | <img src="wear-tile_stale.png" width="180" alt="tile stale"> | Six hours since the garage last reported: same open door, now drained to grey and dimmed, with an age line that explains why |
+| tile_no_signal | <img src="wear-tile_no_signal.png" width="180" alt="tile no signal"> | Nothing known and nothing reachable: the unknown door, "No signal", and no age line at all — a reading we cannot date is never given one |

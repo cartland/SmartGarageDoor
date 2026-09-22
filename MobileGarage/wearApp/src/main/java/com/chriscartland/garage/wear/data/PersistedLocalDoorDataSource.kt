@@ -25,6 +25,7 @@ import com.chriscartland.garage.data.statuscache.StatusSnapshot
 import com.chriscartland.garage.data.statuscache.StatusSnapshotStore
 import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.model.DoorEvent
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,11 +61,32 @@ import kotlinx.coroutines.sync.withLock
  * is the load-bearing rule of the whole file and the reason hydration is
  * safe.
  */
+fun interface DoorSnapshotHydration {
+    /**
+     * Suspends until the disk snapshot has been read, successfully or not.
+     *
+     * For readers that get ONE chance to be right. A screen can render an
+     * empty first frame and fix it a moment later, because the user is
+     * looking at it and the poll is already running; a tile is asked once, by
+     * the system, in a process that may have started for the purpose — and if
+     * it answers before the disk read lands it says "No signal" about a door
+     * it actually knows. The wait is a local file read, in the tens of
+     * milliseconds at worst, against a request that already crossed a service
+     * binding to arrive.
+     *
+     * Returns as soon as hydration is FINISHED, not as soon as it succeeded:
+     * an empty or unreadable snapshot is a legitimate answer and must not
+     * hang the caller.
+     */
+    suspend fun awaitHydration()
+}
+
 class PersistedLocalDoorDataSource(
     private val snapshotStore: StatusSnapshotStore,
     private val clock: AppClock,
     scope: CoroutineScope,
-) : LocalDoorDataSource {
+) : LocalDoorDataSource,
+    DoorSnapshotHydration {
     private val _currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
     private val _recentDoorEvents = MutableStateFlow<List<DoorEvent>>(emptyList())
 
@@ -83,6 +105,17 @@ class PersistedLocalDoorDataSource(
      */
     private val mutex = Mutex()
 
+    /**
+     * Completed once hydration has finished, however it finished. Completed
+     * in a `finally` so a thrown read cannot leave [awaitHydration] waiting
+     * for something that will never happen.
+     */
+    private val hydrated = CompletableDeferred<Unit>()
+
+    override suspend fun awaitHydration() {
+        hydrated.await()
+    }
+
     init {
         // Hydration runs from the constructor rather than an explicit
         // `start()` deliberately: this repo has been bitten more than once by
@@ -96,7 +129,11 @@ class PersistedLocalDoorDataSource(
         // a StateFlow, so a collector arriving after hydration still receives
         // the hydrated value as its first emission.
         scope.launch {
-            hydrate()
+            try {
+                hydrate()
+            } finally {
+                hydrated.complete(Unit)
+            }
         }
     }
 

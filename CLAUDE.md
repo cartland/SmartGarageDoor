@@ -835,6 +835,61 @@ Load-bearing details, each of which cost something to get right:
 
 **That race is joined, not just cancelled — `grace.cancelAndJoin()`, never `grace.cancel()`.** `cancel()` is asynchronous and `send` on that channel can take a non-suspending fast path, so a grace coroutine already resumed from its delay could still emit `null` *after* the real answer. `applicationScope` is `Dispatchers.IO`, genuinely multi-threaded, so the two really do race, and that ordering puts a Sign in button over a signed-in account until the next poll 15 s later — the exact bug the rewrite removed. Deliberately untested: `runTest`'s virtual clock serializes the two coroutines, so a test here would pass either way and read as coverage it isn't.
 
+### The Wear tile (a glance is not a screen)
+
+The door is a **tile** — swipe right from the watch face —
+`GarageDoorTileService`, backed by the shared `GlanceStatus` verdict.
+
+- **READ-ONLY, and do not "improve" this.** Tapping opens the app; there is no
+  route from the tile to the garage button, asserted by
+  `GarageDoorTileSafetyTest` (with a positive control run against
+  `WearHomeViewModel`, which DOES hold the button, so the check cannot pass
+  vacuously). The reason is the reason the app's own button is a press-and-HOLD:
+  a tile lives in a carousel the user swipes *through*, making it the easiest
+  surface in the system to touch by accident, and a tile cannot express a
+  continuous hold — so arming the door there would swap the strongest guard in
+  the app for the weakest gesture available to it. The maintainer chose
+  read-only explicitly when this shipped.
+- **A tile cannot promise freshness, only honesty.** The SYSTEM renders it and
+  decides when to re-render: `setFreshnessIntervalMillis` is a *request*,
+  throttled to at most once a minute, inexact, counted in ELAPSED rather than
+  wall-clock time. So every render states how old the reading is and mutes the
+  door once it stops being trustworthy. The age line is the whole reliability
+  claim, not decoration.
+- **Answer first, refresh second — and gate the re-render on a real CHANGE.**
+  `onTileRequest` never waits on the network (the watch's path is the slowest
+  in the system); it renders the hydrated cache, then refreshes and asks for a
+  re-render only if the door actually moved. Every render fires a refresh, so
+  an unconditional "changed" would loop render → refresh → render forever.
+  `WearTilePresenterTest.theReRenderRequestTerminatesInsteadOfLooping` walks the
+  sequence. A failed refresh deliberately does NOT request a re-render (a watch
+  out of range must not redraw its tile on every failure) but the next render is
+  honest about it.
+- **`GlanceStatusMapper` pins `isSettling` false: a glance never settles.** The
+  settle window is for a screen that is ARRIVING and about to hear back within
+  seconds. A tile is asked once, and what it returns is what gets read and
+  swiped away from — withholding the words there gives a grey door with no
+  explanation at the one moment somebody looked. Pinned by
+  `aGlanceNeverSaysConnecting`.
+- **The type is `GlanceStatus`, not `TileStatus`** (ADR-035's naming corollary):
+  a complication and an iOS widget ask the same question, and the platform's own
+  word would settle it prematurely for them.
+- **Tiles are ProtoLayout, NOT Compose** — a separate rendering stack that
+  cannot see the app's Composables, needs a `Context` to build a layout and a
+  renderer to inflate one. So everything that could be wrong is kept out of it:
+  the verdict in `:presentation-model`, the render/refresh decisions in
+  `WearTilePresenter`, the words and colours in `GarageTileWords` /
+  `GarageTileColors` — all JVM-tested. Only the drawing needs a device, which is
+  what `TileStagesActivity` + `scripts/generate-wear-screenshots.sh` cover (no
+  `@Preview` can show a tile and no JVM test can see one).
+- **`androidx.wear.tiles` and `androidx.wear.protolayout` are pinned as a
+  PAIR.** Tiles 1.6.2 declares protolayout 1.4.2, but AndroidX POMs list
+  dependencies at runtime scope, so protolayout must be declared explicitly to
+  reach the compile classpath. Bump both together.
+- **No tile-picker preview image** (the picker falls back to the app icon). A
+  `PREVIEW` drawable is a hand-drawn duplicate of the tile that drifts the first
+  time either changes; the honest version is generated from the emulator render.
+
 ### What the watch remembers (and why a cache needed a clock)
 
 The Wear app persists exactly one thing: **the last door event it could put a
