@@ -835,6 +835,77 @@ Load-bearing details, each of which cost something to get right:
 
 **That race is joined, not just cancelled — `grace.cancelAndJoin()`, never `grace.cancel()`.** `cancel()` is asynchronous and `send` on that channel can take a non-suspending fast path, so a grace coroutine already resumed from its delay could still emit `null` *after* the real answer. `applicationScope` is `Dispatchers.IO`, genuinely multi-threaded, so the two really do race, and that ordering puts a Sign in button over a signed-in account until the next poll 15 s later — the exact bug the rewrite removed. Deliberately untested: `runTest`'s virtual clock serializes the two coroutines, so a test here would pass either way and read as coverage it isn't.
 
+### What the watch remembers (and why a cache needed a clock)
+
+The Wear app persists exactly one thing: **the last door event it could put a
+date on** — one `preferences_pb` entry, written through on arrival and read
+back at startup (`PersistedLocalDoorDataSource`). It deliberately persisted
+nothing before, which was right while the only reader was a screen the user
+had just opened, and stops being right the moment something renders the door
+while the app is **not running** — a tile, a complication — because the system
+asks in a process that may exist only to answer, and "I don't know yet" is the
+wrong answer to give a glance.
+
+**Persistence and the staleness rule are ONE change.** A cached position with
+nothing to judge its age by is worse than no cache: the watch would open onto
+a confident, fully-coloured door that might be days old, where before it at
+least said `Connecting…`. So the same change wired `isCheckInStale` — the
+watch's longest-standing gap — giving the shared `DataFreshness` verdict all
+three inputs there for the first time. Scar test:
+`aDoorReadThatIsAlreadyTooOldIsNeverConfidentEvenOnTheFirstFrame`.
+
+- **An event that cannot be DATED is not persisted at all.**
+  `lastCheckInTimeSeconds` is nullable on both inbound paths, and it is the
+  only thing a later process can use to judge the stored position. Storing one
+  without it manufactures the exact failure the cache exists to prevent: a
+  door that reads current forever, because every staleness rule has nothing to
+  compare against. The refusal is a skipped WRITE, never a clear — one
+  undatable event must not erase the last door the watch could vouch for.
+- **The threshold is not written on the watch.** `CheckInStatusMapper` owns it
+  (11 min, mirrored by `CheckInStalenessManager` and the server's `doorCommand`
+  gate), so the watch cannot drift from the phone on what "stale" means.
+- **"Now" comes from the poll loop, not `LiveClock`.** The watch already has a
+  heartbeat while someone is looking at it, so time is read there for free, and
+  the clock then stops with the screen. `LiveClock.start()` is deliberately
+  unstoppable (built for a phone's unbounded foreground) and would tick for the
+  life of the process after one glance.
+- **The DataStore lives in a process-wide `object` (`WearStatusCache`), not a
+  DI provider.** A second `DataStore` over one file throws at runtime, and on
+  the watch the callers are not all in one place — a `TileService` is started
+  by the SYSTEM and need not pass through the component. A `@Singleton`
+  provider plus `:checkDataStoreSingleton` would be a rule to remember; a
+  Kotlin `object` holding a `lazy` makes the crash unreachable however many
+  entry points the platform invents. The graph takes the resulting
+  `StatusCacheStorage` as a constructor dependency (like `authBridge`), which
+  also keeps `Context` out of `WearComponent` so `WearComponentGraphTest` still
+  builds the real graph on the JVM. **`checkDataStoreSingleton` is therefore
+  deliberately NOT extended to `:wearApp`** — there is no `@Provides fun` to
+  annotate, and a guarded method name matching nothing is a check that cannot
+  fail.
+- **The envelope is the SHARED one** — `:data`'s `DefaultStatusSnapshotStore`
+  (ADR-034): schema-version gate, never-throws reads and writes, self-healing
+  on corruption, clock-skew guard. The watch supplies only the DataStore
+  plumbing, because `:data-local` also carries Room.
+- **The watch's first on-disk file came with its first backup rules.** With
+  nothing persisted the Wear app declared none, so the platform default
+  (`allowBackup="true"`, empty rules) had nothing to copy; adding a file
+  silently made the watch's door history eligible for Drive Auto Backup — the
+  fail-open the phone's guardrail exists to prevent, on a module it did not
+  cover. Fixed together: Wear `backup_rules.xml` + `data_extraction_rules.xml`,
+  plus a second registration `checkWearBackupRulesExcludes` wired as a
+  dependency of `checkBackupRulesExcludes` (the name `validate.sh` invokes), so
+  each app's filenames are checked against its OWN rules.
+- **Not cleared on sign-out.** The door's position is household state, not
+  account state — unauthenticated to fetch, rendered signed out. Clearing it
+  would blank a tile for someone who can still legitimately see the door and
+  buy no privacy.
+
+**Local-probe hazard hit while building this:** Gradle's VFS did not see
+python-written source edits, so `:wearApp:compileDebugKotlin` reported
+UP-TO-DATE and diagnostics ran against stale bytecode — a probe that "proves"
+the wrong thing twice. Same family as the Konsist note below: **when a probe's
+result surprises you, re-run it with `--rerun-tasks` before believing it.**
+
 ### Door update strategy (Android pushes, iOS polls — one seam, one flag)
 
 **How each platform stays fresh is a named policy, not a platform fork.** `DoorUpdateStrategyId` (`:domain`) is a **vocabulary, not a framework**: each constant states what an implementation must PROMISE and says nothing about how. Implement it wherever it fits, and expect more than one implementation of the same constant — the phone/iOS host is `DoorUpdateManager` + a `DoorUpdateStrategy` coroutine, while **`WearHomeViewModel` honors `POLL` with its own screen-scoped loop** (10s idle, 2s while a press is waiting on the door) because the cadence depends on VM state `:usecase` cannot read. That is two hosts agreeing on a promise, NOT duplication to factor out — sharing the loop was considered and rejected, because it would make the mechanism the shared thing. `DoorUpdateStrategy` (`:usecase`) has three implementations — `PUSH` (no client timer; Android's always-shipped behavior), `POLL` (15s while visible + refresh on foreground; **iOS's default today**), and `PUSH_WITH_FOREGROUND_REFRESH` (the iOS destination once APNs delivery works). `DoorUpdateManager` (ADR-015) resolves `AppSettingsRepository.doorUpdateStrategy` against `AppConfig.defaultDoorUpdateStrategy` and runs exactly one, swapping **live** via `collectLatest` — a new value cancels the running strategy's coroutine and structured concurrency takes its timer, in-flight fetch, and visibility collector with it. UI gate on both platforms: Settings → Developer → "Door updates". **Shipped 2026-08-26:** `ios/15` (0.2.0) uploaded to TestFlight Internal — iOS live-updates for the first time (polling) — and `server/37` deployed the `apns` config (23/23 functions updated; a `validate_only` FCM send of the exact production shape was accepted, so Android door-event sends cannot fail on the new block). Remaining: ③ flip iOS's default to `PUSH_WITH_FOREGROUND_REFRESH` only after real-device push delivery is verified (simulator cannot receive push) — the installed TestFlight build is now the vehicle for that verification. Android track untouched (`android/281`; the Android app carries the seam but its default is unchanged `PUSH`, so an Android release is optional churn until something else ships). Full design + rollout: [`docs/DOOR_UPDATE_STRATEGY.md`](docs/DOOR_UPDATE_STRATEGY.md).

@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.wear.di
 
+import com.chriscartland.garage.data.statuscache.StatusCacheStorage
 import com.chriscartland.garage.domain.model.AppConfig
 import com.chriscartland.garage.domain.model.DoorUpdateStrategyId
 import com.chriscartland.garage.testcommon.FakeAuthBridge
@@ -64,7 +65,30 @@ class WearComponentGraphTest {
             ),
             signInConfig = WearSignInConfig(googleServerClientId = "test-client-id"),
             appVersion = "wear-test",
+            // In-memory, so the real graph can be constructed on the JVM with
+            // no Android Context and no file touched. The DataStore-backed
+            // implementation is deliberately outside this component — see
+            // WearStatusCache.
+            statusCacheStorage = InMemoryStatusCacheStorage(),
         )
+
+    /** Map-backed [StatusCacheStorage]; no disk, no Context. */
+    private class InMemoryStatusCacheStorage : StatusCacheStorage {
+        private val entries = mutableMapOf<String, String>()
+
+        override suspend fun get(key: String): String? = entries[key]
+
+        override suspend fun put(
+            key: String,
+            value: String,
+        ) {
+            entries[key] = value
+        }
+
+        override suspend fun remove(keys: Set<String>) {
+            keys.forEach { entries.remove(it) }
+        }
+    }
 
     @Test
     fun singletonProvidersReturnSameInstance() {
@@ -90,6 +114,12 @@ class WearComponentGraphTest {
         // permanently unreachable. Silent, and invisible to every other test.
         assertSame(component.appVisibilityState, component.appVisibilityState)
         assertSame(component.appSettleWindow, component.appSettleWindow)
+        // The door snapshot's store and the clock it is stamped with. An
+        // uncached store would hand the hydrating data source and any later
+        // reader their own instance, and the two would disagree about what
+        // had been written.
+        assertSame(component.statusSnapshotStore, component.statusSnapshotStore)
+        assertSame(component.appClock, component.appClock)
     }
 
     @Test

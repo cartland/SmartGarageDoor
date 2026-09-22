@@ -192,6 +192,11 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleId)
+    // One preferences_pb file, holding the last-known door event, so a
+    // surface that renders while the app is not running has something true
+    // to show. Deliberately NOT :data-local (which would bring Room) — see
+    // WearStatusCacheStorage.kt.
+    implementation(libs.androidx.datastore.preferences)
     // Phone auth relay over the Wearable Data Layer (secondary auth —
     // Credential Manager sign-in fails on some watches).
     implementation(libs.play.services.wearable)

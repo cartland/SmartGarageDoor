@@ -1023,8 +1023,9 @@ phone+watch pairing.
   Wear OS **Material 3** (`androidx.wear.compose:compose-material3:1.6.x` —
   versioned separately from the phone compose-bom), minSdk 30, standalone
   (`com.google.android.wearable.standalone = true`).
-- **Reused shared code** (`:domain` + `:data` + `:usecase` only — enforced by
-  the `checkArchitecture` allow-map): `ButtonStateMachine`,
+- **Reused shared code** (`:domain` + `:data` + `:usecase` +
+  `:presentation-model` only — enforced by the `checkArchitecture`
+  allow-map): `ButtonStateMachine`,
   `PushRemoteButtonUseCase` (auth-gated), `FirebaseAuthRepository`,
   `NetworkDoorRepository`, `CachedServerConfigRepository`,
   `NetworkRemoteButtonRepository`, `ButtonAckToken`, `DoorAnimation` /
@@ -1032,10 +1033,10 @@ phone+watch pairing.
 - **DI**: `WearComponent` (kotlin-inject), mirroring `iosFramework`'s
   `NativeComponent` — platform deps via constructor, `@WearSingleton` scope,
   `WearComponentGraphTest` pins singleton identity with `assertSame`.
-- **Wear-only implementations**: `InMemoryLocalDoorDataSource` (no Room —
-  the watch shows live status only), `LogcatAppLoggerRepository` (no
-  diagnostics DB), a copied `FirebaseAuthBridge` (identical to the phone's;
-  hoisting both into a shared Android library is a follow-up), and
+- **Wear-only implementations**: `PersistedLocalDoorDataSource` (see
+  § "What the watch remembers" — still no Room), `LogcatAppLoggerRepository`
+  (no diagnostics DB), a copied `FirebaseAuthBridge` (identical to the
+  phone's; hoisting both into a shared Android library is a follow-up), and
   `WearGarageIcon`/`GarageDoorCanvas` ports (the DrawScope execution is
   re-implemented per platform, like iOS; all constants stay in `:domain`).
 - **ViewModel**: `WearHomeViewModel` owns the state machine wiring, the
@@ -1059,6 +1060,91 @@ phone+watch pairing.
   the phone reachable over Bluetooth/Wi-Fi for pushes — door *status*
   needs no auth. Poll cadence: 15s, only while signed out and the app
   process is alive.
+
+## What the watch remembers (0.7.0)
+
+The watch persists exactly one thing: **the last door event it could put a
+date on.** One `preferences_pb` entry, written through on every event that
+arrives and read back at startup.
+
+It had deliberately persisted nothing before. That was right while the only
+reader was a screen the user had just opened — the poll lands a second or two
+later and the empty first moment is invisible. It stops being right the moment
+something renders the door while the app is **not running**, which is what a
+tile or a complication is: the system asks a question, possibly in a process
+started for the purpose, and *"I don't know yet"* is the wrong answer to give
+a glance. As a bonus it removes the `Connecting…` that every cold start of the
+app used to show.
+
+**Persistence and the staleness rule are one change, not two.** A cached door
+position with nothing to judge its age by is worse than no cache at all: the
+watch would open onto a confident, fully-coloured door that might be days old,
+where before it at least admitted it was still connecting. So the same change
+that added the snapshot also wired `isCheckInStale` — the watch's
+longest-standing gap (previously follow-up 6) — so the shared `DataFreshness`
+verdict finally has all three of its inputs here. `WearHomeViewModelTest`
+pins the pairing directly:
+`aDoorReadThatIsAlreadyTooOldIsNeverConfidentEvenOnTheFirstFrame`.
+
+Load-bearing details:
+
+- **An event that cannot be DATED is not persisted at all.**
+  `lastCheckInTimeSeconds` is nullable on both inbound paths
+  (`KtorNetworkDoorDataSource` and `FcmPayloadParser` each decode it from an
+  optional wire field), and it is the only thing a later process can use to
+  decide whether the stored position is still worth believing. Storing one
+  without it would manufacture exactly the failure the cache exists to
+  prevent — a door that reads as current forever, because every staleness
+  rule has nothing to compare against. Skipping the write costs one
+  `Connecting…`, which is what the watch did on every launch anyway.
+- **The refusal is a skipped write, never a clear.** One undatable event must
+  not erase the last door the watch could actually vouch for.
+- **The staleness THRESHOLD is not written on the watch.**
+  `CheckInStatusMapper` owns it (eleven minutes, mirrored by
+  `CheckInStalenessManager` and by the server's `doorCommand` gate), so the
+  watch cannot drift from the phone on what "stale" means.
+- **"Now" comes from the poll loop, not a `LiveClock`.** The watch already
+  has a heartbeat while someone is looking at it, so time is read there for
+  free rather than paying for a second recurring wake — and the clock then
+  has exactly the lifecycle the watch wants, advancing while the screen is on
+  and stopping with it. `LiveClock.start()` is deliberately unstoppable (it
+  is built for a phone process whose foreground lifetime is unbounded) and
+  would tick for the life of the process after a single glance.
+- **Only the CURRENT event, never the recent list.** No reader on the watch
+  outlives the process, and the list is an order of magnitude more bytes.
+- **The envelope, the schema gate, the never-throws policy and the clock-skew
+  rule are the SHARED ones** — `:data`'s `DefaultStatusSnapshotStore` and the
+  status-cache design (ADR-034, `MobileGarage/docs/STATUS_CACHE_PLAN.md`).
+  The watch supplies only the twenty lines of DataStore plumbing, because
+  `:data-local` — where the phone's and iOS's equivalent lives — also carries
+  Room, and dragging the whole persistence stack onto the watch to reach a
+  one-entry cache is the trade the module exists to avoid.
+- **The DataStore instance lives in a process-wide `object`
+  (`WearStatusCache`), not a DI provider.** A second `DataStore` over one
+  file throws at runtime, and on the watch the callers are not all in one
+  place: the app has a DI component, but a `TileService` is started by the
+  **system** and need not pass through it. A `@Singleton` provider plus a
+  lint would be a rule to remember; a Kotlin `object` holding a `lazy` makes
+  the crash unreachable however many entry points the platform invents. The
+  graph then takes the resulting `StatusCacheStorage` as a constructor
+  dependency, exactly the way it takes `authBridge` — which also keeps
+  `android.content.Context` out of `WearComponent`, so
+  `WearComponentGraphTest` can keep building the real graph on the JVM.
+- **The watch's first on-disk file came with its first backup rules.** Until
+  now the Wear app persisted nothing, so it declared none and the platform
+  default (`allowBackup="true"`, empty rules) had nothing to copy. Adding a
+  file silently made the watch's door history eligible for Google Drive Auto
+  Backup — the exact fail-open the phone's `checkBackupRulesExcludes`
+  guardrail exists to prevent, on a module that guardrail did not cover. Both
+  halves landed together: `wearApp/src/main/res/xml/backup_rules.xml` +
+  `data_extraction_rules.xml`, and a second registration of the check
+  (`checkWearBackupRulesExcludes`, wired as a dependency of the name
+  `validate.sh` already invokes).
+- **Not cleared on sign-out.** The door's position is household state, not
+  account state: no token is needed to fetch it and every surface renders it
+  signed out. Clearing it would blank a future tile for someone who can still
+  legitimately see the door, and buy no privacy — the same value is one
+  unauthenticated request away.
 
 ## Build / CI integration
 
@@ -1246,13 +1332,18 @@ captured from a real Wear emulator by a single script.
    (a complication showing OPEN/CLOSED; a tile with the door + one-shot arm).
 5. **Ambient / always-on handling** beyond the default (currently the
    activity simply stops polling when hidden).
-6. **Check-in staleness on the watch** (`CheckInStalenessManager` is shared
-   and available; the door currently always renders the FRESH palette).
-   Since 0.6.0 this also bounds the live voice gate: `LiveVoiceDoor` passes
-   `isCheckInStale = false` because the watch has no staleness signal to
-   pass, so voice inherits exactly the exposure the hold-to-confirm button
-   already has — a door whose last known position is clean but whose device
-   has stopped reporting. Wiring staleness fixes both at once.
+6. ~~**Check-in staleness on the watch**~~ — **done in 0.7.0**, see § "What
+   the watch remembers". The door screen now greys when the garage has gone
+   quiet. **Still open, but much smaller than it was: the LOCAL voice gate.**
+   `LiveVoiceDoor` continues to pass `isCheckInStale = false`, so the
+   watch's own gate does not consider staleness — but this is no longer the
+   exposure it was, because since `server/36` the **server's `doorCommand`
+   gate judges check-in staleness itself** and the watch consults it as a
+   third gate before pressing (CLAUDE.md § `doorCommand`). So a stale door
+   is already refused; what is missing is that the watch cannot refuse it
+   **locally**, without the round trip. Wiring the signal through is now
+   plumbing rather than design, but it changes what a refusal SAYS on a path
+   that moves the real door, so it wants its own change.
 7. **Hoist the duplicated `FirebaseAuthBridge`** (phone + wear copies) into
    a shared Android library module.
 8. **True standalone auth** (no phone dependency). The per-call phone

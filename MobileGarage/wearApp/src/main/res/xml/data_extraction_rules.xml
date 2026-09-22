@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright 2026 Chris Cartland. All rights reserved.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  ~
+  -->
+
+<!--
+   Backup / transfer rules for API 31+ (android:dataExtractionRules). For
+   API <= 30 see backup_rules.xml, which carries the full rationale.
+
+   Excludes are scoped to <cloud-backup> only, matching the phone:
+   <device-transfer> is a direct device-to-device copy that never leaves the
+   user's control, and this file re-earns itself from one unauthenticated
+   request, so there is nothing to gain by stripping it from a watch-to-watch
+   transfer.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="wear_status_cache.preferences_pb" />
+    </cloud-backup>
+</data-extraction-rules>

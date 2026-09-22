@@ -25,8 +25,10 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.presentation.CheckInStatusMapper
 import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.testcommon.FakeAuthRepository
+import com.chriscartland.garage.testcommon.FakeClock
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
@@ -81,6 +83,7 @@ class WearHomeViewModelTest {
     private lateinit var remoteButtonRepository: FakeRemoteButtonRepository
     private lateinit var appVisibilityState: AppVisibilityState
     private lateinit var settleWindow: DefaultAppSettleWindow
+    private lateinit var clock: FakeClock
 
     @After
     fun tearDown() {
@@ -94,6 +97,7 @@ class WearHomeViewModelTest {
         doorRepository = FakeDoorRepository()
         remoteButtonRepository = FakeRemoteButtonRepository()
         appVisibilityState = AppVisibilityState()
+        clock = FakeClock(nowSeconds = NOW)
         // The REAL window on the test scheduler, not a fake: on the watch the
         // ViewModel is the lifecycle host, so `onVisible` reporting visibility
         // and the window reacting to it are one behaviour and worth exercising
@@ -112,6 +116,7 @@ class WearHomeViewModelTest {
             dispatchers = TestDispatcherProvider(testDispatcher),
             appVisibilityState = appVisibilityState,
             appSettleWindow = settleWindow,
+            clock = clock,
             appVersion = "wear-test",
         )
     }
@@ -701,17 +706,18 @@ class WearHomeViewModelTest {
 
     /**
      * A launch that never hears from the garage: grey and wordless while the
-     * app is arriving, then "No signal" once the window closes. The watch
-     * starts with an empty cache on every launch (its local data source is
-     * in-memory), so this is the ordinary cold-start path, not an edge case.
+     * app is arriving, then "No signal" once the window closes. Since
+     * `PersistedLocalDoorDataSource` this is the first-ever-launch path
+     * rather than every launch, but it is also what a watch out of range
+     * shows once its snapshot ages out.
      */
     @Test
     fun aLaunchThatNeverConnectsGoesQuietThenSpeaks() =
         runTest {
             val viewModel = createViewModel()
             // FakeDoorRepository seeds a DoorEvent() by default; this test is
-            // about a watch that has heard NOTHING, which is the real
-            // cold-start state (the local data source is in-memory).
+            // about a watch that has heard NOTHING — a first-ever launch, or
+            // one whose snapshot could not be read.
             doorRepository.clearCurrentDoorEvent()
             viewModel.onVisible()
             runCurrent()
@@ -747,7 +753,7 @@ class WearHomeViewModelTest {
             val beforeHearing = viewModel.freshness.value
 
             doorRepository.setCurrentDoorEvent(
-                DoorEvent(doorPosition = DoorPosition.CLOSED, lastCheckInTimeSeconds = 1_000L),
+                DoorEvent(doorPosition = DoorPosition.CLOSED, lastCheckInTimeSeconds = NOW - 30),
             )
             // A poll interval, not just `runCurrent()`. The watch's first poll
             // on an empty cache returns `FetchError.NotReady`, so the
@@ -777,7 +783,7 @@ class WearHomeViewModelTest {
         runTest {
             val viewModel = createViewModel()
             doorRepository.setCurrentDoorEvent(
-                DoorEvent(doorPosition = DoorPosition.CLOSED, lastCheckInTimeSeconds = 1_000L),
+                DoorEvent(doorPosition = DoorPosition.CLOSED, lastCheckInTimeSeconds = NOW - 30),
             )
             viewModel.onVisible()
             advanceTimeBy(AppSettleWindow.SETTLE_WINDOW_MILLIS + 1)
@@ -798,8 +804,146 @@ class WearHomeViewModelTest {
             )
         }
 
+    // --- Check-in staleness (docs/WEAR_OS.md follow-up 6, closed here) ---
+
+    /**
+     * The watch's oldest blind spot: a garage that has stopped reporting.
+     *
+     * Until this input was wired, `isCheckInStale` was hard-coded false on
+     * the watch, so a door event that arrived once rendered a confident,
+     * fully-coloured dial for as long as the process lived — asserting a
+     * reading of any age as current. The poll keeps succeeding (the server
+     * answers fine); it is the GARAGE that has gone quiet, which is exactly
+     * the failure `isFetchError` cannot see.
+     */
+    @Test
+    fun aGarageThatHasStoppedReportingStopsTheDialLookingConfident() =
+        runTest {
+            val viewModel = createViewModel()
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.CLOSED, lastCheckInTimeSeconds = NOW - 30),
+            )
+            viewModel.onVisible()
+            advanceTimeBy(AppSettleWindow.SETTLE_WINDOW_MILLIS + 1)
+            runCurrent()
+            val whileReporting = viewModel.freshness.value
+
+            // The garage goes quiet: the wall clock moves past the threshold
+            // while the same event stays the newest thing we know. Nothing
+            // fails and nothing new arrives — which is the whole point.
+            clock.advanceSeconds(CheckInStatusMapper.STALE_THRESHOLD_SECONDS + 1)
+            advanceTimeBy(WearHomeViewModel.IDLE_POLL_MILLIS + 1)
+            runCurrent()
+            val afterGoingQuiet = viewModel.freshness.value
+
+            viewModel.onHidden()
+            assertEquals(DataFreshness.FRESH, whileReporting)
+            assertEquals(
+                "a reading whose garage stopped reporting must not be rendered as current",
+                DataFreshness.STALE,
+                afterGoingQuiet,
+            )
+        }
+
+    /**
+     * The regression that hydration would have caused on its own, pinned.
+     *
+     * A snapshot read from disk is `hasData = true` on the very first frame,
+     * so without a staleness rule behind it the watch would open onto a
+     * confident, fully-coloured door that might be days old — strictly worse
+     * than the "Connecting…" it used to show. This asserts the first frame,
+     * before any poll has had a chance to run, which is the only frame where
+     * that distinction is visible.
+     */
+    @Test
+    fun aDoorReadThatIsAlreadyTooOldIsNeverConfidentEvenOnTheFirstFrame() =
+        runTest {
+            val viewModel = createViewModel()
+            // Stands in for a hydrated snapshot: present in the cache before
+            // anything is fetched, and older than the threshold.
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(
+                    doorPosition = DoorPosition.OPEN,
+                    lastCheckInTimeSeconds = NOW - CheckInStatusMapper.STALE_THRESHOLD_SECONDS - 1,
+                ),
+            )
+
+            // `runCurrent()` only lets the eager combine observe the value
+            // that is already in the cache — no onVisible(), so no poll has
+            // run and the settle window has never been started. This is the
+            // frame the watch draws before it has asked anyone anything.
+            runCurrent()
+            val firstFrame = viewModel.freshness.value
+
+            assertEquals(
+                "a stale snapshot must not read as current on the frame it is hydrated",
+                DataFreshness.SETTLING,
+                firstFrame,
+            )
+        }
+
+    /**
+     * Positive control for the two above: an old reading that is refreshed
+     * goes back to confident. Without it, an `isCheckInStale` stuck at true
+     * would satisfy both and the dial would simply never regain its colour.
+     */
+    @Test
+    fun aFreshHeartbeatMakesTheDialConfidentAgain() =
+        runTest {
+            val viewModel = createViewModel()
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(
+                    doorPosition = DoorPosition.CLOSED,
+                    lastCheckInTimeSeconds = NOW - CheckInStatusMapper.STALE_THRESHOLD_SECONDS - 1,
+                ),
+            )
+            viewModel.onVisible()
+            advanceTimeBy(AppSettleWindow.SETTLE_WINDOW_MILLIS + 1)
+            runCurrent()
+            val whileStale = viewModel.freshness.value
+
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.CLOSED, lastCheckInTimeSeconds = NOW - 5),
+            )
+            advanceTimeBy(WearHomeViewModel.IDLE_POLL_MILLIS + 1)
+            runCurrent()
+            val afterHeartbeat = viewModel.freshness.value
+
+            viewModel.onHidden()
+            assertEquals(DataFreshness.STALE, whileStale)
+            assertEquals(DataFreshness.FRESH, afterHeartbeat)
+        }
+
+    /**
+     * An event carrying no check-in time at all is not treated as stale.
+     *
+     * It is unjudgeable rather than old, and a live event is about to replace
+     * it. The case that WOULD matter — an undatable reading surviving on disk
+     * and reading confident forever — is closed at the other end, by
+     * `PersistedLocalDoorDataSource` refusing to persist what it cannot date
+     * (`anEventWeCannotDateIsNotPersisted`).
+     */
+    @Test
+    fun anEventWithNoCheckInTimeIsNotTreatedAsStale() =
+        runTest {
+            val viewModel = createViewModel()
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.CLOSED, lastCheckInTimeSeconds = null),
+            )
+            viewModel.onVisible()
+            advanceTimeBy(AppSettleWindow.SETTLE_WINDOW_MILLIS + 1)
+            runCurrent()
+            val verdict = viewModel.freshness.value
+
+            viewModel.onHidden()
+            assertEquals(DataFreshness.FRESH, verdict)
+        }
+
     companion object {
         /** Mirrors ButtonStateMachine.DEFAULT_PREPARING_DELAY (500ms). */
         private const val PREPARING_DELAY_MILLIS = 500L
+
+        /** Arbitrary fixed "now" for the fake clock; only differences matter. */
+        private const val NOW = 1_700_000_000L
     }
 }
