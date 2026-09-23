@@ -19,6 +19,19 @@ Versioning mirrors Android (see `MobileGarage/CHANGELOG.md` § versioning):
 major = rewrite or core-experience shift; minor = a user-facing feature added or
 removed; patch = fixes, polish, refactors. iOS uses independent `ios/N` tags.
 
+## 0.2.2
+
+- **A door the app cannot vouch for now looks like one.** On arrival the door
+  goes grey and dim while the app catches up, with nothing else changed. If it
+  still has not heard anything five seconds later, it says so — waiting
+  escalates by adding a sentence, not by changing the picture.
+
+  This removes the Retry button that a warm start used to show on a door whose
+  opener had simply not reported recently.
+
+- **An app that has never heard from the garage now says "No signal"** instead
+  of "Connecting…" forever.
+
 ## 0.2.1
 
 - **Coming back to the app now always fetches immediately.** 0.2.0's live
