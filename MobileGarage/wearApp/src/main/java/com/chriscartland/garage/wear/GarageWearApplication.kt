@@ -22,6 +22,7 @@ import com.chriscartland.garage.wear.auth.DataLayerWearAuthRelayClient
 import com.chriscartland.garage.wear.auth.FirebaseAuthBridge
 import com.chriscartland.garage.wear.auth.RelayFallbackAuthBridge
 import com.chriscartland.garage.wear.config.WearAppConfigFactory
+import com.chriscartland.garage.wear.data.WearStatusCache
 import com.chriscartland.garage.wear.di.WearComponent
 import com.chriscartland.garage.wear.di.WearSignInConfig
 import com.chriscartland.garage.wear.di.create
@@ -46,6 +47,9 @@ class GarageWearApplication : Application() {
                 googleServerClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID,
             ),
             appVersion = "wear-${BuildConfig.VERSION_NAME}",
+            // One DataStore for the process, however the system chooses to
+            // start it — see WearStatusCache.
+            statusCacheStorage = WearStatusCache.storage(applicationContext),
         )
     }
 

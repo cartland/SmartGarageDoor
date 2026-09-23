@@ -58,5 +58,12 @@ object StatusCacheKeys {
         // leak across accounts. The clear here is best-effort; the
         // account-keyed hydration is the guarantee (STATUS_CACHE_PLAN.md D4).
         AllowlistSnapshot.KEY,
+        // DELIBERATELY ABSENT: DoorEventSnapshot.KEY. The door's position is
+        // household state, not account state — no token is needed to fetch it
+        // and every surface renders it signed out (the watch's hero screen
+        // shows the door and offers sign-in beneath it). Clearing it on sign
+        // out would blank the Wear tile for a user who can still legitimately
+        // see the door, buying no privacy: the same value is one
+        // unauthenticated request away.
     )
 }

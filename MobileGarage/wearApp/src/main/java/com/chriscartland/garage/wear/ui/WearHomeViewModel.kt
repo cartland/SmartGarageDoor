@@ -19,6 +19,7 @@ package com.chriscartland.garage.wear.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
@@ -27,6 +28,8 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.presentation.CheckInStatus
+import com.chriscartland.garage.presentation.CheckInStatusMapper
 import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.DataFreshnessMapper
 import com.chriscartland.garage.usecase.AppSettleWindow
@@ -108,6 +111,7 @@ class WearHomeViewModel(
     private val dispatchers: DispatcherProvider,
     private val appVisibilityState: AppVisibilityState,
     private val appSettleWindow: AppSettleWindow,
+    private val clock: AppClock,
     private val appVersion: String,
 ) : ViewModel() {
     /** Pass-through of the repository StateFlows (ADR-022 — no re-wrapping). */
@@ -121,25 +125,47 @@ class WearHomeViewModel(
     private val lastFetchFailed = MutableStateFlow(false)
 
     /**
+     * The watch's notion of "now", for judging how old the door reading is.
+     *
+     * **Driven by the poll loop, not by a shared `LiveClock`.** The watch already
+     * has a heartbeat while anyone is looking at it — the refresh loop in
+     * [onVisible] — so time can be read there for free instead of paying for
+     * a second recurring wake. That also gives the clock exactly the
+     * lifecycle the watch wants: it advances while the screen is on and stops
+     * with it, whereas `LiveClock.start()` is deliberately unstoppable (it is
+     * built for a phone process whose foreground lifetime is unbounded) and
+     * would go on ticking for the life of the process after one glance.
+     *
+     * [IDLE_POLL_MILLIS] granularity against an eleven-minute threshold is
+     * ample: this value exists to notice a garage that has gone quiet, not to
+     * count seconds.
+     *
+     * Seeded at construction so the very FIRST frame can judge a snapshot
+     * hydrated from disk — which is the reading that most needs judging,
+     * since it is the one that could be days old.
+     */
+    private val nowEpochSeconds = MutableStateFlow(clock.nowEpochSeconds())
+
+    /**
      * How much the watch trusts what is on the dial, and whether it may say
      * so out loud — the same three-way verdict the phone and iOS render, from
      * the same shared mapper.
      *
-     * Two of the three shared inputs apply here:
-     *  - `hasData` — on this device an empty cache is the state of every
-     *    single launch, because the local data source is in-memory.
+     * All three shared inputs now apply here:
+     *  - `hasData` — no longer false on every launch: the local data source
+     *    hydrates the last-known door from disk, so a cold start usually
+     *    begins with something to show.
      *  - `isFetchError` — the poll loop's outcome. Without it a watch that
      *    succeeded once rendered a confident, fully-saturated dial through
      *    hours of subsequent failures, since `hasData` stays true for the life
      *    of the process.
-     *
-     * The third, `isCheckInStale`, is still false here — not on principle but
-     * for want of a clock. The watch runs no `LiveClock`, and
-     * `CheckInStatusMapper.forCheckIn` needs a `now` to compare against. (It
-     * IS reachable now that `:presentation-model` is on the watch's classpath,
-     * so this is a known gap with a known fix, not a design boundary. An
-     * earlier version of this comment claimed sharing the definition would be
-     * "drift", which had it exactly backwards.)
+     *  - `isCheckInStale` — the garage's own heartbeat, judged by the shared
+     *    [CheckInStatusMapper] against [nowEpochSeconds]. This was the
+     *    watch's longest-standing gap (docs/WEAR_OS.md follow-up 6), and
+     *    closing it is what makes persistence safe instead of harmful:
+     *    hydrating a snapshot with no staleness rule behind it would open the
+     *    watch onto a confident, fully-coloured door that might be days old.
+     *    The two are one change for that reason.
      *
      * `Eagerly` because every upstream is an in-memory StateFlow — running the
      * combine for the life of the ViewModel costs nothing, and the initial
@@ -150,8 +176,9 @@ class WearHomeViewModel(
             currentDoorEvent,
             appSettleWindow.isSettling,
             lastFetchFailed,
-        ) { event, settling, failed ->
-            wearFreshness(event, settling, failed)
+            nowEpochSeconds,
+        ) { event, settling, failed, now ->
+            wearFreshness(event, settling, failed, now)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
@@ -159,6 +186,7 @@ class WearHomeViewModel(
                 currentDoorEvent.value,
                 appSettleWindow.isSettling.value,
                 lastFetchFailed.value,
+                nowEpochSeconds.value,
             ),
         )
 
@@ -331,6 +359,13 @@ class WearHomeViewModel(
         if (refreshJob?.isActive == true) return
         refreshJob = viewModelScope.launch(dispatchers.io) {
             while (true) {
+                // Read the clock BEFORE the fetch, not after. The fetch can
+                // take seconds on the watch's network path, and the frame
+                // rendered while it is outstanding is the one the user is
+                // looking at right now — it must judge the hydrated reading
+                // against the present, not against whenever the last loop
+                // iteration happened to finish.
+                nowEpochSeconds.value = clock.nowEpochSeconds()
                 // The result is no longer discarded. A watch that succeeded
                 // once and has failed every poll since kept `hasData == true`
                 // for the life of the process, so the dial stayed fully
@@ -495,15 +530,45 @@ class WearHomeViewModel(
             event: DoorEvent?,
             isSettling: Boolean,
             lastFetchFailed: Boolean,
+            nowEpochSeconds: Long,
         ): DataFreshness =
             DataFreshnessMapper.freshness(
                 hasData = event != null,
-                // See the `freshness` KDoc: absent for want of a clock on the
-                // watch, not by design.
-                isCheckInStale = false,
+                isCheckInStale = isCheckInStale(event, nowEpochSeconds),
                 isFetchError = lastFetchFailed,
                 isSettling = isSettling,
             )
+
+        /**
+         * Whether the garage's last heartbeat is old enough to stop trusting
+         * the position that came with it.
+         *
+         * The threshold is NOT written here: [CheckInStatusMapper] owns it
+         * (eleven minutes, mirrored by `CheckInStalenessManager` and by the
+         * server's `doorCommand` gate), so the watch cannot drift from the
+         * phone on what "stale" means.
+         *
+         * [CheckInStatus.NoData] — an event carrying no check-in time at all —
+         * is NOT treated as stale. It is genuinely unjudgeable rather than
+         * old, and a live event is about to replace it anyway. The case that
+         * would matter, an undatable reading surviving on disk and reading
+         * confident forever, is closed at the other end:
+         * `PersistedLocalDoorDataSource` refuses to persist an event it cannot
+         * date.
+         */
+        private fun isCheckInStale(
+            event: DoorEvent?,
+            nowEpochSeconds: Long,
+        ): Boolean =
+            when (
+                val status = CheckInStatusMapper.forCheckIn(
+                    lastCheckInEpochSeconds = event?.lastCheckInTimeSeconds,
+                    nowEpochSeconds = nowEpochSeconds,
+                )
+            ) {
+                CheckInStatus.NoData -> false
+                is CheckInStatus.Reported -> status.isStale
+            }
 
         /**
          * Hold duration required to confirm a press (the radial indicator

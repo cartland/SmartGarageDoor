@@ -97,8 +97,13 @@ abstract class BackupRulesExcludeCheckTask : DefaultTask() {
                     append("(security-audit posture M6 — local data is device-local and re-syncs\n")
                     append("from the server; an off-device Google Drive copy is pure downside).\n\n")
                     append("Fix: add the missing <exclude domain=\"file\" path=\"...\" /> entry to\n")
-                    append("androidApp/src/main/res/xml/backup_rules.xml (<full-backup-content>) and\n")
-                    append("androidApp/src/main/res/xml/data_extraction_rules.xml (<cloud-backup>).\n")
+                    append("each of the rules files this check covers — inside <full-backup-content>\n")
+                    append("and <cloud-backup> respectively:\n")
+                    // Named rather than hardcoded to androidApp: this task is
+                    // registered once per app (phone and Wear each own their
+                    // DataStore files and their own rules), so a fixed path
+                    // would send half the failures to the wrong file.
+                    backupRulesFiles.forEach { append("  - $it\n") }
                 },
             )
         }

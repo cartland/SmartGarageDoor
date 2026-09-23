@@ -34,6 +34,10 @@ import com.chriscartland.garage.data.repository.FirebaseAuthRepository
 import com.chriscartland.garage.data.repository.NetworkDoorCommandRepository
 import com.chriscartland.garage.data.repository.NetworkDoorRepository
 import com.chriscartland.garage.data.repository.NetworkRemoteButtonRepository
+import com.chriscartland.garage.data.statuscache.DefaultStatusSnapshotStore
+import com.chriscartland.garage.data.statuscache.StatusCacheStorage
+import com.chriscartland.garage.data.statuscache.StatusSnapshotStore
+import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
 import com.chriscartland.garage.domain.model.AppConfig
 import com.chriscartland.garage.domain.model.VoiceIntentClassifier
@@ -54,8 +58,10 @@ import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.usecase.PushRemoteButtonUseCase
 import com.chriscartland.garage.usecase.RuleBasedVoiceIntentClassifier
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
-import com.chriscartland.garage.wear.data.InMemoryLocalDoorDataSource
+import com.chriscartland.garage.wear.data.DoorSnapshotHydration
+import com.chriscartland.garage.wear.data.PersistedLocalDoorDataSource
 import com.chriscartland.garage.wear.logging.LogcatAppLoggerRepository
+import com.chriscartland.garage.wear.tile.WearTilePresenter
 import com.chriscartland.garage.wear.ui.WearHomeViewModel
 import com.chriscartland.garage.wear.ui.WearLiveVoiceViewModel
 import com.chriscartland.garage.wear.ui.WearSimulatedVoiceViewModel
@@ -86,7 +92,13 @@ data class WearSignInConfig(
  * (`:domain` / `:data` / `:usecase`), with platform deps supplied via the
  * constructor. Deliberately much smaller than the phone `AppComponent`:
  * the watch needs door status + the remote button + auth, nothing else
- * (no Room, no DataStore, no FCM, no snooze, no diagnostics).
+ * (no Room, no FCM, no snooze, no diagnostics).
+ *
+ * The one piece of persistence is the door snapshot — a single
+ * `preferences_pb` entry holding the last-known door event, so a surface
+ * that renders while the app is NOT running has something true to show.
+ * Still no Room: a one-entry cache does not need a database, and the watch
+ * has no history screen to put one behind.
  *
  * **Singleton discipline (mirrors `AppComponent.kt` rules):**
  *   1. Every `@WearSingleton` provider must be reachable via an abstract
@@ -104,6 +116,19 @@ abstract class WearComponent(
     @get:Provides val appConfig: AppConfig,
     @get:Provides val signInConfig: WearSignInConfig,
     @get:Provides val appVersion: String,
+    /**
+     * The door snapshot's raw persistence, built by `GarageWearApplication`
+     * from [com.chriscartland.garage.wear.data.WearStatusCache].
+     *
+     * A constructor dependency rather than a `@Provides` chain, for the same
+     * reason as [authBridge]: it is the platform leaf. That also keeps
+     * `android.content.Context` out of this component, which is what lets
+     * `WearComponentGraphTest` construct the real graph on the JVM, and it
+     * puts the no-two-DataStores-per-file guarantee in a process-wide
+     * `object` where the system's own entry points (a tile service) are
+     * covered by it too.
+     */
+    @get:Provides val statusCacheStorage: StatusCacheStorage,
 ) {
     // --- Entry points: ViewModels (per-screen, NOT singleton) ---
     abstract val wearHomeViewModel: WearHomeViewModel
@@ -132,6 +157,39 @@ abstract class WearComponent(
     abstract val appVisibilityState: AppVisibilityState
     abstract val appSettleWindow: AppSettleWindow
     abstract val localDoorDataSource: LocalDoorDataSource
+
+    /**
+     * The door cache as its CONCRETE type, which is what makes it one object.
+     *
+     * It answers to two interfaces — `LocalDoorDataSource` for the repository
+     * and `DoorSnapshotHydration` for the tile — and those must be the same
+     * instance or the tile would wait on a hydration that never fills the
+     * cache the repository reads. Entry-pointing the concrete type is what
+     * gives kotlin-inject something to cache; the two interface providers
+     * below just hand it back.
+     */
+    abstract val persistedLocalDoorDataSource: PersistedLocalDoorDataSource
+
+    /**
+     * The typed snapshot store wrapping [statusCacheStorage], and the clock
+     * the snapshot is stamped with.
+     *
+     * Entry-pointed because `@WearSingleton` is only honoured for providers
+     * reachable from one — an uncached store would give the hydrating data
+     * source and any future reader their own, and they would not agree on
+     * what had been written.
+     */
+    abstract val statusSnapshotStore: StatusSnapshotStore
+    abstract val appClock: AppClock
+
+    /**
+     * The tile's decisions. A `@WearSingleton` because it REMEMBERS across
+     * requests (whether the last refresh failed, and what was last rendered)
+     * and the system builds a fresh `TileService` for every request — an
+     * uncached presenter would read its seed values forever, so the tile
+     * could neither report a failed refresh nor notice the door had moved.
+     */
+    abstract val wearTilePresenter: WearTilePresenter
     abstract val networkDoorDataSource: NetworkDoorDataSource
     abstract val networkConfigDataSource: NetworkConfigDataSource
     abstract val networkButtonDataSource: NetworkButtonDataSource
@@ -148,6 +206,7 @@ abstract class WearComponent(
         dispatchers: DispatcherProvider,
         appVisibilityState: AppVisibilityState,
         appSettleWindow: AppSettleWindow,
+        clock: AppClock,
         appVersion: String,
     ): WearHomeViewModel =
         WearHomeViewModel(
@@ -159,6 +218,7 @@ abstract class WearComponent(
             dispatchers = dispatchers,
             appVisibilityState = appVisibilityState,
             appSettleWindow = appSettleWindow,
+            clock = clock,
             appVersion = appVersion,
         )
 
@@ -285,7 +345,49 @@ abstract class WearComponent(
 
     @Provides
     @WearSingleton
-    fun provideLocalDoorDataSource(): LocalDoorDataSource = InMemoryLocalDoorDataSource()
+    fun provideAppClock(): AppClock = AppClock { System.currentTimeMillis() / 1000 }
+
+    @Provides
+    @WearSingleton
+    fun provideStatusSnapshotStore(storage: StatusCacheStorage): StatusSnapshotStore = DefaultStatusSnapshotStore(storage)
+
+    @Provides
+    @WearSingleton
+    fun provideWearTilePresenter(
+        observeDoorEvents: ObserveDoorEventsUseCase,
+        fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
+        hydration: DoorSnapshotHydration,
+        clock: AppClock,
+    ): WearTilePresenter =
+        WearTilePresenter(
+            observeDoorEvents = observeDoorEvents,
+            fetchCurrentDoorEvent = fetchCurrentDoorEvent,
+            hydration = hydration,
+            clock = clock,
+        )
+
+    @Provides
+    @WearSingleton
+    fun providePersistedLocalDoorDataSource(
+        snapshotStore: StatusSnapshotStore,
+        clock: AppClock,
+        applicationScope: CoroutineScope,
+    ): PersistedLocalDoorDataSource =
+        PersistedLocalDoorDataSource(
+            snapshotStore = snapshotStore,
+            clock = clock,
+            scope = applicationScope,
+        )
+
+    // The two faces of that one object. Not @WearSingleton themselves: they
+    // add no state, and the caching that matters is on the concrete provider
+    // above — scoping these as well would be harmless but would suggest there
+    // were three things here rather than one.
+    @Provides
+    fun provideLocalDoorDataSource(source: PersistedLocalDoorDataSource): LocalDoorDataSource = source
+
+    @Provides
+    fun provideDoorSnapshotHydration(source: PersistedLocalDoorDataSource): DoorSnapshotHydration = source
 
     @Provides
     @WearSingleton

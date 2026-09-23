@@ -26,9 +26,16 @@ import com.chriscartland.garage.domain.model.GarageDoorPalette
 /**
  * Door fill colors for the Wear app, sourced from the shared Tier-1
  * `GarageDoorPalette` (`:domain`). Wear renders on an always-dark canvas,
- * so only the `_DARK` scheme variants are used. Check-in staleness is not
- * surfaced on the watch yet, so only the `FRESH` variants apply
- * (docs/WEAR_OS.md lists staleness as a follow-up).
+ * so only the `_DARK` scheme variants are used.
+ *
+ * Only the `FRESH` variants are read, and that is now a deliberate choice
+ * rather than a missing feature. The watch DOES judge check-in staleness
+ * (docs/WEAR_OS.md § "What the watch remembers"), but it expresses it the
+ * way the phone and iOS do — by draining the hue out of the fresh colour
+ * through the shared `FreshnessTint`, applied at the call site by
+ * [WearFreshnessTint]. The palette's own `_STALE_` variants are a
+ * PARTIAL desaturation designed for the phone's card, so mixing the two
+ * would grey the door twice and by different amounts on different screens.
  */
 object WearDoorColors {
     val closed = Color(GarageDoorPalette.CLOSED_FRESH_DARK)

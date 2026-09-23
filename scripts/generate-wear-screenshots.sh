@@ -57,6 +57,7 @@ EMULATOR_PORT=5610
 SERIAL="emulator-$EMULATOR_PORT"
 PACKAGE="com.chriscartland.garage.debug"
 FIXTURE_ACTIVITY="$PACKAGE/com.chriscartland.garage.wear.debug.ScreenshotStagesActivity"
+TILE_FIXTURE_ACTIVITY="$PACKAGE/com.chriscartland.garage.wear.debug.TileStagesActivity"
 BOOT_TIMEOUT_SECONDS=180
 
 # Stage list mirrors ScreenshotStagesActivity.
@@ -72,6 +73,13 @@ STAGES=(
     voice_ready voice_listening voice_hearing voice_armed voice_committing
     voice_sent voice_refused
     voice_sim_ready voice_sim_armed voice_sim_sent
+    # The TILE (swipe right from the watch face). It is ProtoLayout rather
+    # than Compose, so no @Preview can show it and no JVM test can see it —
+    # an emulator render is the only way to look at it at all, which is why
+    # it earns stages here. Review them as PAIRS: tile_open vs tile_stale is
+    # the same door with one muted, and tile_closed vs tile_no_signal is
+    # something known vs nothing known.
+    tile_closed tile_open tile_stale tile_no_signal
 )
 # Post-foreground settle: lets the system splash ("Starting…") dissolve and
 # the first real frame land. The foreground wait below handles slow cold
@@ -196,21 +204,42 @@ fi
 # (the splash window is named "Splash Screen <package>", the charging screen
 # is a SysUI window). Re-issuing the launch climbs back over any overlay.
 FIXTURE_CLASS="com.chriscartland.garage.wear.debug.ScreenshotStagesActivity"
+TILE_FIXTURE_CLASS="com.chriscartland.garage.wear.debug.TileStagesActivity"
+
+# The tile is rendered by a second fixture activity, because it is not a
+# Composable and cannot share the first one's setContent. Stage name decides
+# which harness runs; everything downstream (focus wait, clock pin, capture,
+# size sanity) is identical.
+activity_for_stage() {
+    case "$1" in
+        tile_*) echo "$TILE_FIXTURE_ACTIVITY" ;;
+        *) echo "$FIXTURE_ACTIVITY" ;;
+    esac
+}
+
+class_for_stage() {
+    case "$1" in
+        tile_*) echo "$TILE_FIXTURE_CLASS" ;;
+        *) echo "$FIXTURE_CLASS" ;;
+    esac
+}
 
 wait_for_fixture_focus() {
     stage_arg="$1"
+    expect_class="$(class_for_stage "$stage_arg")"
+    expect_activity="$(activity_for_stage "$stage_arg")"
     fg_waited=0
     while [ "$fg_waited" -lt "$FOREGROUND_TIMEOUT_SECONDS" ]; do
         if "$ADB" -s "$SERIAL" shell dumpsys window 2>/dev/null \
             | grep "mCurrentFocus" \
-            | grep -q "$FIXTURE_CLASS"; then
+            | grep -q "$expect_class"; then
             return 0
         fi
         sleep 1
         fg_waited=$((fg_waited + 1))
         if [ $((fg_waited % 3)) -eq 0 ]; then
             "$ADB" -s "$SERIAL" shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
-            "$ADB" -s "$SERIAL" shell am start -n "$FIXTURE_ACTIVITY" -e stage "$stage_arg" >/dev/null
+            "$ADB" -s "$SERIAL" shell am start -n "$expect_activity" -e stage "$stage_arg" >/dev/null
         fi
     done
     fail "fixture window did not gain focus for stage '$stage_arg'"
@@ -220,7 +249,7 @@ mkdir -p "$OUT_DIR"
 for stage in "${STAGES[@]}"; do
     echo "Capturing stage: $stage"
     "$ADB" -s "$SERIAL" shell am force-stop "$PACKAGE"
-    "$ADB" -s "$SERIAL" shell am start -n "$FIXTURE_ACTIVITY" -e stage "$stage" >/dev/null
+    "$ADB" -s "$SERIAL" shell am start -n "$(activity_for_stage "$stage")" -e stage "$stage" >/dev/null
     wait_for_fixture_focus "$stage"
     pin_clock
     sleep "$DEFAULT_SETTLE_SECONDS"
@@ -244,6 +273,10 @@ GALLERY="$OUT_DIR/README.md"
 # the four voice stages landed. Now an undescribed stage is a hard failure.
 stage_description() {
     case "$1" in
+        tile_closed) echo "The tile, swipe right from the watch face: closed door, confirmed 20 seconds ago. Read-only — a tap opens the app, it can never move the door" ;;
+        tile_open) echo "The same tile with the door open. Review against tile_stale: identical reading, one of them muted" ;;
+        tile_stale) echo "Six hours since the garage last reported: same open door, now drained to grey and dimmed, with an age line that explains why" ;;
+        tile_no_signal) echo "Nothing known and nothing reachable: the unknown door, \"No signal\", and no age line at all — a reading we cannot date is never given one" ;;
         connecting) echo "Cold start, inside the settle window: dial grey and dim, label still the calm \"Connecting…\", no warning badge" ;;
         no_signal) echo "The same cold start five seconds later: identical dial, headline now \"No signal\" — waiting escalates by adding a word, not by changing the art" ;;
         closed) echo "Closed door (affirmative sensor), \"Hold to open\"" ;;

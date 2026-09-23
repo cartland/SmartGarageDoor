@@ -196,6 +196,12 @@ tasks.register<architecture.DataStoreSingletonCheckTask>("checkDataStoreSingleto
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",
     )
+    // NOTE: deliberately NOT extended to wearApp. The watch's DataStore is
+    // owned by a process-wide `object` (WearStatusCache) rather than a DI
+    // provider, because a TileService is started by the system and need not
+    // pass through the component at all — so there is no `@Provides fun` here
+    // to annotate, and a guarded method name that matches nothing would be a
+    // check that cannot fail.
     // Names match the providers in androidApp/.../di/AppComponent.kt that
     // hold the only DataStore<Preferences> and Room AppDatabase instances.
     guardedMethods = listOf(
@@ -222,6 +228,21 @@ tasks.register<architecture.BackupRulesExcludeCheckTask>("checkBackupRulesExclud
     backupRulesFiles = listOf(
         "$rootDir/androidApp/src/main/res/xml/backup_rules.xml",
         "$rootDir/androidApp/src/main/res/xml/data_extraction_rules.xml",
+    )
+    // The watch keeps its own DataStore (see WearStatusCacheStorage.kt) and
+    // therefore its own backup rules, so it needs its own instance of this
+    // check rather than a wider scan: requiring every module's filenames in
+    // every module's rules would demand the phone exclude a file it never
+    // writes. Wired as a dependency so `checkBackupRulesExcludes` — the name
+    // validate.sh invokes — keeps covering everything.
+    dependsOn("checkWearBackupRulesExcludes")
+}
+
+tasks.register<architecture.BackupRulesExcludeCheckTask>("checkWearBackupRulesExcludes") {
+    dataStoreSourceDir = "$rootDir/wearApp/src"
+    backupRulesFiles = listOf(
+        "$rootDir/wearApp/src/main/res/xml/backup_rules.xml",
+        "$rootDir/wearApp/src/main/res/xml/data_extraction_rules.xml",
     )
 }
 
