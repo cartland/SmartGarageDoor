@@ -1,3 +1,3 @@
-Install the watch app from your phone: Settings now shows whether the Garage app is on your paired watch, with a green check when installed or a one-tap action that opens the Play Store right on the watch.
+A door the app cannot vouch for now looks like one. On opening, the door goes grey and dim while the app catches up, and it only says something is wrong if it still has not heard from the garage five seconds later. No more flash of red and Retry on a door that was simply waiting to report in.
 
-Wear OS companion support: the phone now shares its sign-in with the Garage watch app, so your watch can check the door and operate it without a separate sign-in.
+If the app has never heard from the garage at all, it now says "No signal" rather than "Connecting" forever.

@@ -14,6 +14,33 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.8.0
+
+- **The garage door is now a tile.** Swipe right from the watch face to see
+  what the door is doing and how old that reading is, without opening the app.
+
+  It is deliberately **read-only**: tapping it opens the app, and there is no
+  way to move the door from the tile. A tile lives in a carousel you swipe
+  through, which makes it the easiest surface on the watch to touch without
+  meaning to, and it cannot express the press-and-hold that guards the button
+  everywhere else. The tile is where you find out; the app is where you act.
+
+  The tile has to be added to your watch's carousel once, by hand — no app can
+  do that for you.
+
+- **The watch remembers the door between launches.** It keeps the last reading
+  it can put a date on, so a glance has something true to show even when the
+  app has not been running. This also removes the "Connecting…" that used to
+  greet every single cold start.
+
+- **The watch now notices when the garage goes quiet.** If the door opener
+  stops reporting in, the dial drains to grey and the tile says how long it has
+  been — rather than showing an old position as though it were current. A
+  reading the watch cannot vouch for never looks confident again.
+
+  Both surfaces still *name* the last known door. Going quiet hides nothing you
+  already knew; it only stops the watch claiming that knowledge is fresh.
+
 ## 0.7.2
 
 - **Settings are in a more useful order.** Your account first, then the app

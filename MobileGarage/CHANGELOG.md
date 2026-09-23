@@ -15,6 +15,26 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
 
+## 2.24.0
+
+- **You can choose how the app keeps the door up to date.** Settings →
+  Developer → Door updates lets you pick between push and polling, and switch
+  live without restarting.
+
+- **A door the app cannot vouch for now looks like one.** On arrival the door
+  goes grey and dim while the app catches up, with nothing else changed — no
+  banner, no alarm, no words. If it still has not heard anything five seconds
+  later, it says so. Waiting escalates by adding a sentence, never by making
+  the picture shout.
+
+  This removes the flash of red-and-Retry that a warm start used to show on a
+  door whose opener had simply not reported recently — an error that was gone
+  before you could act on it, which is the kind that teaches you to ignore the
+  real ones.
+
+- **An app that has never heard from the garage now says "No signal"** instead
+  of "Connecting…" forever.
+
 ## 2.23.10
 
 - **Signing out now clears what was being held in memory, not only what was
