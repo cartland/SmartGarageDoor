@@ -1187,6 +1187,112 @@ use — `tile_open` vs `tile_stale` is the same door with one muted, and
   complication lives ON the watch face, so it is more glanceable still but has
   room for only a few characters and no age line.
 
+## The complication (0.8.1)
+
+The door on the watch face itself: no swipe, no tap. Also the least forgiving
+surface the app has — **seven characters**, and colours chosen by the watch
+face rather than by us.
+
+### A complication cannot be muted, and that changes the answer
+
+Every other surface expresses "we cannot vouch for this" the same way: drain
+the colour, dim it, keep the word, let the age explain. That is **unavailable
+here.** The watch face owns these pixels and renders our text however it
+likes, so `DataFreshness.isMuted` — the entire quiet half of the design — has
+nowhere to land. Doubt has to be carried by the words or not at all.
+
+So the emphasis inverts with trust:
+
+| | leads (`text`) | follows (`title`) |
+|---|---|---|
+| confirmed | the door — `Open` | its age — `2m` |
+| not vouched for | the age — `6h ago` | the door — `Open` |
+| nothing known | `No data` | — |
+
+Demoting the door when it cannot be vouched for looks like it contradicts
+`aKnownDoorIsStillNamedWhenTheVerdictIsSpoken` — never throw away the last
+thing we know. It does not: the door word is still there, in the title. What
+changes is which of the two survives on a face that shows only one, and
+**many faces render `text` alone**. On those, `Open` by itself is an
+unqualified claim about a door last heard from six hours ago; `6h ago` is the
+true statement.
+
+### It refuses the slots it could not be honest in
+
+`SUPPORTED_TYPES` is **only** `SHORT_TEXT` and `LONG_TEXT`. Icon-only and
+ranged-value slots are declined on purpose: they have nowhere to state the
+reading's age, so a door glyph there would look identical whether we heard a
+minute ago or last Tuesday — exactly the lie the rest of this work removes.
+Garage simply is not offered for those slots.
+`GarageDoorComplicationSafetyTest.onlyTypesThatCanStateAnAgeAreAdvertised`
+reads the manifest and pins it.
+
+### Seven characters is enforced, not hoped for
+
+`ShortTextComplicationData.MAX_TEXT_LENGTH` is 7, and past it a watch face may
+truncate. A truncated door state is worse than a shorter word chosen on
+purpose — `Sensor…` says less than `Sensors`. So the complication has its own
+vocabulary (ADR-035 puts that call on the platform; the shared layer already
+decided WHICH state applies), and `GarageComplicationLengthTest` reads the
+real `strings.xml` and substitutes the worst-case number into every format
+string: minutes cap at 59 and hours at 23 by the shared mapper's own
+bucketing, and days are capped at 99 by `GarageComplicationWords` precisely so
+`99d ago` still fits. Anything that would overflow — an unknown age, or a
+reading older than that — falls back to `Stale`, which says the same thing and
+always fits. Verified red-then-green by lengthening a string.
+
+### Unlike the tile, it waits for the network
+
+A tile render is user-initiated: somebody swiped to it and is watching, so it
+answers from cache instantly and corrects itself after. **Nobody is waiting on
+a complication.** It is redrawn on the system's schedule, and answering from a
+cache that nothing ever refreshes would mean a face reading `6h ago` forever.
+The platform allows around twenty seconds; the service spends a bounded slice
+of that (8s) asking for something current, then presents whatever it has
+either way. A timeout is not an error worth reporting — the reading we already
+have, shown with its true age, is the honest outcome regardless.
+
+`UPDATE_PERIOD_SECONDS` is **600**, chosen to sit under
+`CheckInStatusMapper.STALE_THRESHOLD_SECONDS` (660) so a healthy garage never
+reads as stale merely because we did not ask in time. The platform treats it
+as a request, not a promise.
+
+### Read-only, and more firmly than the tile
+
+Tapping opens the app. There is no route to the garage button, and the reason
+is stronger here than on the tile: a complication sits on the watch face, the
+surface a sleeve meets all day, and a complication tap is a single tap — the
+press-and-hold that guards the button everywhere else could not be expressed
+even if we wanted it.
+
+### What one shared reader serves both surfaces
+
+`WearGlanceStatus` holds what the tile and the complication both need: the
+current verdict, and a way to ask for a newer one. `lastRefreshFailed` lives
+there because "we could not reach the server" is a fact about the process, not
+about one surface.
+
+What is deliberately **not** there is per-surface memory. The tile tracks the
+event it last drew so it can decide whether a re-render is worth spending; if
+that lived on the shared object the two surfaces would clobber each other's
+idea of what was on screen, and whichever refreshed second would conclude
+nothing had changed.
+
+### What is verified, and what cannot be
+
+Everything the app owns is tested on the JVM — the emphasis rule, the
+vocabulary, the seven-character budget against the real strings, the advertised
+types, the absence of a route to the button. On the emulator, the system's own
+service registry confirms the provider is bound
+(`enabled=true`, `BIND_COMPLICATION_PROVIDER`), which is what would otherwise
+silently keep it out of the picker.
+
+**The drawing is not verified, and deliberately so.** Unlike the tile — where
+we own the whole layout, and where an emulator render caught a blank one — a
+complication's appearance belongs entirely to the watch face. There is nothing
+of ours to screenshot, and every face renders it differently, so a reference
+image would pin one face's opinion rather than our behaviour.
+
 ## What the watch remembers (0.7.0)
 
 The watch persists exactly one thing: **the last door event it could put a
@@ -1458,10 +1564,8 @@ captured from a real Wear emulator by a single script.
    tile is deliberately READ-ONLY, not the "door + one-shot arm" this line
    used to propose: a tile cannot express the press-and-hold that guards the
    button, and it is the easiest surface in the system to touch by accident.
-   **Still open: a complication** (OPEN/CLOSED on the watch face itself). The
-   shared `GlanceStatus` already decides everything it would need; what is
-   left is the platform half plus a decision about what fits in a few
-   characters. A generated tile-picker preview image is the other follow-up.
+   ~~**Still open: a complication**~~ — **done in 0.8.1**, see § "The
+   complication". A generated tile-picker preview image remains the follow-up.
 5. **Ambient / always-on handling** beyond the default (currently the
    activity simply stops polling when hidden).
 6. ~~**Check-in staleness on the watch**~~ — **done in 0.7.0**, see § "What

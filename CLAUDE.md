@@ -835,6 +835,54 @@ Load-bearing details, each of which cost something to get right:
 
 **That race is joined, not just cancelled — `grace.cancelAndJoin()`, never `grace.cancel()`.** `cancel()` is asynchronous and `send` on that channel can take a non-suspending fast path, so a grace coroutine already resumed from its delay could still emit `null` *after* the real answer. `applicationScope` is `Dispatchers.IO`, genuinely multi-threaded, so the two really do race, and that ordering puts a Sign in button over a signed-in account until the next poll 15 s later — the exact bug the rewrite removed. Deliberately untested: `runTest`'s virtual clock serializes the two coroutines, so a test here would pass either way and read as coverage it isn't.
 
+### The Wear complication (no pixels of our own)
+
+The door on the watch face — `GarageDoorComplicationService`, reading the same
+`GlanceStatus` the tile does through the shared `WearGlanceStatus`.
+
+- **A complication CANNOT be muted, and that inverts the rule.** The watch face
+  owns these pixels and picks the colours, so `DataFreshness.isMuted` — the
+  grey-and-dim treatment every other surface leans on — has nowhere to land.
+  Doubt lives in the words or nowhere. Hence: **confirmed → the door leads
+  (`Open`, title `2m`); not vouched for → the AGE leads (`6h ago`, title
+  `Open`).** This does not violate `aKnownDoorIsStillNamedWhenTheVerdictIsSpoken`
+  — the door is still in the title — but **many faces render `text` alone**,
+  and there `Open` would be an unqualified claim about a six-hour-old reading.
+- **SUPPORTED_TYPES is deliberately only `SHORT_TEXT,LONG_TEXT`.** Icon-only
+  and ranged-value slots have nowhere to state the age, so a door glyph there
+  looks identical whether we heard a minute ago or last week. Declining them is
+  the honest answer; `onlyTypesThatCanStateAnAgeAreAdvertised` reads the
+  manifest and pins it.
+- **Seven characters is a hard budget** (`ShortTextComplicationData.MAX_TEXT_LENGTH`),
+  enforced by `GarageComplicationLengthTest` against the REAL `strings.xml`
+  with worst-case numbers substituted (minutes ≤ 59 and hours ≤ 23 from the
+  shared bucketing; days capped at 99 by `GarageComplicationWords` so `99d ago`
+  still fits). Overflow falls back to `Stale`. The complication has its OWN
+  vocabulary — "Sensor conflict" does not fit, and a deliberate short word beats
+  an ellipsised one.
+- **It waits for the network; the tile does not.** A tile render is
+  user-initiated, so it answers from cache and corrects itself. Nobody waits on
+  a complication, and a cache nothing refreshes would read `6h ago` forever — so
+  the service spends a bounded 8s of the platform's ~20s budget asking for
+  something current, then presents what it has either way.
+  `UPDATE_PERIOD_SECONDS = 600` is chosen to sit UNDER
+  `CheckInStatusMapper.STALE_THRESHOLD_SECONDS` (660), so a healthy garage never
+  reads stale merely because we did not ask in time.
+- **Read-only, more firmly than the tile.** It sits on the watch face, the
+  surface a sleeve meets all day, and a complication tap is a single tap — the
+  press-and-hold guard could not be expressed even if wanted.
+- **`WearGlanceStatus` holds what both surfaces share; per-surface memory stays
+  on the surface.** `lastRefreshFailed` is process-wide and belongs there. The
+  tile's "what did I last draw" does NOT: shared, the two surfaces would clobber
+  each other and whichever refreshed second would conclude nothing had changed.
+- **The drawing is deliberately NOT screenshot-tested.** Unlike the tile, where
+  we own the layout and an emulator render caught a blank one, a complication's
+  appearance belongs entirely to the watch face — there is nothing of ours to
+  capture, and a reference image would pin one face's opinion. What IS checked
+  on the emulator is that the system registered the provider
+  (`adb shell cmd package query-services -a android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST`),
+  since a manifest typo would otherwise keep it silently out of the picker.
+
 ### The Wear tile (a glance is not a screen)
 
 The door is a **tile** — swipe right from the watch face —

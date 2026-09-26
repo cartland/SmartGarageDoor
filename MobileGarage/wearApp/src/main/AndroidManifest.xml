@@ -86,6 +86,41 @@
                  now captures it). Wiring that PNG in is the follow-up. -->
         </service>
 
+        <!-- The garage door as a watch-face complication.
+
+             READ-ONLY, like the tile, and for a stronger reason: this sits on
+             the watch face itself, the surface a wrist brushes all day.
+             Tapping it opens MainActivity.
+
+             SUPPORTED_TYPES is deliberately only the two that have room to say
+             how OLD the reading is. An icon-only or ranged-value slot would
+             show the door with no way to date it, which looks identical
+             whether we heard a minute ago or last week — the exact lie the
+             rest of this app exists to remove. Garage simply will not be
+             offered for those slots.
+
+             UPDATE_PERIOD_SECONDS is 600, chosen to sit under
+             CheckInStatusMapper.STALE_THRESHOLD_SECONDS (660) so a healthy
+             garage never reads as stale merely because we did not ask in
+             time. The platform treats it as a request, not a promise. -->
+        <service
+            android:name=".complication.GarageDoorComplicationService"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/complication_label"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="SHORT_TEXT,LONG_TEXT" />
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="600" />
+        </service>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

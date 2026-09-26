@@ -14,6 +14,27 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.8.1
+
+- **The garage door can now go on the watch face itself.** Add "Garage door"
+  as a complication and the door is there without a swipe: what it is doing,
+  and how old that reading is.
+
+  A complication is rendered by your watch face, in your watch face's colours,
+  so the grey-and-dim treatment the app and the tile use is not available
+  here. The words carry it instead. When the reading is current the door leads
+  and the age follows ("Open", "2m"); when it cannot be vouched for they swap,
+  so the face reads "6h ago" with the door beside it. Many faces show only the
+  first line, and on those "Open" on its own would be a claim we cannot stand
+  behind.
+
+  It is offered only for the text slots. Icon-only and dial slots have nowhere
+  to say how old the reading is, and a door symbol that looks the same after a
+  minute and after a week is the one thing these surfaces must not do.
+
+- Like the tile, it is read-only: tapping opens the app, and the door can only
+  be moved from there.
+
 ## 0.8.0
 
 - **The garage door is now a tile.** Swipe right from the watch face to see
