@@ -637,10 +637,6 @@ sections:
             label: Closed
             images:
               wear: ${wear}/wear-closed.png
-          - id: armed
-            label: Armed
-            images:
-              wear: ${wear}/wear-armed.png
           - id: holding
             label: Holding
             images:
@@ -653,6 +649,48 @@ sections:
             label: Open
             images:
               wear: ${wear}/wear-open.png
+
+      - id: wear-freshness
+        title: Freshness
+        height: 190
+        note: >-
+          Review as a PAIR. Same dial, same art; the only thing that escalates
+          is the word. A regression that makes the muted look appear or
+          disappear between them is the thing to catch.
+        items:
+          - id: connecting
+            label: Arriving
+            images:
+              wear: ${wear}/wear-connecting.png
+          - id: no-signal
+            label: No signal
+            images:
+              wear: ${wear}/wear-no_signal.png
+
+      - id: wear-tile
+        title: Tile
+        height: 190
+        note: >-
+          The tile, swipe right from the watch face. Read-only. tile_open vs
+          tile_stale is one door with one muted; tile_closed vs tile_no_signal
+          is something known vs nothing known.
+        items:
+          - id: tile-closed
+            label: Closed
+            images:
+              wear: ${wear}/wear-tile_closed.png
+          - id: tile-open
+            label: Open
+            images:
+              wear: ${wear}/wear-tile_open.png
+          - id: tile-stale
+            label: Not vouched for
+            images:
+              wear: ${wear}/wear-tile_stale.png
+          - id: tile-no-signal
+            label: No signal
+            images:
+              wear: ${wear}/wear-tile_no_signal.png
 
       - id: wear-signin
         title: Sign-in

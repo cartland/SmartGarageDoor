@@ -377,6 +377,18 @@ else
     fail "whatsnew length"
 fi
 
+step "UI gallery images resolve"
+# The gallery manifest is curated by hand; the images under it are generated,
+# so a renamed or retired capture leaves a dangling entry that nothing
+# notices (wear-armed.png survived a rename by months). Dependency-free on
+# purpose — generate-ui-gallery.py needs PyYAML, which is not installed on the
+# maintainer's machine.
+if "$REPO_ROOT/scripts/check-ui-gallery-images.sh"; then
+    pass "UI gallery images"
+else
+    fail "UI gallery images"
+fi
+
 step "Room schema drift check"
 # After compilation, Room KSP generates schema JSON files.
 # If they differ from what's committed, the schema changed without being tracked.
