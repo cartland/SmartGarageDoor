@@ -835,6 +835,44 @@ Load-bearing details, each of which cost something to get right:
 
 **That race is joined, not just cancelled — `grace.cancelAndJoin()`, never `grace.cancel()`.** `cancel()` is asynchronous and `send` on that channel can take a non-suspending fast path, so a grace coroutine already resumed from its delay could still emit `null` *after* the real answer. `applicationScope` is `Dispatchers.IO`, genuinely multi-threaded, so the two really do race, and that ordering puts a Sign in button over a signed-in account until the next poll 15 s later — the exact bug the rewrite removed. Deliberately untested: `runTest`'s virtual clock serializes the two coroutines, so a test here would pass either way and read as coverage it isn't.
 
+### A glance shows DURATION IN STATE, rendered by the platform (0.9.1)
+
+The Wear tile and complication used to print how long ago the garage last
+checked in. Wrong twice over, and caught in use by the maintainer:
+
+- **It described our plumbing, not the door.** "Open for 8 min" is a fact about
+  the garage; "checked 8 min ago" is a fact about our network calls.
+- **It went out of date in the display.** These surfaces redraw on the system's
+  schedule — up to ten minutes for a complication — so a duration computed at
+  build time drifts silently. "8m" read eighteen minutes later is a confident
+  wrong statement about exactly what the reader is judging. The same failure
+  the settle window exists to prevent, reintroduced by the fix for it.
+
+**Rule: a glance surface must never print a number it cannot keep current.**
+Neither surface formats a duration now; both hand out the INSTANT the door
+changed and let the renderer count — complication via
+`TimeDifferenceComplicationText` + `CountUpTimeReference`, tile via
+`DynamicInstant.platformTimeWithSecondsPrecision()`. The tile picks its unit by
+dynamic condition so it crosses the hour boundary by itself.
+
+- **`Liveness` is TWO states, deliberately** (`:presentation-model`). It answers
+  "does the watch still match the server", and a rarely-redrawn surface has no
+  business quoting a figure about its own currency. `LIVE` = garage reported
+  within the staleness threshold AND the last fetch succeeded.
+- **A reading we cannot vouch for gets NO duration** — not one with a warning.
+  A duration asserts the door has been that way CONTINUOUSLY, and a door we
+  have lost contact with may have moved twice since. The liveness word replaces
+  it.
+- **Dynamic values need a width constraint, and anything wider is TRUNCATED.**
+  `"88 days"` rendered a two-year-old door as `"778 d…"`. Reachable in
+  production: liveness is about the CHECK-IN, not the door, so a door can sit
+  closed for years while the garage reports in every minute.
+- **A fixture for a dynamic duration must anchor RELATIVE TO NOW.** The
+  renderer measures against the device clock, so a fixed epoch renders the
+  distance from that epoch to today. This is also why `tile_open`/`tile_closed`
+  churn by a minute between regens — that churn is the evidence the duration is
+  live.
+
 ### The Wear complication (no pixels of our own)
 
 The door on the watch face — `GarageDoorComplicationService`, reading the same

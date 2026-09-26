@@ -22,6 +22,8 @@ import android.content.Context
 import androidx.wear.protolayout.ActionBuilders
 import androidx.wear.protolayout.DimensionBuilders.expand
 import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement
+import androidx.wear.protolayout.expression.DynamicBuilders.DynamicInstant
+import androidx.wear.protolayout.expression.DynamicBuilders.DynamicString
 import androidx.wear.protolayout.material3.CardColors
 import androidx.wear.protolayout.material3.MaterialScope
 import androidx.wear.protolayout.material3.Typography
@@ -32,10 +34,14 @@ import androidx.wear.protolayout.modifiers.LayoutModifier
 import androidx.wear.protolayout.modifiers.clickable
 import androidx.wear.protolayout.modifiers.contentDescription
 import androidx.wear.protolayout.types.argb
+import androidx.wear.protolayout.types.asLayoutConstraint
+import androidx.wear.protolayout.types.asLayoutString
 import androidx.wear.protolayout.types.layoutString
 import com.chriscartland.garage.presentation.GlanceStatus
+import com.chriscartland.garage.presentation.Liveness
 import com.chriscartland.garage.wear.MainActivity
 import com.chriscartland.garage.wear.R
+import java.time.Instant
 
 /**
  * Draws a [GlanceStatus] as a tile.
@@ -71,7 +77,7 @@ internal object GarageDoorTileLayout {
                     )
                 },
                 mainSlot = { doorBlock(context, status) },
-                bottomSlot = ageSlot(context, status),
+                bottomSlot = durationSlot(context, status),
                 // The whole tile opens the app, and that is the ONLY action on
                 // it — see GarageDoorTileService for why a tile is the wrong
                 // surface to put the garage button on. The card carries the
@@ -121,20 +127,82 @@ internal object GarageDoorTileLayout {
         )
 
     /**
-     * The "… ago" line, or nothing at all.
+     * The line under the door: how long it has been that way, or why we
+     * cannot say.
+     *
+     * **When we can vouch for the reading, the number is produced by the
+     * RENDERER, not by us.** `DynamicInstant.platformTimeWithSecondsPrecision()`
+     * gives the renderer's own clock, and the difference from the instant the
+     * door changed keeps counting between tile refreshes. A tile is redrawn on
+     * the system's schedule, so a duration we formatted and froze would be
+     * silently wrong by however long it had been sitting there — which is the
+     * whole reason the old "checked 8 min ago" line had to go.
+     *
+     * **When we cannot, there is no duration at all**, by design: the shared
+     * mapper withholds the instant, because a duration asserts the door has
+     * been this way continuously and a door we have lost contact with may have
+     * moved twice since. The line says [R.string.tile_not_confirmed] instead —
+     * a word, not a measurement, so it cannot drift.
      *
      * Returning null rather than an empty string matters: `primaryLayout`
      * gives the main slot the bottom slot's space when there is no bottom
-     * slot, so the door block grows into it instead of leaving a gap where a
-     * line would have been.
+     * slot, so the door block grows into it instead of leaving a gap.
      */
-    private fun ageSlot(
+    private fun durationSlot(
         context: Context,
         status: GlanceStatus,
     ): (MaterialScope.() -> LayoutElement)? {
-        val age = GarageTileWords.ageLine(status.age) ?: return null
-        val words = age.quantity?.let { context.getString(age.resId, it) } ?: context.getString(age.resId)
-        return { text(words.layoutString, typography = Typography.BODY_SMALL) }
+        if (status.liveness == Liveness.STALE) {
+            return {
+                text(
+                    context.getString(R.string.tile_not_confirmed).layoutString,
+                    typography = Typography.BODY_SMALL,
+                )
+            }
+        }
+        val since = status.stateSinceEpochSeconds ?: return null
+        val running = durationInState(context, since)
+        return { text(running, typography = Typography.BODY_SMALL) }
+    }
+
+    /**
+     * "8 min" / "3 hr" / "2 days", counted by the renderer from [since].
+     *
+     * The unit is chosen with a dynamic condition rather than at build time,
+     * so a tile left on screen across the hour boundary switches from minutes
+     * to hours by itself instead of showing "60 min", "61 min"...
+     *
+     * The static fallback passed alongside is what a renderer too old for
+     * dynamic values shows. It is the value at BUILD time — frozen, and
+     * therefore exactly the thing this method exists to avoid — so it is
+     * deliberately the coarsest honest form rather than a precise-looking one.
+     */
+    private fun durationInState(
+        context: Context,
+        since: Long,
+    ): androidx.wear.protolayout.types.LayoutString {
+        val elapsed = DynamicInstant
+            .withSecondsPrecision(Instant.ofEpochSecond(since))
+            .durationUntil(DynamicInstant.platformTimeWithSecondsPrecision())
+
+        val minutes = DynamicString.constant(context.getString(R.string.tile_duration_minutes, ""))
+        val hours = DynamicString.constant(context.getString(R.string.tile_duration_hours, ""))
+        val days = DynamicString.constant(context.getString(R.string.tile_duration_days, ""))
+
+        val dynamic = DynamicString
+            .onCondition(elapsed.toIntHours().lt(1))
+            .use(elapsed.toIntMinutes().format().concat(minutes))
+            .elseUse(
+                DynamicString
+                    .onCondition(elapsed.toIntDays().lt(1))
+                    .use(elapsed.toIntHours().format().concat(hours))
+                    .elseUse(elapsed.toIntDays().format().concat(days)),
+            )
+
+        return dynamic.asLayoutString(
+            staticValue = context.getString(R.string.tile_not_confirmed),
+            layoutConstraint = DURATION_WIDTH_CONSTRAINT,
+        )
     }
 
     /**
@@ -142,13 +210,28 @@ internal object GarageDoorTileLayout {
      *
      * `TITLE_LARGE`, not one of the `DISPLAY_*` tokens: on the emulator a
      * `DISPLAY_SMALL` text inside this card rendered as NOTHING — no TextView
-     * in the hierarchy at all, no renderer warning — while `TITLE_SMALL` and
+     * in the hierarchy, no renderer warning — while `TITLE_SMALL` and
      * `BODY_SMALL` text in the surrounding slots rendered fine. The door word
      * is the one thing on this tile that must never be missing, so it uses a
      * token proven to draw here rather than the one the type scale would
      * nominate for a headline.
      */
     private const val DOOR_WORD_TYPOGRAPHY = Typography.TITLE_LARGE
+
+    /**
+     * Widest string the duration line can become, for layout sizing.
+     *
+     * A dynamic value has no width until it is evaluated, so the renderer
+     * needs to be told what to reserve, and anything wider is TRUNCATED. The
+     * first version reserved "88 days" and a door that had not moved in two
+     * years rendered as "778 d…".
+     *
+     * A door can legitimately sit closed for years while the garage keeps
+     * reporting in — liveness is about the check-in, not the door — so the
+     * day count is genuinely unbounded in a way minutes and hours are not.
+     * Four digits covers any plausible installation.
+     */
+    private val DURATION_WIDTH_CONSTRAINT = "8888 days".asLayoutConstraint()
 
     /** Opens the app on the door screen. The tile's only action. */
     private fun openTheApp(context: Context) =

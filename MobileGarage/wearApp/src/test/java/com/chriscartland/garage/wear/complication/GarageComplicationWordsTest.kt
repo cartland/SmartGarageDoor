@@ -18,14 +18,11 @@
 package com.chriscartland.garage.wear.complication
 
 import com.chriscartland.garage.domain.model.DoorPosition
-import com.chriscartland.garage.presentation.CheckInAge
-import com.chriscartland.garage.presentation.CheckInStatus
 import com.chriscartland.garage.presentation.CheckInStatusMapper
 import com.chriscartland.garage.presentation.DoorHeadlineMapper
 import com.chriscartland.garage.presentation.GlanceStatusMapper
 import com.chriscartland.garage.presentation.StatusHeadline
-import com.chriscartland.garage.wear.R
-import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -34,17 +31,20 @@ import org.junit.Test
 /**
  * The complication's words. Resource ids, so none of this needs a `Context`.
  *
- * The seven-character budget is checked separately in
- * [GarageComplicationLengthTest], which reads the real strings.
+ * Note what is NOT tested here any more: there are no age-formatting cases,
+ * because the complication no longer formats a number at all. The one figure
+ * it shows is a `TimeDifferenceComplicationText` rendered by the watch face.
  */
 class GarageComplicationWordsTest {
     private fun glance(
         doorPosition: DoorPosition? = DoorPosition.OPEN,
         lastCheckInEpochSeconds: Long? = NOW - 120,
+        lastChangeEpochSeconds: Long? = NOW - 480,
         isFetchError: Boolean = false,
     ) = GlanceStatusMapper.forGlance(
         doorPosition = doorPosition,
         lastCheckInEpochSeconds = lastCheckInEpochSeconds,
+        lastChangeEpochSeconds = lastChangeEpochSeconds,
         nowEpochSeconds = NOW,
         isFetchError = isFetchError,
     )
@@ -69,103 +69,55 @@ class GarageComplicationWordsTest {
 
     @Test
     fun aConfirmedDoorLeadsWithTheDoor() {
-        // The ordinary case: the door is what you want to read, and the age
-        // is the small print confirming it.
-        assertTrue(!GarageComplicationWords.ageLeads(glance()))
+        // The ordinary case: the door is what you want to read, and the
+        // running duration beside it is the proof that it is current.
+        assertFalse(GarageComplicationWords.staleLeads(glance()))
     }
 
     @Test
-    fun aReadingWeCannotVouchForLeadsWithTheAge() {
-        // THE decision of this file. A complication cannot be greyed — the
-        // watch face owns the colours — so the only place doubt can live is
-        // the words. Many faces render the main text alone, and on those
-        // "Open" would be an unqualified claim about a six-hour-old reading.
+    fun aReadingWeCannotVouchForLeadsWithTheWordStale() {
+        // A complication cannot be greyed — the watch face owns the colours —
+        // so the only place doubt can live is the words. Many faces render
+        // the main text alone, and there "Open" would be an unqualified claim
+        // about a door we have lost contact with.
         val stale = glance(lastCheckInEpochSeconds = NOW - CheckInStatusMapper.STALE_THRESHOLD_SECONDS - 1)
-        assertTrue(GarageComplicationWords.ageLeads(stale))
+        assertTrue(GarageComplicationWords.staleLeads(stale))
     }
 
     @Test
-    fun aFailedRefreshAlsoDemotesTheDoor() {
-        // The other way to lose confidence: the garage is reporting fine, but
-        // we could not reach the server to confirm it is still the newest.
-        assertTrue(GarageComplicationWords.ageLeads(glance(isFetchError = true)))
+    fun aFailedRefreshAlsoLeadsWithStale() {
+        assertTrue(GarageComplicationWords.staleLeads(glance(isFetchError = true)))
     }
 
     @Test
     fun theEmphasisRuleCanActuallyGoBothWays() {
-        // Positive control: an `ageLeads` stuck on one answer would satisfy
+        // Positive control: a `staleLeads` stuck on one answer would satisfy
         // every test above or every test below, and the complication would be
         // permanently wrong in one direction.
         assertNotEquals(
-            GarageComplicationWords.ageLeads(glance()),
-            GarageComplicationWords.ageLeads(glance(isFetchError = true)),
+            GarageComplicationWords.staleLeads(glance()),
+            GarageComplicationWords.staleLeads(glance(isFetchError = true)),
         )
     }
 
     @Test
-    fun anUnstatableAgeFallsBackRatherThanGuessing() {
-        // No timestamp at all, and a reading so old the number would overflow
-        // seven characters. Both say "Stale", which is true and always fits.
-        assertEquals(R.string.complication_stale, GarageComplicationWords.leadingAge(CheckInStatus.NoData).resId)
-        assertEquals(
-            R.string.complication_stale,
-            GarageComplicationWords
-                .leadingAge(
-                    CheckInStatus.Reported(CheckInAge.Days(1_000), isStale = true),
-                ).resId,
-        )
+    fun aStaleReadingHasNoInstantToCountFrom() {
+        // The service asks the shared status for the instant; when it is
+        // withheld there is nothing to hand the watch face, which is what
+        // stops a running duration appearing beside a door we cannot vouch
+        // for. Asserted here because it is the precondition `staleLeads`
+        // depends on.
+        val stale = glance(lastCheckInEpochSeconds = NOW - CheckInStatusMapper.STALE_THRESHOLD_SECONDS - 1)
+        assertNull(stale.stateSinceEpochSeconds)
     }
 
     @Test
-    fun aRecentButUnconfirmedReadingSaysStaleRatherThanNow() {
-        // Reachable when a fetch fails seconds after a good reading. Leading
-        // with "now" would be the most misleading thing on offer: the reading
-        // is recent, but we could not confirm it is still true.
-        assertEquals(
-            R.string.complication_stale,
-            GarageComplicationWords.leadingAge(CheckInStatus.Reported(CheckInAge.JustNow, isStale = false)).resId,
-        )
-    }
-
-    @Test
-    fun ninetyNineDaysStillFitsButAHundredDoesNot() {
-        // The boundary the fallback is drawn at.
-        assertEquals(
-            R.string.complication_age_days_ago,
-            GarageComplicationWords.leadingAge(CheckInStatus.Reported(CheckInAge.Days(99), isStale = true)).resId,
-        )
-        assertEquals(
-            R.string.complication_stale,
-            GarageComplicationWords.leadingAge(CheckInStatus.Reported(CheckInAge.Days(100), isStale = true)).resId,
-        )
-    }
-
-    @Test
-    fun anAbsentAgeMeansNoTitleRatherThanAGuess() {
-        // The title is simply omitted. Inventing "now" would be guessing
-        // about exactly the thing this surface exists to be honest about.
-        assertNull(GarageComplicationWords.shortAge(CheckInStatus.NoData))
-        assertNull(GarageComplicationWords.longAge(CheckInStatus.NoData))
-    }
-
-    @Test
-    fun theLongFormReusesTheTileWording() {
-        // Both glance surfaces describe the same age the same way. Asserting
-        // the resource identity keeps that true through a rename.
-        assertEquals(
-            R.string.glance_age_hours,
-            GarageComplicationWords.longAge(CheckInStatus.Reported(CheckInAge.Hours(6, 0), isStale = true))?.resId,
-        )
-    }
-
-    @Test
-    fun eachShortAgeBucketGetsItsOwnWording() {
-        val ids = listOf(
-            CheckInAge.Minutes(5, 0),
-            CheckInAge.Hours(6, 0),
-            CheckInAge.Days(3),
-        ).mapNotNull { GarageComplicationWords.shortAge(CheckInStatus.Reported(it, isStale = false))?.resId }
-        assertEquals("minutes, hours and days must not share wording", 3, ids.toSet().size)
+    fun aLiveReadingCountsFromWhenTheDoorChanged() {
+        // Not from when we last checked. Those differ here by design: the
+        // check-in is two minutes old, the door changed eight minutes ago,
+        // and eight is the number worth showing.
+        assertNotEquals(null, glance().stateSinceEpochSeconds)
+        assertNotEquals(NOW - 120, glance().stateSinceEpochSeconds)
     }
 
     private companion object {

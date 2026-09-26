@@ -1187,6 +1187,74 @@ use — `tile_open` vs `tile_stale` is the same door with one muted, and
   complication lives ON the watch face, so it is more glanceable still but has
   room for only a few characters and no age line.
 
+## What the glance surfaces show, and why it is not an age (0.9.1)
+
+Both glance surfaces used to print **how long ago the garage last checked in**.
+That was the wrong number twice over, and the maintainer caught it in use.
+
+**It described our plumbing, not the door.** "We checked 8 minutes ago" is a
+fact about the app's network calls. "Open for 8 minutes" is a fact about the
+garage. Only one of those is what someone glancing at a watch wants.
+
+**It went out of date in the display.** A complication is redrawn on the
+system's schedule — as rarely as every ten minutes — so a duration computed
+when the surface was built drifts silently between refreshes. "8m" read
+eighteen minutes later is a specific, confident, wrong statement about exactly
+the thing the reader is trying to judge. This is the same failure the settle
+window exists to prevent, reintroduced by the surface that was meant to fix it.
+
+### The number is now rendered by the platform
+
+Neither surface formats a duration any more. Both hand out the INSTANT the
+door changed and let the renderer count:
+
+| surface | mechanism |
+|---|---|
+| complication | `TimeDifferenceComplicationText` + `CountUpTimeReference` — the watch face renders it |
+| tile | `DynamicInstant.platformTimeWithSecondsPrecision()` — the tile renderer keeps counting between refreshes |
+| door screen | already live; its poll loop ticks every 10s while visible |
+
+The tile's unit switches by dynamic condition rather than at build time, so a
+tile left on screen across the hour boundary goes from minutes to hours by
+itself instead of showing "60 min", "61 min".
+
+### Liveness is a word, not a measurement
+
+`Liveness` (`:presentation-model`) is deliberately TWO states. The question it
+answers is the maintainer's actual concern — *does what the watch shows still
+match what the server sees* — and a surface that redraws rarely has no business
+quoting a precise figure about its own currency. `LIVE` can only be wrong by
+the width of one update; `STALE` is not a measurement at all.
+
+`LIVE` means both halves hold: the garage reported within
+`CheckInStatusMapper.STALE_THRESHOLD_SECONDS`, AND our last fetch succeeded.
+
+### A reading we cannot vouch for gets NO duration
+
+Not a duration with a warning beside it — none at all. The shared mapper
+withholds the instant, because **a duration asserts the door has been that way
+continuously**, and a door we have lost contact with may have moved twice
+since. The surfaces show the liveness word in its place.
+
+### What the emulator caught that the tests could not
+
+Two things, both invisible to the JVM because both live in what the *renderer*
+does with a dynamic value:
+
+- The first capture rendered **"778 d…"**. The fixture anchored to a fixed
+  epoch while the renderer measured against the device clock — which is a
+  fixture bug that exists only *because* the number is genuinely produced at
+  read time. Fixtures now anchor relative to real now.
+- **The width constraint truncated it.** A dynamic value has no width until
+  evaluated, so the renderer reserves whatever is declared and cuts the rest.
+  `"88 days"` was not enough — and this is reachable in production, because
+  liveness is about the CHECK-IN, not the door: a door can sit closed for
+  years while the garage reports in every minute.
+
+`tile_closed` and `tile_open` are consequently non-deterministic by a minute
+between regens, like the mid-travel stages. That churn is the evidence the
+duration is live rather than frozen.
+
 ## The complication (0.9.0)
 
 The door on the watch face itself: no swipe, no tap. Also the least forgiving

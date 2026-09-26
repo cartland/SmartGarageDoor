@@ -66,11 +66,17 @@
          units ("min", "hr") do not inflect — so a plain format string says
          the same thing in less space on a screen that has very little. -->
     <string name="tile_title">Garage</string>
-    <string name="glance_age_just_now">Just now</string>
-    <string name="glance_age_seconds">%1$d sec ago</string>
-    <string name="glance_age_minutes">%1$d min ago</string>
-    <string name="glance_age_hours">%1$d hr ago</string>
-    <string name="glance_age_days">%1$d days ago</string>
+    <!-- How long the door has been in its state. The number is produced by
+         the RENDERER from a platform time source, so it keeps counting
+         between tile refreshes instead of freezing at whatever it was when
+         the layout was built. -->
+    <string name="tile_duration_minutes">%1$s min</string>
+    <string name="tile_duration_hours">%1$s hr</string>
+    <string name="tile_duration_days">%1$s days</string>
+    <!-- Liveness, as a word rather than a measurement: two states cannot
+         drift the way a figure can. Shown only when we CANNOT vouch for the
+         reading — when we can, the running duration is itself the proof. -->
+    <string name="tile_not_confirmed">Not confirmed</string>
     <!-- Shown in the watch's tile picker, under the app name. -->
     <string name="tile_description">Garage door status</string>
 
@@ -100,20 +106,24 @@
          the same thing and always fits. -->
     <string name="complication_stale">Stale</string>
 
-    <!-- Age as a TITLE, beside a door we can vouch for. -->
-    <string name="complication_age_now">now</string>
-    <string name="complication_age_minutes_short">%1$dm</string>
-    <string name="complication_age_hours_short">%1$dh</string>
-    <string name="complication_age_days_short">%1$dd</string>
+    <!-- NO AGE STRINGS HERE, deliberately. The one number worth showing is
+         how long the door has been in its state, and it is rendered by the
+         WATCH FACE (TimeDifferenceComplicationText) so it is correct whenever
+         it is read. A complication redraws as rarely as every ten minutes; a
+         duration we formatted and froze would be silently wrong by up to that
+         much. We also no longer show the check-in age at all: it describes
+         our plumbing rather than the garage, and it was the figure most
+         guaranteed to be out of date. -->
 
-    <!-- Age as the LEADING text, for a door we cannot. "59m ago" and
-         "23h ago" are seven characters exactly, which is what bounds them. -->
-    <string name="complication_age_minutes_ago">%1$dm ago</string>
-    <string name="complication_age_hours_ago">%1$dh ago</string>
-    <string name="complication_age_days_ago">%1$dd ago</string>
-
-    <!-- Long-text slots have room for both at once, so nothing is demoted. -->
+    <!-- Long-text slots have room for the door and its duration together.
+         %2$s is where the running duration lands. -->
     <string name="complication_long_text">%1$s, %2$s</string>
+    <!-- Long-text when the reading cannot be vouched for: no duration, since
+         a door we have lost contact with may have moved twice since. -->
+    <string name="complication_long_stale">%1$s, not confirmed</string>
+    <!-- Editor preview only, so a fixed string rather than a running one:
+         preview data is cached by the system and meant to be constant. -->
+    <string name="complication_preview_duration">8m</string>
 
     <!-- Auth. -->
     <string name="sign_in">Sign in</string>

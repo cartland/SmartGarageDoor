@@ -79,6 +79,11 @@ STAGES=(
     # it earns stages here. Review them as PAIRS: tile_open vs tile_stale is
     # the same door with one muted, and tile_closed vs tile_no_signal is
     # something known vs nothing known.
+    # tile_closed and tile_open show a DURATION the renderer computes from the
+    # platform clock, so their PNGs move by a minute between regens depending
+    # on capture latency. That churn is not a defect — it is the evidence the
+    # duration is live rather than frozen at build time. Same tolerance as the
+    # mid-travel stages above.
     tile_closed tile_open tile_stale tile_no_signal
 )
 # Post-foreground settle: lets the system splash ("Starting…") dissolve and

@@ -20,17 +20,20 @@ package com.chriscartland.garage.presentation
 import com.chriscartland.garage.domain.model.DoorPosition
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class GlanceStatusMapperTest {
     private fun glance(
         doorPosition: DoorPosition? = DoorPosition.OPEN,
         lastCheckInEpochSeconds: Long? = NOW - 30,
+        lastChangeEpochSeconds: Long? = NOW - 480,
         nowEpochSeconds: Long = NOW,
         isFetchError: Boolean = false,
     ) = GlanceStatusMapper.forGlance(
         doorPosition = doorPosition,
         lastCheckInEpochSeconds = lastCheckInEpochSeconds,
+        lastChangeEpochSeconds = lastChangeEpochSeconds,
         nowEpochSeconds = nowEpochSeconds,
         isFetchError = isFetchError,
     )
@@ -39,29 +42,48 @@ class GlanceStatusMapperTest {
     fun aRecentlyConfirmedDoorIsPresentedConfidently() {
         val status = glance()
         assertEquals(DataFreshness.FRESH, status.freshness)
+        assertEquals(Liveness.LIVE, status.liveness)
         assertEquals(StatusHeadline.Door(DoorHeadline.OPEN), status.headline)
         assertTrue(!status.freshness.isMuted, "a confirmed door must not be muted")
     }
 
     @Test
-    fun aGarageThatStoppedReportingIsMutedAndSpoken() {
-        // The case a glance surface exists to get right: the app is not
-        // running, nothing has failed, and the stored position is simply too
-        // old to assert.
-        val status = glance(
-            lastCheckInEpochSeconds = NOW - CheckInStatusMapper.STALE_THRESHOLD_SECONDS - 1,
-        )
-        assertEquals(DataFreshness.STALE, status.freshness)
-        assertTrue(status.freshness.isMuted)
-        assertTrue(status.freshness.isSpoken)
+    fun theInstantOfferedIsWhenTheDOORChangedNotWhenWeLastChecked() {
+        // The whole point of the rework. "Open for 8 minutes" is a fact about
+        // the garage; "we checked 30 seconds ago" is a fact about our
+        // plumbing, and only one of them is worth a glance's one line.
+        val status = glance(lastCheckInEpochSeconds = NOW - 30, lastChangeEpochSeconds = NOW - 480)
+        assertEquals(NOW - 480, status.stateSinceEpochSeconds)
     }
 
     @Test
-    fun aKnownDoorIsStillNamedWhenTheVerdictIsSpoken() {
-        // Mirrors the screens' rule: going quiet must not throw away the last
-        // thing we actually know, at exactly the moment it matters most.
-        // Without this the tile would replace "Open" with "No signal" and the
-        // user would lose the one fact worth glancing for.
+    fun aGarageThatStoppedReportingIsStaleAndOffersNoDuration() {
+        // The case a glance surface exists to get right: nothing has failed,
+        // the stored position is simply too old to assert. A duration would
+        // claim the door has been that way CONTINUOUSLY, and a door we have
+        // lost contact with may have moved twice since — so it is withheld
+        // rather than shown alongside a warning.
+        val status = glance(
+            lastCheckInEpochSeconds = NOW - CheckInStatusMapper.STALE_THRESHOLD_SECONDS - 1,
+        )
+        assertEquals(Liveness.STALE, status.liveness)
+        assertEquals(DataFreshness.STALE, status.freshness)
+        assertNull(status.stateSinceEpochSeconds, "a door we cannot vouch for must not be given a duration")
+    }
+
+    @Test
+    fun aFailedRefreshAlsoWithholdsTheDuration() {
+        // The other way to lose confidence: the garage is reporting fine, but
+        // we could not reach the server to confirm it is still the newest.
+        val status = glance(isFetchError = true)
+        assertEquals(Liveness.STALE, status.liveness)
+        assertNull(status.stateSinceEpochSeconds)
+    }
+
+    @Test
+    fun aKnownDoorIsStillNamedWhenTheVerdictIsStale() {
+        // Losing the duration must not lose the door. Going quiet does not
+        // erase the last thing we actually know.
         val status = glance(
             doorPosition = DoorPosition.OPEN,
             lastCheckInEpochSeconds = NOW - CheckInStatusMapper.STALE_THRESHOLD_SECONDS - 1,
@@ -71,23 +93,20 @@ class GlanceStatusMapperTest {
 
     @Test
     fun anEmptyCacheEscalatesToNoSignal() {
-        // Nothing known AND nothing settling: a glance says so immediately
-        // rather than claiming to be connecting.
-        val status = glance(doorPosition = null, lastCheckInEpochSeconds = null)
+        val status = glance(doorPosition = null, lastCheckInEpochSeconds = null, lastChangeEpochSeconds = null)
         assertEquals(StatusHeadline.NoSignal, status.headline)
+        assertNull(status.stateSinceEpochSeconds)
     }
 
     @Test
     fun aGlanceNeverSaysConnecting() {
-        // The settle-window decision, asserted at the only place it is
-        // observable. `Connecting…` is what a SCREEN says while it is
-        // arriving and about to hear back; a tile is asked once and whatever
-        // it returns is what the user reads and swipes away from. If this
-        // ever fails, someone has threaded `isSettling` back in and the tile
-        // will render a grey door with no explanation.
+        // The settle-window decision, asserted where it is observable.
+        // `Connecting…` is what a SCREEN says while it is arriving and about
+        // to hear back; a glance is asked once and whatever it returns is
+        // what gets read and swiped away from.
         val everyInput = listOf(
-            glance(doorPosition = null, lastCheckInEpochSeconds = null),
-            glance(doorPosition = null, lastCheckInEpochSeconds = null, isFetchError = true),
+            glance(doorPosition = null, lastCheckInEpochSeconds = null, lastChangeEpochSeconds = null),
+            glance(doorPosition = null, lastCheckInEpochSeconds = null, lastChangeEpochSeconds = null, isFetchError = true),
             glance(doorPosition = DoorPosition.CLOSED),
             glance(doorPosition = DoorPosition.CLOSED, isFetchError = true),
             glance(lastCheckInEpochSeconds = NOW - CheckInStatusMapper.STALE_THRESHOLD_SECONDS - 1),
@@ -101,43 +120,25 @@ class GlanceStatusMapperTest {
     }
 
     @Test
-    fun aFailedRefreshMutesEvenWhenTheGarageIsReportingRecently() {
-        // The two staleness inputs are independent. Here the stored check-in
-        // is recent, but we could not reach the server to confirm it is still
-        // the newest — so the value on screen is remembered, not confirmed.
-        val status = glance(isFetchError = true)
-        assertEquals(DataFreshness.STALE, status.freshness)
-    }
-
-    @Test
-    fun theAgeIsCarriedSoTheSurfaceCanSayHowOld() {
-        // The reliability affordance: a glance that shows a position without
-        // its age is asking to be trusted on nothing.
-        val status = glance(lastCheckInEpochSeconds = NOW - 125)
-        assertEquals(CheckInStatus.Reported(CheckInAge.Minutes(minutes = 2, seconds = 5), isStale = false), status.age)
-    }
-
-    @Test
-    fun anUnknownCheckInTimeIsReportedAsNoDataRatherThanStale() {
-        // Unjudgeable, not old. The surface renders the position without an
-        // age line instead of implying the garage has gone quiet.
-        val status = glance(lastCheckInEpochSeconds = null)
-        assertEquals(CheckInStatus.NoData, status.age)
-        assertEquals(DataFreshness.FRESH, status.freshness)
+    fun livenessIsTwoStatesAndNothingElse() {
+        // Deliberately coarse. A glance redraws on the system's schedule, so
+        // any precise figure about its own currency has probably drifted by
+        // the time it is read; a two-state verdict can only be wrong by the
+        // width of one update.
+        assertEquals(2, Liveness.entries.size)
     }
 
     @Test
     fun theMapperCanActuallyReturnMoreThanOneVerdict() {
         // Positive control for the whole file. Every test above asserts an
         // equality, so a `forGlance` that collapsed to one constant would
-        // satisfy whichever tests happened to match it and the suite would go
-        // green with the tile permanently stuck. Proving two inputs produce
-        // two different verdicts AND two different headlines is what stops
-        // that.
+        // satisfy whichever tests matched it and the suite would go green
+        // with the surface permanently stuck.
         val confident = glance(doorPosition = DoorPosition.CLOSED)
-        val silent = glance(doorPosition = null, lastCheckInEpochSeconds = null)
+        val silent = glance(doorPosition = null, lastCheckInEpochSeconds = null, lastChangeEpochSeconds = null)
         assertTrue(confident.freshness != silent.freshness, "freshness never varies")
         assertTrue(confident.headline != silent.headline, "headline never varies")
+        assertTrue(confident.liveness != silent.liveness, "liveness never varies")
     }
 
     private companion object {

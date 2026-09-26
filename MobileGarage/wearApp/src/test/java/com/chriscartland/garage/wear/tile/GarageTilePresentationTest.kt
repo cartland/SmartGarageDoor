@@ -20,14 +20,11 @@ package com.chriscartland.garage.wear.tile
 import com.chriscartland.garage.domain.model.DoorColorState
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.GarageDoorPalette
-import com.chriscartland.garage.presentation.CheckInAge
-import com.chriscartland.garage.presentation.CheckInStatus
 import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.DoorHeadlineMapper
 import com.chriscartland.garage.presentation.StatusHeadline
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -64,37 +61,12 @@ class GarageTilePresentationTest {
         )
     }
 
-    @Test
-    fun anUndatableReadingGetsNoAgeLineAtAll() {
-        // The most misleading thing this tile could do is invent "Just now"
-        // for a reading it cannot date. Omitting the line is the honest
-        // answer; the layout then gives the space back to the door.
-        assertNull(GarageTileWords.ageLine(CheckInStatus.NoData))
-    }
-
-    @Test
-    fun eachAgeBucketGetsItsOwnLine() {
-        val lines = listOf(
-            CheckInAge.JustNow,
-            CheckInAge.Seconds(30),
-            CheckInAge.Minutes(minutes = 5, seconds = 0),
-            CheckInAge.Hours(hours = 6, minutes = 0),
-            CheckInAge.Days(3),
-        ).map { GarageTileWords.ageLine(CheckInStatus.Reported(it, isStale = false)) }
-
-        assertTrue("every bucket must produce a line", lines.all { it != null })
-        assertEquals(
-            "each bucket needs its own wording — sharing one would say \"min\" for hours",
-            lines.size,
-            lines.mapNotNull { it?.resId }.toSet().size,
-        )
-    }
-
-    @Test
-    fun theAgeLineCarriesTheNumberToShow() {
-        val line = GarageTileWords.ageLine(CheckInStatus.Reported(CheckInAge.Hours(hours = 6, minutes = 12), isStale = true))
-        assertEquals(6, line?.quantity)
-    }
+    // The age-line tests are gone with the age line. The tile no longer
+    // formats a duration at all: the number comes from the renderer's own
+    // clock (GarageDoorTileLayout.durationInState), so there is nothing here
+    // to assert about its wording. What replaced them is
+    // GlanceStatusMapperTest, which pins WHICH instant is offered and when it
+    // is withheld.
 
     // --- colours ---------------------------------------------------------
 

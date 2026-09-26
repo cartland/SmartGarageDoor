@@ -88,6 +88,10 @@ class WearGlanceStatus(
             status = GlanceStatusMapper.forGlance(
                 doorPosition = event?.doorPosition,
                 lastCheckInEpochSeconds = event?.lastCheckInTimeSeconds,
+                // When the DOOR changed, which is the number a glance shows.
+                // Distinct from the check-in above, which only decides whether
+                // we may present it as current.
+                lastChangeEpochSeconds = event?.lastChangeTimeSeconds,
                 nowEpochSeconds = clock.nowEpochSeconds(),
                 isFetchError = lastRefreshFailed,
             ),
