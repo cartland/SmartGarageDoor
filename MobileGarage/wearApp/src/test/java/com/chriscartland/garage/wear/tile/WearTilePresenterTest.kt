@@ -19,10 +19,10 @@ package com.chriscartland.garage.wear.tile
 
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
-import com.chriscartland.garage.presentation.CheckInStatus
 import com.chriscartland.garage.presentation.CheckInStatusMapper
 import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.DoorHeadline
+import com.chriscartland.garage.presentation.Liveness
 import com.chriscartland.garage.presentation.StatusHeadline
 import com.chriscartland.garage.testcommon.FakeClock
 import com.chriscartland.garage.testcommon.FakeDoorRepository
@@ -114,15 +114,23 @@ class WearTilePresenterTest {
         }
 
     @Test
-    fun theAgeOfTheReadingIsAvailableToRender() =
+    fun aLiveReadingOffersTheInstantTheDoorChanged() =
         runTest {
+            // Not the check-in time. The tile renders this instant as a
+            // running duration, so what matters is that it points at the
+            // DOOR's last change rather than at our last request.
             doorRepository.setCurrentDoorEvent(
-                DoorEvent(doorPosition = DoorPosition.CLOSED, lastCheckInTimeSeconds = NOW - 3_600),
+                DoorEvent(
+                    doorPosition = DoorPosition.CLOSED,
+                    lastCheckInTimeSeconds = NOW - 60,
+                    lastChangeTimeSeconds = NOW - 3_600,
+                ),
             )
 
-            val age = presenter().status().age
+            val status = presenter().status()
 
-            assertTrue("a tile must be able to say how old its reading is", age is CheckInStatus.Reported)
+            assertEquals(Liveness.LIVE, status.liveness)
+            assertEquals(NOW - 3_600, status.stateSinceEpochSeconds)
         }
 
     @Test

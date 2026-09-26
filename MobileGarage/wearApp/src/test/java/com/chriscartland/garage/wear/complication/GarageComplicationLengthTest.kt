@@ -39,32 +39,31 @@ import java.io.File
 class GarageComplicationLengthTest {
     private val strings: Map<String, String> by lazy { parseStrings() }
 
-    /** Every short-text string, with the longest number it can ever carry. */
-    private val shortTextStrings = mapOf(
-        "complication_door_open" to null,
-        "complication_door_closed" to null,
-        "complication_door_opening" to null,
-        "complication_door_closing" to null,
-        "complication_door_unknown" to null,
-        "complication_door_sensor_conflict" to null,
-        "complication_no_data" to null,
-        "complication_stale" to null,
-        "complication_age_now" to null,
-        // Titles beside a confirmed door.
-        "complication_age_minutes_short" to 59,
-        "complication_age_hours_short" to 23,
-        "complication_age_days_short" to 99,
-        // Leading text for a reading we cannot vouch for.
-        "complication_age_minutes_ago" to 59,
-        "complication_age_hours_ago" to 23,
-        "complication_age_days_ago" to 99,
+    /**
+     * Every string that can land in a short-text slot.
+     *
+     * All of them are now FIXED — no format arguments, no numbers. The one
+     * figure the complication shows is rendered by the watch face from a
+     * `TimeDifferenceComplicationText`, which respects the same budget itself.
+     * That is why this list no longer carries worst-case substitutions: there
+     * is nothing left here that varies at runtime.
+     */
+    private val shortTextStrings = listOf(
+        "complication_door_open",
+        "complication_door_closed",
+        "complication_door_opening",
+        "complication_door_closing",
+        "complication_door_unknown",
+        "complication_door_sensor_conflict",
+        "complication_no_data",
+        "complication_stale",
+        "complication_preview_duration",
     )
 
     @Test
     fun everyShortTextStringFitsInSevenCharacters() {
-        val tooLong = shortTextStrings.mapNotNull { (name, worstCase) ->
-            val raw = strings[name] ?: error("missing string: $name")
-            val rendered = worstCase?.let { raw.replace(FORMAT_INT, it.toString()) } ?: raw
+        val tooLong = shortTextStrings.mapNotNull { name ->
+            val rendered = strings[name] ?: error("missing string: $name")
             if (rendered.length > MAX_TEXT_LENGTH) "$name -> \"$rendered\" (${rendered.length})" else null
         }
         assertEquals(
@@ -94,16 +93,6 @@ class GarageComplicationLengthTest {
         assertEquals("Open", strings["complication_door_open"])
     }
 
-    @Test
-    fun theWorstCaseNumbersMatchWhatTheMapperCanProduce() {
-        // The substitutions above are only the worst case if these hold. The
-        // shared mapper rolls minutes into hours at 60 and hours into days at
-        // 24; the days cap is ours, in GarageComplicationWords.
-        assertEquals(59, MAX_MINUTES)
-        assertEquals(23, MAX_HOURS)
-        assertEquals(99, MAX_DAYS)
-    }
-
     private fun parseStrings(): Map<String, String> {
         val file = candidatePaths().firstOrNull { it.exists() }
             ?: error("could not locate wear strings.xml from ${File(".").absolutePath}")
@@ -124,13 +113,6 @@ class GarageComplicationLengthTest {
         /** `ShortTextComplicationData.MAX_TEXT_LENGTH`. */
         const val MAX_TEXT_LENGTH = 7
 
-        const val MAX_MINUTES = 59
-        const val MAX_HOURS = 23
-        const val MAX_DAYS = 99
-
         val STRING_ENTRY = Regex("""<string name="([^"]+)">([^<]*)</string>""")
-
-        // Not a raw string: `$d` inside one is read as a template expression.
-        val FORMAT_INT = Regex("%1\\\$d")
     }
 }

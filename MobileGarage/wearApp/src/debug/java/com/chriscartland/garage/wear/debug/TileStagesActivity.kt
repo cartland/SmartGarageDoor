@@ -73,6 +73,10 @@ class TileStagesActivity : Activity() {
             STAGE_TILE_OPEN -> GlanceStatusMapper.forGlance(
                 doorPosition = DoorPosition.OPEN,
                 lastCheckInEpochSeconds = NOW - 120,
+                // Open for eight minutes. The tile renders this as a running
+                // duration, so the capture shows whatever the renderer makes
+                // of it rather than a number we baked in.
+                lastChangeEpochSeconds = NOW - 8 * 60,
                 nowEpochSeconds = NOW,
                 isFetchError = false,
             )
@@ -81,18 +85,25 @@ class TileStagesActivity : Activity() {
             STAGE_TILE_STALE -> GlanceStatusMapper.forGlance(
                 doorPosition = DoorPosition.OPEN,
                 lastCheckInEpochSeconds = NOW - 6 * 3_600,
+                // Deliberately present, to prove it is WITHHELD rather than
+                // merely absent: a door we cannot vouch for gets no duration.
+                lastChangeEpochSeconds = NOW - 6 * 3_600,
                 nowEpochSeconds = NOW,
                 isFetchError = false,
             )
             STAGE_TILE_NO_SIGNAL -> GlanceStatusMapper.forGlance(
                 doorPosition = null,
                 lastCheckInEpochSeconds = null,
+                lastChangeEpochSeconds = null,
                 nowEpochSeconds = NOW,
                 isFetchError = true,
             )
             else -> GlanceStatusMapper.forGlance(
                 doorPosition = DoorPosition.CLOSED,
                 lastCheckInEpochSeconds = NOW - 20,
+                // Closed for three hours: exercises the hours unit, so the
+                // pair of captures shows both sides of the dynamic switch.
+                lastChangeEpochSeconds = NOW - 3 * 3_600,
                 nowEpochSeconds = NOW,
                 isFetchError = false,
             )
@@ -145,7 +156,17 @@ class TileStagesActivity : Activity() {
         const val STAGE_TILE_STALE = "tile_stale"
         const val STAGE_TILE_NO_SIGNAL = "tile_no_signal"
 
-        /** Fixed so the age lines do not churn between regens. */
-        private const val NOW = 1_700_000_000L
+        /**
+         * The DEVICE's clock, not a fixed epoch.
+         *
+         * The tile's duration is rendered from ProtoLayout's platform time
+         * source, so it is measured against whatever the watch thinks the
+         * time is — a fixture anchored to a fixed epoch renders the distance
+         * from that epoch to today, which is how the first capture of this
+         * came out as "778 d…". Anchoring the fixtures RELATIVE to real now
+         * keeps the rendered text stable across regens ("8 min" is always
+         * "8 min") while agreeing with the clock doing the rendering.
+         */
+        private val NOW: Long get() = System.currentTimeMillis() / 1_000
     }
 }

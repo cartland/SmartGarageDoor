@@ -20,8 +20,6 @@ package com.chriscartland.garage.wear.tile
 import androidx.annotation.StringRes
 import com.chriscartland.garage.domain.model.DoorColorState
 import com.chriscartland.garage.domain.model.GarageDoorPalette
-import com.chriscartland.garage.presentation.CheckInAge
-import com.chriscartland.garage.presentation.CheckInStatus
 import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.DoorHeadline
 import com.chriscartland.garage.presentation.FreshnessTint
@@ -59,36 +57,21 @@ object GarageTileWords {
         }
 
     /**
-     * The "… ago" line, or null when there is no age to state.
+     * NO AGE WORDING LIVES HERE ANY MORE.
      *
-     * Null for [CheckInStatus.NoData] — a reading with no timestamp is
-     * unjudgeable rather than new, and inventing "Just now" for it would be
-     * the single most misleading thing this tile could say. The surface then
-     * simply omits the line.
+     * The tile used to print how long ago the garage last checked in, which
+     * was the wrong number twice over. It describes our plumbing rather than
+     * the door — "we checked 8 minutes ago" is not what anyone wants to know
+     * about a garage — and it froze at whatever it was when the layout was
+     * built, so a tile refreshed on the system's schedule showed a precise
+     * figure that had quietly drifted.
      *
-     * Coarser than the phone's pill on purpose: the watch has one line to
-     * spend and a glance wants an order of magnitude, not a stopwatch. The
-     * BUCKETS are still the shared ones, so "stale" means the same thing
-     * everywhere; only how many of them get their own sentence differs.
+     * What replaced it is how long the DOOR has been in its state, rendered
+     * from a platform time source so the renderer keeps it counting between
+     * refreshes. See `GarageDoorTileLayout.durationInState`. The check-in age
+     * is still computed — it is what decides liveness — but it is no longer
+     * shown.
      */
-    fun ageLine(age: CheckInStatus): AgeLine? =
-        when (age) {
-            CheckInStatus.NoData -> null
-            is CheckInStatus.Reported ->
-                when (val bucket = age.age) {
-                    CheckInAge.JustNow -> AgeLine(R.string.glance_age_just_now)
-                    is CheckInAge.Seconds -> AgeLine(R.string.glance_age_seconds, bucket.seconds)
-                    is CheckInAge.Minutes -> AgeLine(R.string.glance_age_minutes, bucket.minutes)
-                    is CheckInAge.Hours -> AgeLine(R.string.glance_age_hours, bucket.hours)
-                    is CheckInAge.Days -> AgeLine(R.string.glance_age_days, bucket.days)
-                }
-        }
-
-    /** A string resource plus the count it may need formatting into. */
-    data class AgeLine(
-        @param:StringRes val resId: Int,
-        val quantity: Int? = null,
-    )
 }
 
 /**

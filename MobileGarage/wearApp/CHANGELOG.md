@@ -14,6 +14,28 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.9.1
+
+- **The glance surfaces now tell you how long the door has been that way**,
+  instead of how long ago the watch last checked in. "Open, 8 min" is a fact
+  about your garage; "checked 8 min ago" was a fact about the app's plumbing,
+  and it was not the question anyone was asking.
+
+- **That number is now drawn by the watch itself, so it cannot go out of
+  date.** The tile and the complication are redrawn on the system's schedule,
+  which can be as infrequent as every ten minutes. A duration worked out when
+  the surface was built would quietly drift between refreshes, so "8 min"
+  could really mean eighteen. Both surfaces now hand the watch the moment the
+  door changed and let it count, the way a stopwatch face does.
+
+- **Whether the reading can be trusted is now a word rather than a number.**
+  Either the watch and the server agree, or they do not, and a surface that
+  redraws rarely has no business quoting a precise figure about its own
+  currency. When it cannot vouch for what it is showing, it says "Not
+  confirmed" and shows no duration at all — a duration claims the door has
+  been that way continuously, and a door the watch has lost contact with may
+  have moved twice since.
+
 ## 0.9.0
 
 - **The garage door can now go on the watch face itself.** Add "Garage door"
