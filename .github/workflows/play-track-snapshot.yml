@@ -9,13 +9,20 @@ name: Play Track Snapshot
 #
 # Triggers:
 #   - workflow_dispatch: run manually after promoting a track in the Console
-#   - workflow_run:      after "Android Release" completes (captures the new
-#                        internal-track upload)
+#   - workflow_run:      after "Android Release" OR "Wear OS Release" completes
+#                        (captures the new internal-track upload)
+#
+# BOTH release workflows are listed, and that is load-bearing. Android and Wear
+# ship to different tracks of the SAME Play listing, so a Wear-only release
+# used to leave this log showing the previous wear versionCode indefinitely —
+# indistinguishable from a release that never landed. Found after wear/30
+# (0.9.0) deployed successfully while the log still read 1000029. One snapshot
+# reports every track, so either trigger refreshes the whole picture.
 
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: ['Android Release']
+    workflows: ['Android Release', 'Wear OS Release']
     types: [completed]
 
 permissions:
