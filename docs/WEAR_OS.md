@@ -1187,7 +1187,7 @@ use — `tile_open` vs `tile_stale` is the same door with one muted, and
   complication lives ON the watch face, so it is more glanceable still but has
   room for only a few characters and no age line.
 
-## The complication (0.8.1)
+## The complication (0.9.0)
 
 The door on the watch face itself: no swipe, no tap. Also the least forgiving
 surface the app has — **seven characters**, and colours chosen by the watch
@@ -1564,7 +1564,7 @@ captured from a real Wear emulator by a single script.
    tile is deliberately READ-ONLY, not the "door + one-shot arm" this line
    used to propose: a tile cannot express the press-and-hold that guards the
    button, and it is the easiest surface in the system to touch by accident.
-   ~~**Still open: a complication**~~ — **done in 0.8.1**, see § "The
+   ~~**Still open: a complication**~~ — **done in 0.9.0**, see § "The
    complication". A generated tile-picker preview image remains the follow-up.
 5. **Ambient / always-on handling** beyond the default (currently the
    activity simply stops polling when hidden).

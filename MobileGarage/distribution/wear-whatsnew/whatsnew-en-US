@@ -1,3 +1,3 @@
-The garage door is now a tile. Swipe right from the watch face to see what the door is doing and how old that reading is, without opening the app. Add it to your tile carousel once; tapping it opens the app.
+The garage door can now go on the watch face itself. Add "Garage door" as a complication and the door is there without a swipe, along with how old that reading is. It is offered for the text slots only, because an icon has nowhere to say how old the reading is.
 
-The watch also remembers the door between launches, and drains the dial to grey when the opener stops reporting in, rather than showing an old position as though it were current.
+There is also a tile: swipe right from the watch face. Both are read-only, and both must be added once by hand.
