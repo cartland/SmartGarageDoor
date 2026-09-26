@@ -125,6 +125,10 @@ class WearComponentGraphTest {
         // fresh TileService per request — uncached, it would read its seed
         // values forever and the tile could never notice the door had moved.
         assertSame(component.wearTilePresenter, component.wearTilePresenter)
+        // Shared by the tile and the complication. Uncached, "the last
+        // refresh failed" would become one fact per surface and the two could
+        // present the same door with different confidence.
+        assertSame(component.wearGlanceStatus, component.wearGlanceStatus)
         // One object behind two interfaces. If these were separate instances
         // the tile would wait on a hydration that never filled the cache the
         // repository reads, and every tile render would say "No signal".

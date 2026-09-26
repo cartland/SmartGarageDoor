@@ -60,6 +60,7 @@ import com.chriscartland.garage.usecase.RuleBasedVoiceIntentClassifier
 import com.chriscartland.garage.usecase.SignInWithGoogleUseCase
 import com.chriscartland.garage.wear.data.DoorSnapshotHydration
 import com.chriscartland.garage.wear.data.PersistedLocalDoorDataSource
+import com.chriscartland.garage.wear.glance.WearGlanceStatus
 import com.chriscartland.garage.wear.logging.LogcatAppLoggerRepository
 import com.chriscartland.garage.wear.tile.WearTilePresenter
 import com.chriscartland.garage.wear.ui.WearHomeViewModel
@@ -190,6 +191,15 @@ abstract class WearComponent(
      * could neither report a failed refresh nor notice the door had moved.
      */
     abstract val wearTilePresenter: WearTilePresenter
+
+    /**
+     * The reading both glance surfaces share.
+     *
+     * A singleton so "the last refresh failed" is one fact about the process
+     * rather than one per surface — the tile and the complication should not
+     * disagree about whether the server is reachable.
+     */
+    abstract val wearGlanceStatus: WearGlanceStatus
     abstract val networkDoorDataSource: NetworkDoorDataSource
     abstract val networkConfigDataSource: NetworkConfigDataSource
     abstract val networkButtonDataSource: NetworkButtonDataSource
@@ -353,18 +363,22 @@ abstract class WearComponent(
 
     @Provides
     @WearSingleton
-    fun provideWearTilePresenter(
+    fun provideWearGlanceStatus(
         observeDoorEvents: ObserveDoorEventsUseCase,
         fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
         hydration: DoorSnapshotHydration,
         clock: AppClock,
-    ): WearTilePresenter =
-        WearTilePresenter(
+    ): WearGlanceStatus =
+        WearGlanceStatus(
             observeDoorEvents = observeDoorEvents,
             fetchCurrentDoorEvent = fetchCurrentDoorEvent,
             hydration = hydration,
             clock = clock,
         )
+
+    @Provides
+    @WearSingleton
+    fun provideWearTilePresenter(glance: WearGlanceStatus): WearTilePresenter = WearTilePresenter(glance)
 
     @Provides
     @WearSingleton

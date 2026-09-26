@@ -29,6 +29,7 @@ import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
 import com.chriscartland.garage.wear.data.DoorSnapshotHydration
+import com.chriscartland.garage.wear.glance.WearGlanceStatus
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -55,13 +56,15 @@ class WearTilePresenterTest {
     /** Hydration already finished — the ordinary case. */
     private val hydrated = DoorSnapshotHydration { }
 
-    private fun presenter(hydration: DoorSnapshotHydration = hydrated) =
-        WearTilePresenter(
+    private fun glance(hydration: DoorSnapshotHydration = hydrated) =
+        WearGlanceStatus(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
             fetchCurrentDoorEvent = FetchCurrentDoorEventUseCase(doorRepository),
             hydration = hydration,
             clock = clock,
         )
+
+    private fun presenter(hydration: DoorSnapshotHydration = hydrated) = WearTilePresenter(glance(hydration))
 
     @Test
     fun aRecentlyConfirmedDoorIsShownConfidently() =

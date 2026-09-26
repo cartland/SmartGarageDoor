@@ -17,17 +17,12 @@
 
 package com.chriscartland.garage.wear.tile
 
-import com.chriscartland.garage.domain.coroutines.AppClock
-import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.presentation.GlanceStatus
-import com.chriscartland.garage.presentation.GlanceStatusMapper
-import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
-import com.chriscartland.garage.usecase.ObserveDoorEventsUseCase
-import com.chriscartland.garage.wear.data.DoorSnapshotHydration
+import com.chriscartland.garage.wear.glance.WearGlanceStatus
 
 /**
- * Everything the garage tile decides, with no ProtoLayout in sight.
+ * The tile's decisions, which is all of them that are not drawing.
  *
  * **Why a presenter and not a ViewModel.** Every other surface on the watch
  * gets a `ViewModel` (ADR-026), but a `TileService` has no `ViewModelStore`
@@ -37,57 +32,36 @@ import com.chriscartland.garage.wear.data.DoorSnapshotHydration
  * holding only the parts that genuinely need a platform (building a layout,
  * and asking the system to re-render).
  *
- * It is a `@WearSingleton` because it remembers two things across requests
- * ([lastRefreshFailed] and [lastRenderedEvent]), and the system creates a
- * fresh service instance per request — fields on the service would read their
- * initial values forever, so the tile could never report a failed refresh nor
- * notice that the door had moved.
+ * What it owns beyond [WearGlanceStatus] is exactly one thing: **the event it
+ * last drew**, so it can tell whether spending a re-render is worthwhile.
+ * That memory is deliberately NOT on the shared object — the complication
+ * reads the same door, and if the two shared one idea of "what is on screen"
+ * whichever refreshed second would conclude nothing had changed.
+ *
+ * It is a `@WearSingleton` because that memory has to survive across
+ * requests, and the system creates a fresh `TileService` for every one.
  */
 class WearTilePresenter(
-    private val observeDoorEvents: ObserveDoorEventsUseCase,
-    private val fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
-    private val hydration: DoorSnapshotHydration,
-    private val clock: AppClock,
+    private val glance: WearGlanceStatus,
 ) {
-    /**
-     * Whether the last refresh this process attempted failed. Seeded false:
-     * a tile that has not asked anything yet is un-asked, not failed, and the
-     * age line is what tells the reader how much the value is worth.
-     */
-    private var lastRefreshFailed: Boolean = false
-
     /** The door event most recently handed to a render. */
     private var lastRenderedEvent: DoorEvent? = null
 
     private var hasRendered: Boolean = false
 
     /**
-     * What to draw right now, from what is already known.
+     * What to draw right now.
      *
-     * Waits for the disk read and nothing else. Network-free on purpose:
-     * `onTileRequest` must answer promptly and the watch's path is the
-     * slowest in the system, so the tile renders the cache and lets
-     * [refreshAndReportChange] catch up afterwards.
-     *
-     * The one thing it DOES wait for is hydration, because the alternative is
-     * the failure this whole surface exists to avoid. The system may start
-     * the process purely to answer this request, so without the wait the tile
-     * can answer "No signal" about a door it has on disk, purely because a
-     * file read had not landed yet — a wrong reading, shown once, on a
-     * surface that gets one chance to be right. See
-     * [DoorSnapshotHydration.awaitHydration] for why the cost is tolerable.
+     * Network-free on purpose: `onTileRequest` must answer promptly and the
+     * watch's path is the slowest in the system, so the tile renders what is
+     * known and lets [refreshAndReportChange] catch up afterwards. The one
+     * thing it waits for is the disk read — see [WearGlanceStatus.current].
      */
     suspend fun status(): GlanceStatus {
-        hydration.awaitHydration()
-        val event = observeDoorEvents.current().value
-        lastRenderedEvent = event
+        val reading = glance.current()
+        lastRenderedEvent = reading.event
         hasRendered = true
-        return GlanceStatusMapper.forGlance(
-            doorPosition = event?.doorPosition,
-            lastCheckInEpochSeconds = event?.lastCheckInTimeSeconds,
-            nowEpochSeconds = clock.nowEpochSeconds(),
-            isFetchError = lastRefreshFailed,
-        )
+        return reading.status
     }
 
     /**
@@ -107,12 +81,11 @@ class WearTilePresenter(
      * every time the watch is out of range.
      */
     suspend fun refreshAndReportChange(): Boolean {
-        lastRefreshFailed = fetchCurrentDoorEvent() is AppResult.Error
-        if (lastRefreshFailed) return false
-        val latest = observeDoorEvents.current().value
+        val refresh = glance.refresh()
+        if (!refresh.succeeded) return false
         // Nothing has been rendered yet (a refresh raced ahead of the first
         // request): there is no stale answer on screen to correct.
         if (!hasRendered) return false
-        return latest != lastRenderedEvent
+        return refresh.event != lastRenderedEvent
     }
 }

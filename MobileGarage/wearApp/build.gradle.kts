@@ -198,6 +198,10 @@ dependencies {
     // palette and freshness arithmetic instead. Brings protolayout +
     // protolayout-material3 transitively.
     implementation(libs.androidx.wear.tiles)
+    // The watch-face complication. Ships the ktx variant for the suspending
+    // service base class; the complication answers from the same shared
+    // GlanceStatus the tile uses.
+    implementation(libs.androidx.wear.complications.datasource.ktx)
     implementation(libs.androidx.wear.protolayout)
     implementation(libs.androidx.wear.protolayout.material3)
     implementation(libs.androidx.wear.protolayout.expression)

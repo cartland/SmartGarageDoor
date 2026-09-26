@@ -53,10 +53,11 @@
     <string name="button_hint_server_failed">Server did not respond</string>
     <string name="button_hint_door_failed">Door did not move</string>
 
-    <!-- Tile (swipe right from the watch face). Read-only: it shows the door
-         and opens the app; it can never move the door. Wording is
-         deliberately terse — a tile is read at a glance, on a round mask,
-         with a wrist already dropping.
+    <!-- The two GLANCE surfaces: the tile (swipe right from the watch face)
+         and the watch-face complication. Both are read-only: they show the
+         door and open the app; neither can ever move it. Wording is
+         deliberately terse — a glance is read on a round mask, with a wrist
+         already dropping.
 
          The age line exists so the tile can be TRUSTED: a door position shown
          without saying how old it is asks to be believed on nothing. Plurals
@@ -65,13 +66,54 @@
          units ("min", "hr") do not inflect — so a plain format string says
          the same thing in less space on a screen that has very little. -->
     <string name="tile_title">Garage</string>
-    <string name="tile_age_just_now">Just now</string>
-    <string name="tile_age_seconds">%1$d sec ago</string>
-    <string name="tile_age_minutes">%1$d min ago</string>
-    <string name="tile_age_hours">%1$d hr ago</string>
-    <string name="tile_age_days">%1$d days ago</string>
+    <string name="glance_age_just_now">Just now</string>
+    <string name="glance_age_seconds">%1$d sec ago</string>
+    <string name="glance_age_minutes">%1$d min ago</string>
+    <string name="glance_age_hours">%1$d hr ago</string>
+    <string name="glance_age_days">%1$d days ago</string>
     <!-- Shown in the watch's tile picker, under the app name. -->
     <string name="tile_description">Garage door status</string>
+
+
+    <!-- Watch-face complication. SEVEN CHARACTERS is a hard limit on the
+         short-text slot, and the watch face picks the colours, so unlike the
+         tile there is no grey-and-dim to fall back on: doubt has to be in the
+         words. See GarageComplicationWords for why the age leads when the
+         reading cannot be vouched for.
+
+         The door words are the complication's OWN vocabulary, not the door
+         screen's. "Sensor conflict" does not fit; a word chosen on purpose
+         says more than an ellipsised one. -->
+    <string name="complication_label">Garage door</string>
+    <string name="complication_preview_description">Garage door status</string>
+    <string name="complication_door_open">Open</string>
+    <string name="complication_door_closed">Closed</string>
+    <string name="complication_door_opening">Opening</string>
+    <string name="complication_door_closing">Closing</string>
+    <string name="complication_door_unknown">Unknown</string>
+    <!-- Both sensors disagree. Seven characters exactly. -->
+    <string name="complication_door_sensor_conflict">Sensors</string>
+    <!-- Nothing has ever been heard, so there is no door to name. -->
+    <string name="complication_no_data">No data</string>
+    <!-- Stands in whenever the age cannot be stated inside seven characters:
+         an unknown age, or a reading so old the number would overflow. Says
+         the same thing and always fits. -->
+    <string name="complication_stale">Stale</string>
+
+    <!-- Age as a TITLE, beside a door we can vouch for. -->
+    <string name="complication_age_now">now</string>
+    <string name="complication_age_minutes_short">%1$dm</string>
+    <string name="complication_age_hours_short">%1$dh</string>
+    <string name="complication_age_days_short">%1$dd</string>
+
+    <!-- Age as the LEADING text, for a door we cannot. "59m ago" and
+         "23h ago" are seven characters exactly, which is what bounds them. -->
+    <string name="complication_age_minutes_ago">%1$dm ago</string>
+    <string name="complication_age_hours_ago">%1$dh ago</string>
+    <string name="complication_age_days_ago">%1$dd ago</string>
+
+    <!-- Long-text slots have room for both at once, so nothing is demoted. -->
+    <string name="complication_long_text">%1$s, %2$s</string>
 
     <!-- Auth. -->
     <string name="sign_in">Sign in</string>

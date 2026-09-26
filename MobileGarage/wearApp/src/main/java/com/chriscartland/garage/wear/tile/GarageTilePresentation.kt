@@ -76,11 +76,11 @@ object GarageTileWords {
             CheckInStatus.NoData -> null
             is CheckInStatus.Reported ->
                 when (val bucket = age.age) {
-                    CheckInAge.JustNow -> AgeLine(R.string.tile_age_just_now)
-                    is CheckInAge.Seconds -> AgeLine(R.string.tile_age_seconds, bucket.seconds)
-                    is CheckInAge.Minutes -> AgeLine(R.string.tile_age_minutes, bucket.minutes)
-                    is CheckInAge.Hours -> AgeLine(R.string.tile_age_hours, bucket.hours)
-                    is CheckInAge.Days -> AgeLine(R.string.tile_age_days, bucket.days)
+                    CheckInAge.JustNow -> AgeLine(R.string.glance_age_just_now)
+                    is CheckInAge.Seconds -> AgeLine(R.string.glance_age_seconds, bucket.seconds)
+                    is CheckInAge.Minutes -> AgeLine(R.string.glance_age_minutes, bucket.minutes)
+                    is CheckInAge.Hours -> AgeLine(R.string.glance_age_hours, bucket.hours)
+                    is CheckInAge.Days -> AgeLine(R.string.glance_age_days, bucket.days)
                 }
         }
 
