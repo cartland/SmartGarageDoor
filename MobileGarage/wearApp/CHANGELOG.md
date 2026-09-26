@@ -14,7 +14,7 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
-## 0.8.1
+## 0.9.0
 
 - **The garage door can now go on the watch face itself.** Add "Garage door"
   as a complication and the door is there without a swipe: what it is doing,
