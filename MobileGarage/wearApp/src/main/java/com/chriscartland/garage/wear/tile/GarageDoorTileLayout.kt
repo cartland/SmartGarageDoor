@@ -189,12 +189,26 @@ internal object GarageDoorTileLayout {
         val hours = DynamicString.constant(context.getString(R.string.tile_duration_hours, ""))
         val days = DynamicString.constant(context.getString(R.string.tile_duration_days, ""))
 
+        // THE UNIT BOUNDARIES ARE CHOSEN SO THE PLURAL IS ALWAYS RIGHT.
+        //
+        // A dynamic string cannot branch on grammatical number the way a
+        // plurals resource can, so switching units at the mathematically
+        // obvious points would render "1 days" and "1 hours". Instead each
+        // worded unit only ever starts at TWO:
+        //
+        //   < 2 hours  -> minutes ("8 min", "90 min") — "min" is number-
+        //                 agnostic, so it is safe at 1
+        //   < 2 days   -> hours   ("2 hours" … "47 hours") — never 1
+        //   otherwise  -> days    ("2 days" upward)       — never 1
+        //
+        // "90 min" instead of "1 hr 30" is the price, and it is a fair one:
+        // it is unambiguous, and it is never grammatically wrong.
         val dynamic = DynamicString
-            .onCondition(elapsed.toIntHours().lt(1))
+            .onCondition(elapsed.toIntHours().lt(HOURS_BEFORE_WORDING_THEM))
             .use(elapsed.toIntMinutes().format().concat(minutes))
             .elseUse(
                 DynamicString
-                    .onCondition(elapsed.toIntDays().lt(1))
+                    .onCondition(elapsed.toIntDays().lt(DAYS_BEFORE_WORDING_THEM))
                     .use(elapsed.toIntHours().format().concat(hours))
                     .elseUse(elapsed.toIntDays().format().concat(days)),
             )
@@ -217,6 +231,15 @@ internal object GarageDoorTileLayout {
      * nominate for a headline.
      */
     private const val DOOR_WORD_TYPOGRAPHY = Typography.TITLE_LARGE
+
+    /**
+     * Below this many hours the line stays in minutes, so the worded "hours"
+     * form never has to render a 1. See [durationInState].
+     */
+    private const val HOURS_BEFORE_WORDING_THEM = 2
+
+    /** The same trick for days: "days" never renders a 1. */
+    private const val DAYS_BEFORE_WORDING_THEM = 2
 
     /**
      * Widest string the duration line can become, for layout sizing.

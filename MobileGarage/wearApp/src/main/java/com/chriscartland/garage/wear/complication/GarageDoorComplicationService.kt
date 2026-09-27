@@ -179,8 +179,11 @@ class GarageDoorComplicationService : SuspendingComplicationDataSourceService() 
         }
         // Long text has room for the door and its running duration together.
         // `^1` is where the face substitutes the duration it renders.
-        val body = runningDuration(status, template = getString(R.string.complication_long_text, door, "^1"))
-            ?: plain(door)
+        val body = runningDuration(
+            status,
+            style = TimeDifferenceStyle.WORDS_SINGLE_UNIT,
+            template = getString(R.string.complication_long_text, door, "^1"),
+        ) ?: plain(door)
         return longText(body, plain(getString(R.string.tile_title)), description)
     }
 
@@ -192,17 +195,33 @@ class GarageDoorComplicationService : SuspendingComplicationDataSourceService() 
      * has been this way continuously, and a door we have lost contact with may
      * have moved twice since.
      *
-     * [TimeDifferenceStyle.SHORT_SINGLE_UNIT] is the seven-character-friendly
-     * one: minutes under an hour, then hours, then days.
+     * **The style is worded, not abbreviated, and that is a correction.**
+     * [TimeDifferenceStyle.SHORT_SINGLE_UNIT] renders "3h", which many watch
+     * faces then draw in capitals as "3H" — and "3H CLOSED" does not read as a
+     * duration at all. It reads as a code. The door word survives capitals
+     * fine ("CLOSED" is still obviously a door state); the abbreviated number
+     * beside it does not.
+     *
+     * [TimeDifferenceStyle.SHORT_WORDS_SINGLE_UNIT] is the library's own
+     * answer to exactly this: it words the unit ("3 hours", "45 mins", "13
+     * days") and falls back to the compact form ONLY when the words would
+     * exceed the seven-character limit. So the common cases read as durations
+     * in any case, and the budget is still respected by the platform rather
+     * than by us guessing.
+     *
+     * Long text has no such limit, so it gets the always-worded
+     * [TimeDifferenceStyle.WORDS_SINGLE_UNIT] — there is no reason to
+     * abbreviate where there is room not to.
      */
     private fun runningDuration(
         status: GlanceStatus,
+        style: TimeDifferenceStyle = TimeDifferenceStyle.SHORT_WORDS_SINGLE_UNIT,
         template: String? = null,
     ): ComplicationText? {
         val since = status.stateSinceEpochSeconds ?: return null
         return TimeDifferenceComplicationText
             .Builder(
-                style = TimeDifferenceStyle.SHORT_SINGLE_UNIT,
+                style = style,
                 countUpTimeReference = CountUpTimeReference(Instant.ofEpochSecond(since)),
             ).apply { template?.let { setText(it) } }
             .build()
