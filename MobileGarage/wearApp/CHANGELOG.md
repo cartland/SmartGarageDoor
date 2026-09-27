@@ -14,6 +14,17 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
 
+## 0.9.2
+
+- **The duration now reads as a duration.** On the watch face a complication
+  is drawn in your face's own style, and many faces put everything in
+  capitals — which turned "3h" into "3H", so "3H CLOSED" looked like a code
+  rather than a measurement. It now says "3 hours", and falls back to the
+  short form only when the words genuinely will not fit.
+
+- Fixed a grammar bug on the tile, which would have said "1 days". Each
+  worded unit now starts at two, so it never has to render a one.
+
 ## 0.9.1
 
 - **The glance surfaces now tell you how long the door has been that way**,

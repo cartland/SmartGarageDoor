@@ -855,6 +855,16 @@ changed and let the renderer count — complication via
 `DynamicInstant.platformTimeWithSecondsPrecision()`. The tile picks its unit by
 dynamic condition so it crosses the hour boundary by itself.
 
+- **Worded units, not abbreviations, and never a plural that can render 1.**
+  A watch face draws complication text in ITS style, and many capitalise — so
+  `3h` becomes `3H` and "3H CLOSED" reads as a code, not a measurement
+  (maintainer report, 0.9.2). Use `TimeDifferenceStyle.SHORT_WORDS_SINGLE_UNIT`
+  for short text (the platform words it and falls back to the compact form
+  only when seven characters will not hold the words) and `WORDS_SINGLE_UNIT`
+  where there is room. The tile's dynamic string CANNOT branch on grammatical
+  number the way a plurals resource can, so its unit boundaries start each
+  worded unit at TWO — minutes to 119, hours to 47, then days — and "min" is
+  kept because it is number-agnostic. Otherwise it renders "1 days".
 - **`Liveness` is TWO states, deliberately** (`:presentation-model`). It answers
   "does the watch still match the server", and a rarely-redrawn surface has no
   business quoting a figure about its own currency. `LIVE` = garage reported

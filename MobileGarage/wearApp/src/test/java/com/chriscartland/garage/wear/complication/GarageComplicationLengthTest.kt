@@ -93,6 +93,47 @@ class GarageComplicationLengthTest {
         assertEquals("Open", strings["complication_door_open"])
     }
 
+    @Test
+    fun noWordedUnitCanEverRenderAGrammaticalOne() {
+        // The tile's duration is a dynamic string, which cannot branch on
+        // grammatical number the way a plurals resource can. The defence is
+        // the unit BOUNDARIES: "hours" and "days" only start at two, so
+        // neither ever has to render "1 hours". This pins the wording half of
+        // that contract — the boundary half lives in GarageDoorTileLayout.
+        //
+        // "min" is exempt because it is number-agnostic: "1 min" is correct.
+        listOf("tile_duration_hours", "tile_duration_days").forEach { name ->
+            val value = strings[name] ?: error("missing string: " + name)
+            assertTrue(
+                name + " is worded as a plural, so its unit must never start at 1 " +
+                    "(see HOURS_BEFORE_WORDING_THEM / DAYS_BEFORE_WORDING_THEM)",
+                value.trim().endsWith("s"),
+            )
+        }
+        assertTrue(
+            "tile_duration_minutes must stay number-agnostic so it is safe at 1",
+            !(strings["tile_duration_minutes"] ?: "").trim().endsWith("s"),
+        )
+    }
+
+    @Test
+    fun theDurationReadsAsADurationEvenInCapitals() {
+        // The report that prompted this: a watch face renders complication
+        // text in capitals, and the abbreviated "3h" became "3H", which reads
+        // as a code rather than a measurement. Worded units survive capitals
+        // ("3 HOURS" is unmistakable). The complication gets its wording from
+        // the platform, so what is checked here is the tile's, plus the editor
+        // preview that stands in for the complication's.
+        listOf("tile_duration_hours", "tile_duration_days", "complication_preview_duration").forEach { name ->
+            val value = strings[name] ?: error("missing string: " + name)
+            assertTrue(
+                name + " = " + value + " — a unit of one or two letters reads as a code " +
+                    "once a watch face capitalises it",
+                value.filter { it.isLetter() }.length > 2,
+            )
+        }
+    }
+
     private fun parseStrings(): Map<String, String> {
         val file = candidatePaths().firstOrNull { it.exists() }
             ?: error("could not locate wear strings.xml from ${File(".").absolutePath}")

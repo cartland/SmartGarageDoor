@@ -69,9 +69,19 @@
     <!-- How long the door has been in its state. The number is produced by
          the RENDERER from a platform time source, so it keeps counting
          between tile refreshes instead of freezing at whatever it was when
-         the layout was built. -->
+         the layout was built.
+
+         WORDED UNITS, not abbreviations: on the complication a watch face
+         renders our text in capitals, and "3H" reads as a code rather than a
+         duration ("3H CLOSED" was the report). The tile is not uppercased by
+         anyone, but there is no reason for the two surfaces to disagree.
+
+         "min" is number-agnostic so it is safe at 1. "hours" and "days" are
+         not, and a dynamic string cannot branch on grammatical number — so
+         GarageDoorTileLayout starts each of those at TWO, and they never have
+         to render a 1. -->
     <string name="tile_duration_minutes">%1$s min</string>
-    <string name="tile_duration_hours">%1$s hr</string>
+    <string name="tile_duration_hours">%1$s hours</string>
     <string name="tile_duration_days">%1$s days</string>
     <!-- Liveness, as a word rather than a measurement: two states cannot
          drift the way a figure can. Shown only when we CANNOT vouch for the
@@ -123,7 +133,7 @@
     <string name="complication_long_stale">%1$s, not confirmed</string>
     <!-- Editor preview only, so a fixed string rather than a running one:
          preview data is cached by the system and meant to be constant. -->
-    <string name="complication_preview_duration">8m</string>
+    <string name="complication_preview_duration">8 mins</string>
 
     <!-- Auth. -->
     <string name="sign_in">Sign in</string>
