@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-04-25
+last_verified: 2026-09-28
 ---
 # Android Changelog
 
@@ -14,6 +14,40 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 - **Patch (X.Y.Z)** — Bug fixes, UI polish, performance, refactors. No new capability.
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
+
+## 2.25.0
+
+- **The garage door on your home screen.** A read-only app widget (Glance),
+  driven by the same shared `GlanceStatus` as the door screen, the Wear tile
+  and the watch-face complication -- four surfaces, one verdict, so none of
+  them can describe the door differently. Tapping opens the app.
+- **It shows an INSTANT, not a duration** ("since 3:42 PM"). `GlanceStatus`
+  requires a surface that cannot self-update a duration to show no number
+  rather than a frozen one, and a widget cannot: its only self-updating text
+  primitive is the RemoteViews Chronometer, whose stopwatch format (74:13:52)
+  is the shape rejected on the watch when 3h became 3H, and its update floor is
+  30 minutes. An absolute instant beats that fallback rather than settling for
+  it, because no update schedule can make a statement about a past moment
+  wrong.
+- **Read-only is asserted three ways**, each blind to the others: dependency
+  reflection (positive control: `DefaultHomeViewModel`, which does press the
+  button), a manifest read proving the receiver answers only
+  `APPWIDGET_UPDATE`, and a composition assertion that the sole click action
+  starts `MainActivity`.
+- **A cold process would have shown "No signal" over a populated database.**
+  `DoorRepository.currentDoorEvent` is a StateFlow seeded null and filled
+  asynchronously, and a widget renders exactly when the app is not running. The
+  widget reads Room's own flow with `first()`, whose first emission is the
+  stored value.
+- **Internal:** the widget's drawing is unit-tested via
+  `runGlanceAppWidgetUnitTest` (composition assertions, not pixels -- Glance has
+  no Layoutlib path), which required splitting the Context lookup out of the
+  body. Door words and clock formatting are reused from the Home screen rather
+  than duplicated, enforced by a test. Also in this release: the voice client's
+  door-command vocabulary is now pinned to the server's own
+  `verdict_table.json`, and the wire-contract fixtures for that endpoint are
+  decoded by a Kotlin test for the first time (#1257); deploy-skew behaviour for
+  `doorCommand` is documented (#1258).
 
 ## 2.24.0
 
