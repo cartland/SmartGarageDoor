@@ -37,10 +37,26 @@ import kotlinx.serialization.json.Json
 
 /**
  * Forward-compatible on purpose: `ignoreUnknownKeys` so a server that starts
- * reporting more about its decision does not break a shipped client. The strict
- * counterpart lives in the tests, which decode the same
- * `wire-contracts/doorCommand/` fixtures with unknown keys REJECTED, so a
- * renamed field fails there instead of silently defaulting here.
+ * reporting more about its decision does not break a shipped client. It already
+ * reports more — the fixtures carry `command`, `checkInAgeSeconds` and
+ * `sensorEventType`, none of which this client needs.
+ *
+ * That forward-compatibility has a cost, and the cost is what the tests cover.
+ * Every field below has a DEFAULT, so a server-side rename does not throw: it
+ * decodes to `accepted = false` and refuses every spoken command, silently, on
+ * the path that moves the real door. Fail-closed is the right default and is not
+ * a substitute for noticing.
+ *
+ * The counterpart is `DoorCommandWireContractTest` in `:data`'s commonTest,
+ * which feeds the same `wire-contracts/doorCommand/` fixtures through a
+ * `MockEngine` and deep-equals the decoded [DoorCommandVerdict]. It cannot work
+ * by rejecting unknown keys — the three keys above would fail the fixture rather
+ * than a rename — so it works by pinning VALUES, and the accepted fixture is
+ * what gives `accepted` its teeth (dropping the key decodes to the `false` the
+ * rejected fixture expects anyway). That test also pins what this client SENDS
+ * against the server's own `verdict_table.json`, because the watch relies on the
+ * server to judge staleness and a direction the server cannot parse would make
+ * that reliance unanswerable.
  */
 private val doorCommandJson: Json = Json {
     ignoreUnknownKeys = true

@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-07-31
+last_verified: 2026-09-27
 ---
 
 # Wear OS App (`MobileGarage/wearApp/`)
@@ -733,13 +733,17 @@ places — voice is not a side door:
 `FakeRemoteButtonRepository.pushCount` rather than on UI state — the question
 is always "did a sentence reach the garage", never "did the screen look right".
 
-One documented gap: the watch passes `isCheckInStale = false` to the mapper,
-because `CheckInStalenessManager` is phone-only. That is not a claim the
-reading is fresh; it is the absence of the phone's extra suspicion on top of
-the mapper's own rules. Voice inherits exactly the exposure the hold-to-confirm
-button already has, which is the right bar — both act on the same mirror.
-Closing it means giving the watch a staleness signal, which is a change to the
-door surface as a whole, not to voice. See `LiveVoiceDoor`.
+The watch passes `isCheckInStale = false` to the mapper. That used to be a
+documented gap — `CheckInStalenessManager` was phone-only — and since 0.7.0 it
+is a **decision**: the watch does judge check-in staleness now, and chooses not
+to spend that judgement here. The server holds the authoritative door state and
+the authoritative check-in and gates on both, so a second opinion computed on
+the watch could only ever be the worse one. What the client owes the server is
+an accurate statement of the direction, and it sends exactly that — pinned
+against the server's own `verdict_table.json` by
+`DoorCommandWireContractTest`. The mapper's deny-by-default rules still apply
+in full locally, so this projection remains a fast refusal for obviously inert
+commands. See `LiveVoiceDoor`, which carries the full reasoning.
 
 The press is tagged: the ack token carries a `-voice` marker in the appVersion
 slot, so server logs can tell a spoken press from a held one. (The server
@@ -1175,17 +1179,26 @@ use — `tile_open` vs `tile_stale` is the same door with one muted, and
 
 ### Known gaps
 
-- **No tile-picker preview image.** The picker falls back to the app icon. A
-  `androidx.wear.tiles.PREVIEW` drawable is a hand-drawn duplicate of the
-  tile's design, which drifts from it the first time either changes; the honest
-  version is generated from the tile the emulator actually renders, which
-  `generate-wear-screenshots.sh` now captures. Wiring that PNG in is the
-  follow-up.
+- **No tile-picker preview image, and that is now a DECISION** (2026-09-27).
+  The picker falls back to the app icon. The plan up to 0.9.0 was to generate
+  an `androidx.wear.tiles.PREVIEW` drawable from the tile the emulator actually
+  renders — honest, because it could not drift from a hand-drawn duplicate.
+  **0.9.1 removed the thing that made that honest.** The tile's duration is no
+  longer text the app wrote; it is a `DynamicString` the *platform* re-renders
+  against the watch's own clock, and the door word beside it is whatever the
+  last reading said. A captured PNG freezes both — so the picker would show a
+  door state and a duration that were true on some emulator, months ago, to a
+  user deciding whether to add the tile. That is worse than no preview: a
+  frozen reading is indistinguishable from a live one, which is the exact
+  failure this whole surface is designed against (§ "What 'reliable' can and
+  cannot mean here"). **The app icon is the truthful option** — it says which
+  tile this is and claims nothing about the door. Revisit only if the platform
+  gains a way to preview a tile live.
 - **The tile must still be added to the carousel by hand**, once, per watch.
   Nothing in the app can do that for the user.
-- **No complication yet.** The same `GlanceStatus` would drive one; a
-  complication lives ON the watch face, so it is more glanceable still but has
-  room for only a few characters and no age line.
+- ~~**No complication yet.**~~ Shipped in 0.9.0 — see § "The complication".
+  It is driven by the same `GlanceStatus`, through the shared `WearGlanceStatus`
+  reader.
 
 ## What the glance surfaces show, and why it is not an age (0.9.1)
 
@@ -1633,21 +1646,26 @@ captured from a real Wear emulator by a single script.
    used to propose: a tile cannot express the press-and-hold that guards the
    button, and it is the easiest surface in the system to touch by accident.
    ~~**Still open: a complication**~~ — **done in 0.9.0**, see § "The
-   complication". A generated tile-picker preview image remains the follow-up.
+   complication". ~~A generated tile-picker preview image remains the
+   follow-up.~~ **Decided AGAINST** (2026-09-27) — see § "Known gaps".
 5. **Ambient / always-on handling** beyond the default (currently the
    activity simply stops polling when hidden).
 6. ~~**Check-in staleness on the watch**~~ — **done in 0.7.0**, see § "What
-   the watch remembers". The door screen now greys when the garage has gone
-   quiet. **Still open, but much smaller than it was: the LOCAL voice gate.**
-   `LiveVoiceDoor` continues to pass `isCheckInStale = false`, so the
-   watch's own gate does not consider staleness — but this is no longer the
-   exposure it was, because since `server/36` the **server's `doorCommand`
-   gate judges check-in staleness itself** and the watch consults it as a
-   third gate before pressing (CLAUDE.md § `doorCommand`). So a stale door
-   is already refused; what is missing is that the watch cannot refuse it
-   **locally**, without the round trip. Wiring the signal through is now
-   plumbing rather than design, but it changes what a refusal SAYS on a path
-   that moves the real door, so it wants its own change.
+   the watch remembers"; **and the local voice gate is now SETTLED, not
+   open** (2026-09-27). The door screen greys when the garage has gone
+   quiet, and `LiveVoiceDoor` still passes `isCheckInStale = false` — but
+   that is now a decision rather than a gap. The maintainer's call was that
+   **the server may gate the direction, so long as the request says what it
+   is trying to do**, and it does: `NetworkDoorCommandRepository` sends
+   `OPEN` -> `"open"` / `CLOSE` -> `"close"` and refuses `UNKNOWN` before
+   the wire, and both gates judge that direction against the same
+   `wire-contracts/doorCommand/verdict_table.json`. The server holds the
+   authoritative door state and the authoritative check-in, so a second
+   staleness opinion computed on the watch could only ever be the worse
+   one. What the watch loses is a round trip on a command the server was
+   about to refuse — against a backend the press itself targets a moment
+   later. Do not "finish" this by wiring the signal through; the reasoning
+   lives in `LiveVoiceDoor`'s KDoc.
 7. **Hoist the duplicated `FirebaseAuthBridge`** (phone + wear copies) into
    a shared Android library module.
 8. **True standalone auth** (no phone dependency). The per-call phone

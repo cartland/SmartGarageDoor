@@ -156,22 +156,43 @@ class WearLiveVoiceViewModel(
 /** How the live surface projects the real door into the gate's view. */
 internal object LiveVoiceDoor {
     /**
-     * `isCheckInStale = false` because the watch has no staleness signal to
-     * pass: `CheckInStalenessManager` is phone-only, and the watch's door
-     * mirror is refreshed by foreground polling rather than by push.
+     * `isCheckInStale = false` DELIBERATELY: staleness is the server's
+     * judgement to make, and it makes it with better information than the
+     * watch has.
      *
-     * This is NOT a claim that the reading is fresh. It is the absence of the
-     * extra suspicion the phone layers on top of the mapper's own
-     * deny-by-default rules, which still apply in full: every genuine anomaly
-     * (stuck transit, sensor conflict, no event at all) already maps to
-     * UNKNOWN, and UNKNOWN refuses every direction.
+     * An earlier version of this comment said the watch had no staleness
+     * signal to pass. That stopped being true in 0.7.0 — the watch judges
+     * check-in staleness now, and the door screen greys when the garage goes
+     * quiet. So this is a choice, not a gap, and the maintainer's call
+     * (2026-09-27) was to leave the judgement with the server.
      *
-     * The residual gap is a door whose last known position is clean but whose
-     * device has stopped reporting. Voice inherits exactly the exposure the
-     * hold-to-confirm button already has there, which is the right bar: both
-     * act on the same mirror, so neither should be more trusting than the
-     * other. Closing it means giving the watch a staleness signal, which is a
-     * change to the door surface as a whole and not to voice.
+     * **Why that is the right division.** The server holds the authoritative
+     * door state and the authoritative check-in; the watch holds a mirror
+     * that may be minutes old. For "is this command actionable", the server's
+     * information is strictly better, so a second opinion computed here could
+     * only ever be the worse one. What the CLIENT owes the server is an
+     * accurate statement of what it is trying to do — the direction — and
+     * `NetworkDoorCommandRepository` sends exactly that (`OPEN` -> "open",
+     * `CLOSE` -> "close"), with `VoiceIntent.UNKNOWN` refused before it can
+     * reach the wire.
+     *
+     * Both sides then judge that direction by ONE rule: `VoiceCommandGate`
+     * and the server's `DoorCommandGate` are pinned to the same
+     * `wire-contracts/doorCommand/verdict_table.json`, so they cannot drift
+     * about what a command means.
+     *
+     * **What this local projection is still for.** It is a fast refusal, not
+     * a safety layer — it spares a round trip for commands that are obviously
+     * inert, and it keeps the mapper's deny-by-default rules in play: every
+     * genuine anomaly (stuck transit, sensor conflict, no event at all)
+     * already maps to UNKNOWN, and UNKNOWN refuses every direction. A stale
+     * door that slips past it is refused by the server a moment later, which
+     * costs one request against a backend the press was about to contact
+     * anyway.
+     *
+     * The gate is additive by construction: `confirmWithServer` can only
+     * return a refusal or null, so consulting the server can never turn a
+     * locally-refused command into a permitted one.
      */
     fun project(position: DoorPosition?): VoiceDoorState = VoiceDoorStateMapper.project(position, isCheckInStale = false)
 }
