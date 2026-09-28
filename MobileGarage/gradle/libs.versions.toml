@@ -28,6 +28,9 @@ jbLifecycle = "2.10.0-beta01"
 # 2.1.20 (:data-local:kspKotlinIosSimulatorArm64). Unpin with the Kotlin 2.2+
 # bump; also ignored in dependabot.yml.
 androidxDatastore = "1.1.7"
+# Home-screen app widget (Glance). The phone's only glance surface; it renders
+# the same shared GlanceStatus the Wear tile and complication do.
+androidxGlance = "1.2.0"
 # Wear tiles + the ProtoLayout stack they render. Pinned as a PAIR: tiles
 # 1.6.2 declares protolayout 1.4.2, but AndroidX POMs list their dependencies
 # at runtime scope, so protolayout has to be declared explicitly to reach the
@@ -96,6 +99,9 @@ androidx-activity-compose = { group = "androidx.activity", name = "activity-comp
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "androidxDatastore" }
+androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "androidxGlance" }
+androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "androidxGlance" }
+androidx-glance-appwidget-testing = { group = "androidx.glance", name = "glance-appwidget-testing", version.ref = "androidxGlance" }
 androidx-wear-tiles = { group = "androidx.wear.tiles", name = "tiles", version.ref = "androidxWearTiles" }
 androidx-wear-tiles-renderer = { group = "androidx.wear.tiles", name = "tiles-renderer", version.ref = "androidxWearTiles" }
 androidx-wear-complications-datasource-ktx = { group = "androidx.wear.watchface", name = "watchface-complications-data-source-ktx", version.ref = "androidxWearWatchface" }

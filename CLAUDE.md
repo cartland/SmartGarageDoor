@@ -883,6 +883,83 @@ dynamic condition so it crosses the hour boundary by itself.
   churn by a minute between regens — that churn is the evidence the duration is
   live.
 
+### The phone's home-screen widget (an instant, not a duration)
+
+The door on the phone's home screen — `GarageDoorWidget` (Glance), the FOURTH
+surface driven by one shared `GlanceStatus` after the door screen, the Wear tile
+and the complication. It contributes no verdict; it words and draws one.
+
+- **READ-ONLY, and the argument is stronger than the tile's.** Tapping opens the
+  app. The app's own button is a two-tap confirm and the watch's is a
+  press-and-HOLD; a widget tap is a SINGLE tap on a surface that gets swiped
+  across, pocketed, and handed to other people, with nowhere to put a confirm
+  gesture. Arming the door there would swap the strongest guard in the app for
+  the weakest gesture the platform offers. Asserted THREE ways, because each is
+  blind to the others: `GarageDoorWidgetSafetyTest` does constructor/field
+  reflection (with `DefaultHomeViewModel` as the positive control), reads the
+  MANIFEST to assert the receiver answers `APPWIDGET_UPDATE` and nothing else (a
+  custom action is how a widget grows a button with no Kotlin dependency
+  changing), and `GarageDoorWidgetBodyTest` asserts the built composition's only
+  click action starts `MainActivity`.
+- **It shows an INSTANT ("since 3:42 PM"), never a duration.** `GlanceStatus`
+  says a surface that cannot self-update a duration must show no number rather
+  than a frozen one — and a widget cannot: its only self-updating text primitive
+  is the `RemoteViews` `Chronometer`, whose format is a stopwatch (`74:13:52`),
+  the exact shape rejected on the watch when `3h` came out as `3H`. Its update
+  floor is also 30 minutes (the platform clamps anything smaller), so a computed
+  duration is the "8 min" bug in a worse form. **An absolute instant beats the
+  fallback rather than settling for it**: a statement about a past moment cannot
+  be made wrong by any update schedule, needs no renderer support, and still
+  answers the question. Maintainer's call, 2026-09-27.
+- **A cold process nearly rendered "No signal" over a populated database.**
+  `DoorRepository.currentDoorEvent` is a `MutableStateFlow` **seeded null**,
+  filled by a collector in the repository's `init` — and a widget is rendered
+  precisely when the app is not running. `WidgetGlanceStatus` therefore collects
+  Room's own flow with `first()`, whose first emission IS the stored value. This
+  is the hazard Wear needed an explicit hydration latch for; the phone needs none
+  because Room's flow is already the answer. **Do not "simplify" it to
+  `observeDoorEvents.current().value`.** Scar test:
+  `aDoorAlreadyOnDiskIsReadWithoutTheNetwork`.
+- **Every door word is the Home screen's own `home_door_state_*` resource.** The
+  widget and the app describe the same reading from the same verdict, so a second
+  set of labels is how they start disagreeing; the `home_` prefix is load-bearing
+  rather than untidy. `theDoorWordsAreTheAppsOwnStringsAndNotACopy` reads the
+  source and fails on any `widget_door_state_*`, with its own positive control so
+  the regex cannot go blind. The clock formatting reuses the Home screen's
+  `HomeStatusFormatter`, so an older event picks up the same "Apr 28, 9:47 PM"
+  qualifier instead of a second convention. (That formatter is named after one
+  screen while serving two, which the ADR-035 naming corollary would normally
+  flag — but `DECISIONS.md` already lists it in a PLANNED relocation to
+  `presentation-model`, so renaming now would front-run a written plan. Leave it.)
+- **Colours and muting are inherited, not reimplemented.** `GarageWidgetColors`
+  reads `doorStatusLightScheme` / `doorStatusDarkScheme` and passes
+  `DataFreshness.isMuted` straight through, so the widget greys by exactly the
+  rule and amount every other surface does. Dark mode is Glance's
+  `ColorProvider(day, night)` — resolved by the host, the only thing that knows
+  the launcher's configuration.
+- **The drawing IS tested, and that needed a deliberate split.** Glance is not
+  Compose, so the screenshot gallery cannot render it and Layoutlib has no widget
+  host — the layout would have been the one part of this surface nothing verified,
+  the same gap that let the Wear tile ship a blank coloured block.
+  `runGlanceAppWidgetUnitTest` runs on the JVM but needs Robolectric if the
+  composable touches a `Context` (Robolectric is not in this project), so
+  `GarageDoorWidgetBody` takes a resolved `GarageWidgetText` and the one
+  Context-dependent step lives in `GarageDoorWidgetContent` above it. These are
+  COMPOSITION assertions, never visual ones: they prove which elements exist and
+  what they carry, not how they look.
+- **Two Glance APIs are easy to get wrong, both fixed by reading the sources.**
+  The day/night `ColorProvider(day, night)` is in `androidx.glance.color`, not
+  `androidx.glance.unit` (which holds the single-colour one and the returned
+  TYPE, so the factory needs an import alias); the reified
+  `actionStartActivity<T>()` and `hasStartActivityClickAction<T>()` are in
+  `androidx.glance.action` / `androidx.glance.testing.unit`, while the
+  same-named `Intent` overloads live in the `appwidget` packages and produce
+  "No type arguments expected".
+- **The click action sits on the CONTAINER, not on a `Text`.** The whole card is
+  the tap target, so a test must find the node carrying the action rather than
+  look for it on a line of text — a first attempt asserted on the headline and
+  failed with the Text node's modifier printed empty.
+
 ### The Wear complication (no pixels of our own)
 
 The door on the watch face — `GarageDoorComplicationService`, reading the same

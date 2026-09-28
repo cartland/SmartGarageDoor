@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Home-screen widget metadata for GarageDoorWidgetReceiver.
+
+  updatePeriodMillis is 1800000 (30 minutes), which is the platform FLOOR, not a
+  choice: Android silently clamps anything smaller, so a number below it would
+  read as a promise the system never made. It is also why this widget shows an
+  absolute "since 3:42 PM" rather than a duration — see GarageWidgetSubline.
+
+  The widget refreshes from the network on every render as well, so the real
+  cadence is "whenever the launcher asks", and the reading says so when it could
+  not be confirmed.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_description"
+    android:minWidth="110dp"
+    android:minHeight="40dp"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="2"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen" />

@@ -89,6 +89,24 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_notification_garage" />
+        <!--
+          Home-screen widget. READ-ONLY: tapping launches MainActivity and there
+          is no route from here to the garage button (GarageDoorWidgetSafetyTest
+          asserts it). android:exported is required true because the launcher is
+          the caller.
+        -->
+        <receiver
+            android:name=".widget.GarageDoorWidgetReceiver"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/garage_door_widget_info" />
+        </receiver>
+
     </application>
 
 </manifest>
