@@ -408,4 +408,21 @@
         <item quantity="one">%1$d day ago</item>
         <item quantity="other">%1$d days ago</item>
     </plurals>
+
+    <!--
+      Home-screen widget. The door words themselves are reused from the
+      `home_door_state_*` strings above, deliberately: the widget and the door
+      screen describe the same reading, so a second set of labels is how they
+      start disagreeing. Only what is genuinely the widget's own lives here.
+    -->
+    <!-- Wraps an absolute clock time, e.g. "since 3:42 PM". NOT a duration:
+         a widget updates at most every 30 minutes, so an elapsed figure would
+         be wrong by up to that much, while an instant stays true forever. -->
+    <string name="widget_since_format">since %1$s</string>
+    <!-- Shown in place of the "since" line when the reading cannot be vouched
+         for. A span would claim the door has been that way continuously, which
+         is exactly what we have lost the ability to say. -->
+    <string name="widget_liveness_stale">Stale</string>
+    <!-- Shown in the launcher's widget picker. -->
+    <string name="widget_description">Garage door status. Tap to open the app.</string>
 </resources>

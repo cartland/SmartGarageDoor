@@ -256,6 +256,13 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material3.window.sizeclass)
     implementation(libs.androidx.material.icons.extended)
+
+    // Home-screen widget. Glance renders RemoteViews from a Compose-shaped API,
+    // so the widget is written in the same idiom as the rest of the app rather
+    // than in XML layouts. glance-material3 supplies GlanceTheme, which follows
+    // the launcher's dynamic colour on Android 12+.
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
     // Tracing
     implementation(libs.androidx.tracing)
     // Accompanist
@@ -277,6 +284,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.play.services)
     // Testing
     testImplementation(libs.junit)
+    testImplementation(libs.androidx.glance.appwidget.testing)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(project(":test-common"))
     // Konsist pilot — see androidApp/src/test/.../konsist/. Additive to the

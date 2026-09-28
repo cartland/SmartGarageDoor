@@ -234,6 +234,16 @@ abstract class AppComponent(
     abstract val networkDoorDataSource: NetworkDoorDataSource
     abstract val networkFeatureAllowlistDataSource: NetworkFeatureAllowlistDataSource
     abstract val localDoorDataSource: LocalDoorDataSource
+
+    /**
+     * For the home-screen widget, which is a UI-LESS caller in the ADR-033
+     * sense: the system renders it, there is no NavBackStackEntry and so no
+     * ViewModelStore to hold a ViewModel, and nothing about it is triggered by
+     * a screen. That is the same category as FCMService and AppStartup, and the
+     * same call the Wear tile made. It is NOT a licence for app screens to
+     * reach the graph -- checkUiLayerNoGraphAccess still guards `ui/`.
+     */
+    abstract val fetchCurrentDoorEventUseCase: FetchCurrentDoorEventUseCase
     abstract val buttonHealthRepository: ButtonHealthRepository
     abstract val buttonHealthFcmRepository: ButtonHealthFcmRepository
     abstract val buttonHealthFcmSubscriptionManager: ButtonHealthFcmSubscriptionManager
