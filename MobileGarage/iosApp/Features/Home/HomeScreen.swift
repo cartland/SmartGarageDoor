@@ -466,13 +466,15 @@ struct RemoteProgressDiagram: View {
             .foregroundStyle(color(for: status))
     }
 
+    // Exhaustive over the shared `DiagramNodeStatus`, no `default:` — a case
+    // added on the Kotlin side must fail this build, not render grey
+    // (scripts/check-swift-default-arms.sh, strategy 4.2).
     private func color(for status: DiagramNodeStatus?) -> Color {
         switch status {
         case .none, .some(.idle): return Color(uiColor: .tertiaryLabel)
         case .some(.active): return .accentColor
         case .some(.succeeded): return .green
         case .some(.failed): return .red
-        default: return Color(uiColor: .tertiaryLabel)
         }
     }
 
@@ -489,7 +491,6 @@ struct RemoteProgressDiagram: View {
         case .some(.inProgress): return .accentColor
         case .some(.succeeded): return .green
         case .some(.failed): return .red
-        default: return Color(uiColor: .tertiarySystemFill)
         }
     }
 

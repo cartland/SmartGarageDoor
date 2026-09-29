@@ -353,12 +353,13 @@ final class HomeViewModelWrapper: ObservableObject {
         case .days(let v):
             age = v.days == 1 ? "1 day ago" : "\(v.days) days ago"
         }
+        // Exhaustive over the shared `ButtonOfflineAgeSource`, no `default:`
+        // (scripts/check-swift-default-arms.sh, strategy 4.2).
         switch offline.source {
         // Resolved to characters only here, so the age can be interpolated into
         // the wrapper's own catalog entry ("Last seen %@").
         case .lastSeen: return "Last seen \(String(localized: age))"
         case .stateChanged: return age
-        default: return age
         }
     }
 
