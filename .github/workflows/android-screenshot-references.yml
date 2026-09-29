@@ -1,0 +1,82 @@
+name: Android Screenshot References
+
+# Dispatch-only. Renders the Android screenshot-test reference PNGs (Layoutlib)
+# on a macOS runner and uploads them as an artifact for a person to commit.
+#
+# Why it exists: the committed references are the design-review set, and the
+# maintainer's Mac renders them blank (CLAUDE.md § "Local screenshot regen
+# produces blank / degraded PNGs"), while every other CI job only COMPILES the
+# screenshot tests — the update-android-screenshots skill's deliberate
+# "never generate on CI" rule guards against Linux-vs-macOS render drift. A
+# macOS runner is the platform the committed references were recorded on, so
+# a refresh from here does not thrash against a working Mac. It never
+# commits, never validates, and never runs on a PR: a person dispatches it,
+# downloads the artifact into the reference directory, and runs
+# `SKIP_RENDER=1 ./scripts/generate-android-screenshots.sh` for the gallery,
+# collections, framing and store steps.
+#
+#   gh workflow run android-screenshot-references.yml
+#   gh run download <run-id> -n android-screenshot-references \
+#     -D MobileGarage/android-screenshot-tests/src/screenshotTestDebug/reference
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    name: Render reference PNGs (macOS Layoutlib)
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ./.github/actions/setup-android
+        with:
+          encrypt-key: ${{ secrets.ENCRYPT_KEY }}
+
+      # One Gradle run per test class, exactly as scripts/generate-android-screenshots.sh
+      # does locally (sequential to avoid Layoutlib OOM). Starts from an empty
+      # reference dir so a deleted preview's PNG does not linger in the artifact.
+      - name: Render every screenshot test class
+        working-directory: MobileGarage
+        run: |
+          rm -rf android-screenshot-tests/src/screenshotTestDebug/reference
+          mkdir -p android-screenshot-tests/src/screenshotTestDebug/reference
+          for file in android-screenshot-tests/src/screenshotTest/kotlin/com/chriscartland/garage/screenshottests/*.kt; do
+            classname="com.chriscartland.garage.screenshottests.$(basename "$file" .kt)Kt"
+            echo "::group::$classname"
+            ./gradlew --no-configuration-cache :android-screenshot-tests:updateDebugScreenshotTest \
+              --tests "$classname" -PretainedReferenceScreenshots
+            echo "::endgroup::"
+          done
+
+      # The reason this runs on a Mac at all: a blank render is THE failure
+      # mode, and it must fail here, not after the PNGs are committed. The
+      # health script is warn-only by design (a local aid), so the gate is
+      # its output, not its exit code.
+      - name: Health check (a blank render fails the run)
+        run: |
+          ./scripts/check-screenshot-health.sh | tee health.txt
+          if grep -q "Likely blank" health.txt; then
+            echo "::error::Blank renders on the runner — the artifact must not be committed"
+            exit 1
+          fi
+
+      - name: Summarize
+        run: |
+          COUNT=$(find MobileGarage/android-screenshot-tests/src/screenshotTestDebug/reference -name '*.png' | wc -l | tr -d ' ')
+          echo "Rendered $COUNT reference PNG(s) on macOS $(sw_vers -productVersion) / $(uname -m)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: android-screenshot-references
+          path: MobileGarage/android-screenshot-tests/src/screenshotTestDebug/reference
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Clean secrets
+        if: always()
+        working-directory: MobileGarage
+        run: ./release/clean-secrets.sh

@@ -75,6 +75,7 @@ The script automatically cleans old reference PNGs before generating new ones โ€
 Screenshots render differently across platforms (macOS vs Linux CI). To avoid thrashing:
 - Only regenerate screenshots deliberately via this skill or the script
 - CI compiles screenshot tests but never generates or validates PNGs
+- The one render path off this machine is the dispatch-only `Android Screenshot References` workflow (macOS runner, artifact only, fails on a blank render); download its artifact into the reference dir and run `SKIP_RENDER=1 ./scripts/generate-android-screenshots.sh` for the post-render steps. See CLAUDE.md ยง "Local screenshot regen produces blank / degraded PNGs".
 - Commit screenshots from a single platform consistently
 
 ## Notes
