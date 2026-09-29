@@ -1,7 +1,7 @@
 ---
 category: plan
 status: active
-last_verified: 2026-06-27
+last_verified: 2026-09-28
 ---
 
 # Presentation-model realization — phased plan
@@ -16,6 +16,12 @@ from the 2026-06-27 audit (ADR-029).
 > **One-line goal:** move `androidApp/`'s `HomeMapper` / `HistoryMapper` /
 > `DoorWarning` / `HomeStatusFormatter` into shared typed state, so iOS gets the
 > richness for free and Android's UI gets thinner.
+>
+> **Where it stands (2026-09-28):** Phases 1–5 shipped; `DoorWarning` and
+> `HistoryMapper` are shared. `HomeMapper` and `HomeStatusFormatter` are still
+> Android-only, and the Wear app + home-screen widget now consume the shared
+> types too. Follow-ups live in
+> [`CROSS_SURFACE_UX_STRATEGY.md`](../../docs/CROSS_SURFACE_UX_STRATEGY.md).
 
 ## Why (short)
 

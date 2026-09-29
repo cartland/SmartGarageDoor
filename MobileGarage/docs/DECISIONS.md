@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-07-14
+last_verified: 2026-09-28
 ---
 # Architectural Decision Records
 
@@ -1767,7 +1767,7 @@ iOS had no equivalent. The app had no Swift test target at all; iOS CI only buil
 
 ### Status
 
-Accepted — 2026-06-27. **Plan only; not yet implemented.** Phased rollout: [`PRESENTATION_MODEL_REALIZATION.md`](./PRESENTATION_MODEL_REALIZATION.md).
+Accepted — 2026-06-27. **Implemented** — Phases 1–5 of the rollout shipped (2026-06-27 → 2026-06-28); the shared decision types listed under "Shared decides, platform words it" in CLAUDE.md are consumed by Android, iOS and Wear. This line read "Plan only; not yet implemented" until 2026-09-28, when the cross-surface audit ([`CROSS_SURFACE_UX_STRATEGY.md`](../../docs/CROSS_SURFACE_UX_STRATEGY.md)) found it stale. Still on Android only: `HomeMapper` and `HomeStatusFormatter` (the latter now also serves the home-screen widget), and the two dormant screen-state types the audit slated for pruning. Rollout history: [`PRESENTATION_MODEL_REALIZATION.md`](./PRESENTATION_MODEL_REALIZATION.md).
 
 ### Context
 
@@ -1812,7 +1812,7 @@ Principles:
 - ADR-029 — the parity principle this implements.
 - [`PRESENTATION_MODEL_REALIZATION.md`](./PRESENTATION_MODEL_REALIZATION.md) — the phased plan, slice checklist, and parity-gap inventory.
 - Dormant scaffolding: `presentation-model/.../{HomeScreenState,DoorHistoryScreenState,ProfileScreenState}.kt`.
-- Mappers to relocate: `androidApp/.../ui/home/{HomeMapper,HomeStatusFormatter,DoorWarning}.kt`, `androidApp/.../ui/history/HistoryMapper.kt`.
+- Mappers still to relocate: `androidApp/.../ui/home/{HomeMapper,HomeStatusFormatter}.kt`. `DoorWarning` and `HistoryMapper` moved to `presentation-model` (Phases 1 and 3).
 
 ---
 
