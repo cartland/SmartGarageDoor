@@ -34,6 +34,11 @@ set -euo pipefail
 # full ring deterministically illustrates "ring filled -> press fires").
 #
 # Usage: ./scripts/generate-wear-screenshots.sh
+#        WEAR_CAPTURE_ONLY="settings_bottom ongoing_waiting" ./scripts/generate-wear-screenshots.sh
+# The second form re-captures just those stages (the gallery README and the
+# sanity check still cover every stage, so a subset run cannot drop rows or
+# hide a missing PNG) — for iterating on one fixture without a ten-minute
+# full pass.
 # Run on demand: whenever a PR visibly changes the hero screen, and before
 # store-asset updates. Deliberately NOT in CI (emulator boot is slow and
 # flaky; the repo posture is regenerate-don't-assert with the PR diff as
@@ -85,11 +90,15 @@ STAGES=(
     # duration is live rather than frozen at build time. Same tolerance as the
     # mid-travel stages above.
     tile_closed tile_open tile_stale tile_no_signal
+    # The WATCH FACE with the ongoing chip a press awaiting the door leaves
+    # behind. Last on purpose: the force-stop after the loop clears it.
+    ongoing_waiting
 )
 # Post-foreground settle: lets the system splash ("Starting…") dissolve and
 # the first real frame land. The foreground wait below handles slow cold
 # starts; this only covers render/splash latency after the activity resumes.
 DEFAULT_SETTLE_SECONDS=4
+ONGOING_CHIP_TIMEOUT_SECONDS=45
 FOREGROUND_TIMEOUT_SECONDS=30
 
 fail() {
@@ -171,6 +180,10 @@ APK="$(find "$REPO_ROOT/MobileGarage/wearApp/build/outputs/apk/debug" -name '*.a
 [ -n "$APK" ] || fail "no debug APK found after build"
 echo "Installing $(basename "$APK")..."
 "$ADB" -s "$SERIAL" install -r -t "$APK" >/dev/null
+# The ongoing chip is a notification, and Android 13+ shows none without this.
+# In the app it is asked for from Settings; here it is granted outright so the
+# ongoing_waiting stage can photograph the chip.
+"$ADB" -s "$SERIAL" shell pm grant "$PACKAGE" android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true
 
 # --- Pin the clock so TimeText is stable across regens (best effort) ---
 # 10:10 is the classic watch marketing time. Needs adb root (non-Play
@@ -250,12 +263,77 @@ wait_for_fixture_focus() {
     fail "fixture window did not gain focus for stage '$stage_arg'"
 }
 
+# The chip is drawn by SysUI once WearServices has published the ongoing
+# activity; that line is the only honest "it is on the face now" signal.
+wait_for_ongoing_chip() {
+    chip_waited=0
+    while [ "$chip_waited" -lt "$ONGOING_CHIP_TIMEOUT_SECONDS" ]; do
+        if "$ADB" -s "$SERIAL" logcat -d 2>/dev/null \
+            | grep -q "WatchFaceOverlayUi.*Update ongoing activity icon.*$PACKAGE"; then
+            return 0
+        fi
+        sleep 1
+        chip_waited=$((chip_waited + 1))
+    done
+    fail "the ongoing chip never reached the watch face (no WatchFaceOverlayUi update within ${ONGOING_CHIP_TIMEOUT_SECONDS}s)"
+}
+
+# Wear's HOME key TOGGLES between the face and the app launcher, so pressing
+# it blind photographs whichever one was not showing — the second capture of
+# this stage was the Apps grid, and it passed the size sanity check. The
+# HOME-category intent resolves to the face host (SysUiActivity) and only
+# ever brings it forward; the focus wait is the proof that it did.
+WATCH_FACE_CLASS="com.google.android.wearable.sysui.mainui.activity.SysUiActivity"
+reach_watch_face() {
+    face_waited=0
+    while [ "$face_waited" -lt "$FOREGROUND_TIMEOUT_SECONDS" ]; do
+        if [ $((face_waited % 3)) -eq 0 ]; then
+            "$ADB" -s "$SERIAL" shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
+            "$ADB" -s "$SERIAL" shell am start -a android.intent.action.MAIN \
+                -c android.intent.category.HOME >/dev/null 2>&1 || true
+        fi
+        if "$ADB" -s "$SERIAL" shell dumpsys window 2>/dev/null \
+            | grep "mCurrentFocus" \
+            | grep -q "$WATCH_FACE_CLASS"; then
+            return 0
+        fi
+        sleep 1
+        face_waited=$((face_waited + 1))
+    done
+    fail "the watch face never took focus (expected $WATCH_FACE_CLASS)"
+}
+
 mkdir -p "$OUT_DIR"
-for stage in "${STAGES[@]}"; do
+if [ -n "${WEAR_CAPTURE_ONLY:-}" ]; then
+    read -r -a CAPTURE_STAGES <<< "$WEAR_CAPTURE_ONLY"
+    for only in "${CAPTURE_STAGES[@]}"; do
+        printf '%s\n' "${STAGES[@]}" | grep -qx "$only" || fail "WEAR_CAPTURE_ONLY names an unknown stage '$only'"
+    done
+    echo "Capturing only: ${CAPTURE_STAGES[*]}"
+else
+    CAPTURE_STAGES=("${STAGES[@]}")
+fi
+for stage in "${CAPTURE_STAGES[@]}"; do
     echo "Capturing stage: $stage"
     "$ADB" -s "$SERIAL" shell am force-stop "$PACKAGE"
+    # A fresh log per stage, so the chip wait below cannot be satisfied by a
+    # line from an earlier stage.
+    "$ADB" -s "$SERIAL" logcat -c >/dev/null 2>&1 || true
     "$ADB" -s "$SERIAL" shell am start -n "$(activity_for_stage "$stage")" -e stage "$stage" >/dev/null
-    wait_for_fixture_focus "$stage"
+    case "$stage" in
+        ongoing_*)
+            # The fixture starts the chip's service and finishes itself; what
+            # there is to capture is the WATCH FACE with the chip on it. The
+            # platform publishes ongoing activities on its own schedule
+            # (measured: ~11 s after the service started), so wait for SysUI's
+            # own "Update ongoing activity icon" line rather than a fixed
+            # sleep — the first capture of this stage, taken at 6 s, showed a
+            # bare face and would have passed for a working screenshot.
+            wait_for_ongoing_chip
+            reach_watch_face
+            ;;
+        *) wait_for_fixture_focus "$stage" ;;
+    esac
     pin_clock
     sleep "$DEFAULT_SETTLE_SECONDS"
     "$ADB" -s "$SERIAL" exec-out screencap -p > "$OUT_DIR/wear-$stage.png"
@@ -282,6 +360,7 @@ stage_description() {
         tile_open) echo "The same tile with the door open. Review against tile_stale: identical reading, one of them muted" ;;
         tile_stale) echo "Six hours since the garage last reported: same open door, now drained to grey and dimmed, with an age line that explains why" ;;
         tile_no_signal) echo "Nothing known and nothing reachable: the unknown door, \"No signal\", and no age line at all — a reading we cannot date is never given one" ;;
+        ongoing_waiting) echo "The WATCH FACE, not the app: a press is awaiting the door and the wrist has dropped, so the platform's ongoing indicator (our icon, beside the charging bolt) sits at the bottom of the face, its status reading \"Waiting for the door\" and a tap opening the app — the whole chain from permission to foreground service to face, photographed" ;;
         connecting) echo "Cold start, inside the settle window: dial grey and dim, label still the calm \"Connecting…\", no warning badge" ;;
         no_signal) echo "The same cold start five seconds later: identical dial, headline now \"No signal\" — waiting escalates by adding a word, not by changing the art" ;;
         closed) echo "Closed door (affirmative sensor), \"Hold to open\"" ;;
@@ -294,7 +373,7 @@ stage_description() {
         signed_out) echo "Signed out: Sign in button (no mic chip — voice is signed-in only)" ;;
         sign_in_error) echo "Transient \"Sign-in failed\" caption" ;;
         settings) echo "Settings, one swipe left of the door: a scrolling list (crown included) with the signed-in account, the version, and an edge button to the store" ;;
-        settings_bottom) echo "The end of the same list, which a settle-then-capture fixture cannot otherwise reach: the update button is below the fold at scroll position 0" ;;
+        settings_bottom) echo "The end of the same list, which a settle-then-capture fixture cannot otherwise reach: the Door progress row in its ASK state (a button until notifications are allowed), then the rehearsal" ;;
         settings_local) echo "The same list signed out and on a build that never came from a release, which is the one case that still names itself" ;;
         voice_listening) echo "Voice listening, nothing said yet: one line, and pulse rings capped so they clear it" ;;
         voice_hearing) echo "Voice mid-utterance: rings driven by mic level, prompt replaced by ONE line of live text, ellipsized at the START so the newest words stay visible" ;;

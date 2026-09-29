@@ -113,6 +113,8 @@ fun WearSettingsScreen(
     authState: AuthState,
     onOpenStore: () -> Boolean,
     onSimulatedVoiceClick: () -> Unit,
+    doorProgress: DoorProgressDisplay,
+    onDoorProgressClick: () -> Unit,
     modifier: Modifier = Modifier,
     initialAnchorItemIndex: Int = 0,
 ) {
@@ -221,6 +223,36 @@ fun WearSettingsScreen(
                         textAlign = TextAlign.Center,
                     )
                 }
+            }
+            // The watch face's door-progress chip needs a notification
+            // permission on Android 13+, and Settings is the only place it is
+            // asked for: never mid-press, where a system dialog would land on
+            // top of the door the user is watching. Once granted (or on a
+            // watch that needs no permission) the row is a statement, not a
+            // button.
+            item {
+                ListSubHeader(
+                    transformation = SurfaceTransformation(transformSpec),
+                    modifier = Modifier.transformedHeight(this, transformSpec),
+                ) {
+                    Text(text = stringResource(R.string.settings_watch_face))
+                }
+            }
+            item {
+                Button(
+                    onClick = onDoorProgressClick,
+                    enabled = doorProgress == DoorProgressDisplay.ASK,
+                    transformation = SurfaceTransformation(transformSpec),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .transformedHeight(this, transformSpec),
+                    label = {
+                        Text(text = stringResource(R.string.settings_door_progress))
+                    },
+                    secondaryLabel = {
+                        Text(text = stringResource(WearSettingsMappers.doorProgressSubtitle(doorProgress)))
+                    },
+                )
             }
             item {
                 ListSubHeader(
@@ -332,6 +364,28 @@ internal object WearSettingsMappers {
             AuthState.Unknown -> AccountDisplay.Resolving
         }
 
+    /**
+     * Whether the watch face may show the door-progress chip. Below Android
+     * 13 no permission exists, so the row states the feature is on rather
+     * than offering to ask for something that cannot be asked.
+     */
+    fun doorProgress(
+        permissionRequired: Boolean,
+        granted: Boolean,
+    ): DoorProgressDisplay =
+        when {
+            !permissionRequired -> DoorProgressDisplay.ON
+            granted -> DoorProgressDisplay.ON
+            else -> DoorProgressDisplay.ASK
+        }
+
+    @StringRes
+    fun doorProgressSubtitle(display: DoorProgressDisplay): Int =
+        when (display) {
+            DoorProgressDisplay.ON -> R.string.settings_door_progress_on
+            DoorProgressDisplay.ASK -> R.string.settings_door_progress_ask
+        }
+
     /** Only the two copy cases have a string; a signed-in address is data. */
     @StringRes
     fun placeholderFor(account: AccountDisplay): Int =
@@ -347,6 +401,15 @@ internal object WearSettingsMappers {
         }
 }
 
+/** What the Settings row can say about the watch face's door-progress chip. */
+enum class DoorProgressDisplay {
+    /** Shown while the door is busy: granted, or no permission needed. */
+    ON,
+
+    /** Android 13+ without the notification permission: the row asks for it. */
+    ASK,
+}
+
 /** Signed in, on a released build: version alone, no plumbing. */
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
@@ -358,6 +421,8 @@ private fun WearSettingsScreenReleasePreview() {
             authState = PREVIEW_SETTINGS_USER,
             onOpenStore = { true },
             onSimulatedVoiceClick = {},
+            doorProgress = DoorProgressDisplay.ON,
+            onDoorProgressClick = {},
         )
     }
 }
@@ -373,6 +438,8 @@ private fun WearSettingsScreenLocalBuildPreview() {
             authState = AuthState.Unauthenticated,
             onOpenStore = { true },
             onSimulatedVoiceClick = {},
+            doorProgress = DoorProgressDisplay.ASK,
+            onDoorProgressClick = {},
         )
     }
 }

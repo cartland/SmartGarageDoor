@@ -2677,6 +2677,41 @@ window.UI_GALLERY = {
      ]
     },
     {
+     "id": "wear-ongoing",
+     "title": "The wrist drops",
+     "axis": null,
+     "note": "Not the app: the WATCH FACE with the ongoing indicator (our icon, bottom edge) that a press awaiting the door leaves behind; its status reads \"Waiting for the door\". The proof that permission, channel, foreground service and ongoing activity reach the wrist.",
+     "height": 190,
+     "maxw": null,
+     "variants": [
+      {
+       "id": "default",
+       "label": "Default"
+      }
+     ],
+     "items": [
+      {
+       "id": "ongoing-waiting",
+       "label": "Waiting for the door",
+       "platforms": [
+        "wear"
+       ],
+       "images": {
+        "default|wear|light": {
+         "src": "../screenshots/store/wear/wear-ongoing_waiting.png",
+         "w": 454,
+         "h": 454
+        },
+        "default|wear|dark": {
+         "src": "../screenshots/store/wear/wear-ongoing_waiting.png",
+         "w": 454,
+         "h": 454
+        }
+       }
+      }
+     ]
+    },
+    {
      "id": "wear-signin",
      "title": "Sign-in",
      "axis": null,
@@ -2758,13 +2793,13 @@ window.UI_GALLERY = {
        "images": {
         "default|android|light": {
          "src": "../screenshots/store/widget/widget-closed_2x1-light.png",
-         "w": 373,
-         "h": 189
+         "w": 504,
+         "h": 346
         },
         "default|android|dark": {
          "src": "../screenshots/store/widget/widget-closed_2x1-dark.png",
-         "w": 373,
-         "h": 189
+         "w": 504,
+         "h": 346
         }
        }
       },
@@ -2777,13 +2812,13 @@ window.UI_GALLERY = {
        "images": {
         "default|android|light": {
          "src": "../screenshots/store/widget/widget-closed_4x1-light.png",
-         "w": 740,
-         "h": 189
+         "w": 950,
+         "h": 346
         },
         "default|android|dark": {
          "src": "../screenshots/store/widget/widget-closed_4x1-dark.png",
-         "w": 740,
-         "h": 189
+         "w": 950,
+         "h": 346
         }
        }
       }
@@ -2812,13 +2847,13 @@ window.UI_GALLERY = {
        "images": {
         "default|android|light": {
          "src": "../screenshots/store/widget/widget-open_4x1-light.png",
-         "w": 740,
-         "h": 189
+         "w": 950,
+         "h": 346
         },
         "default|android|dark": {
          "src": "../screenshots/store/widget/widget-open_4x1-dark.png",
-         "w": 740,
-         "h": 189
+         "w": 950,
+         "h": 346
         }
        }
       },
@@ -2831,13 +2866,13 @@ window.UI_GALLERY = {
        "images": {
         "default|android|light": {
          "src": "../screenshots/store/widget/widget-stale_4x1-light.png",
-         "w": 740,
-         "h": 189
+         "w": 950,
+         "h": 346
         },
         "default|android|dark": {
          "src": "../screenshots/store/widget/widget-stale_4x1-dark.png",
-         "w": 740,
-         "h": 189
+         "w": 950,
+         "h": 346
         }
        }
       },
@@ -2850,13 +2885,13 @@ window.UI_GALLERY = {
        "images": {
         "default|android|light": {
          "src": "../screenshots/store/widget/widget-no_signal_4x1-light.png",
-         "w": 740,
-         "h": 189
+         "w": 950,
+         "h": 346
         },
         "default|android|dark": {
          "src": "../screenshots/store/widget/widget-no_signal_4x1-dark.png",
-         "w": 740,
-         "h": 189
+         "w": 950,
+         "h": 346
         }
        }
       }

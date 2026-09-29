@@ -693,6 +693,20 @@ sections:
             images:
               wear: ${wear}/wear-tile_no_signal.png
 
+      - id: wear-ongoing
+        title: The wrist drops
+        height: 190
+        note: >-
+          Not the app: the WATCH FACE with the ongoing indicator (our icon,
+          bottom edge) that a press awaiting the door leaves behind; its
+          status reads "Waiting for the door". The proof that permission,
+          channel, foreground service and ongoing activity reach the wrist.
+        items:
+          - id: ongoing-waiting
+            label: Waiting for the door
+            images:
+              wear: ${wear}/wear-ongoing_waiting.png
+
       - id: wear-signin
         title: Sign-in
         height: 190
