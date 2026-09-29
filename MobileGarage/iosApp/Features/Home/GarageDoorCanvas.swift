@@ -80,7 +80,11 @@ struct GarageDoorView: View {
     @Environment(\.doorAnimationMemory) private var memory
 
     var body: some View {
-        let baseRGB = DoorPalette.doorRGB(for: position, stale: isStale, scheme: scheme)
+        // One grey, from one base (strategy 1.2): a muted door is always the
+        // FRESH colour drained by luma, never the palette's partial _STALE_
+        // entry. `isStale` no longer selects a colour; it stays on the view
+        // only until the stale entries are retired with it.
+        let baseRGB = DoorPalette.doorRGB(for: position, stale: false, scheme: scheme)
         let rgb = DataFreshnessMapper.shared.isMuted(freshness: freshness)
             ? DoorPalette.desaturated(baseRGB)
             : baseRGB

@@ -22,6 +22,7 @@ import androidx.glance.testing.unit.hasStartActivityClickAction
 import androidx.glance.testing.unit.hasText
 import com.chriscartland.garage.MainActivity
 import com.chriscartland.garage.domain.model.DoorColorState
+import com.chriscartland.garage.presentation.DataFreshness
 import org.junit.Test
 
 /**
@@ -44,7 +45,7 @@ class GarageDoorWidgetBodyTest {
                 GarageDoorWidgetBody(
                     text = GarageWidgetText(headline = "Closed", subline = "since 3:42 PM"),
                     colorState = DoorColorState.CLOSED,
-                    isMuted = false,
+                    freshness = DataFreshness.FRESH,
                 )
             }
 
@@ -62,7 +63,7 @@ class GarageDoorWidgetBodyTest {
                 GarageDoorWidgetBody(
                     text = GarageWidgetText(headline = "No signal", subline = null),
                     colorState = DoorColorState.UNKNOWN,
-                    isMuted = true,
+                    freshness = DataFreshness.STALE,
                 )
             }
 
@@ -89,7 +90,7 @@ class GarageDoorWidgetBodyTest {
                 GarageDoorWidgetBody(
                     text = GarageWidgetText(headline = "Open", subline = "since 9:12 AM"),
                     colorState = DoorColorState.OPEN,
-                    isMuted = false,
+                    freshness = DataFreshness.FRESH,
                 )
             }
 
@@ -105,7 +106,7 @@ class GarageDoorWidgetBodyTest {
                 GarageDoorWidgetBody(
                     text = GarageWidgetText(headline = "Closed", subline = "Stale"),
                     colorState = DoorColorState.CLOSED,
-                    isMuted = true,
+                    freshness = DataFreshness.STALE,
                 )
             }
 
