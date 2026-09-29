@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Chris Cartland. All rights reserved.
+ * Copyright 2026 Chris Cartland. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,56 +17,57 @@
 
 package com.chriscartland.garage.ui.home
 
+import com.chriscartland.garage.presentation.CheckInAge
+import com.chriscartland.garage.presentation.CheckInStatus
 import com.chriscartland.garage.presentation.DataFreshness
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/**
+ * The display carries the shared typed verdict; these pin which age it
+ * carries for each heartbeat and when it may alarm. The WORDS for an age
+ * are [DeviceCheckInWordsTest]'s to pin.
+ */
 class DeviceCheckInTest {
     @Test
-    fun format_nullLastCheckIn_returnsNoDataLabel() {
+    fun format_nullLastCheckIn_isNoDataAndNeverAlarms() {
         val display = DeviceCheckIn.format(lastCheckInSeconds = null, nowSeconds = 1_000L)
-        assertEquals("No data yet", display.durationLabel)
+        assertEquals(CheckInStatus.NoData, display.status)
         assertFalse(display.isStale)
     }
 
     @Test
-    fun format_zeroAge_returnsJustNow() {
-        val display = DeviceCheckIn.format(lastCheckInSeconds = 1_000L, nowSeconds = 1_000L)
-        assertEquals("Just now", display.durationLabel)
+    fun format_zeroAge_isJustNow() {
+        assertEquals(CheckInAge.JustNow, ageOf(lastCheckInSeconds = 1_000L, nowSeconds = 1_000L))
     }
 
     @Test
-    fun format_underTenSeconds_returnsJustNow() {
+    fun format_underTenSeconds_isJustNow() {
         // The LiveClock ticks at 10s; "Just now" covers ages < 10s so we
         // never show the awkward "9 sec ago" between ticks.
-        val display = DeviceCheckIn.format(lastCheckInSeconds = 1_000L, nowSeconds = 1_009L)
-        assertEquals("Just now", display.durationLabel)
+        assertEquals(CheckInAge.JustNow, ageOf(lastCheckInSeconds = 1_000L, nowSeconds = 1_009L))
     }
 
     @Test
-    fun format_tenSeconds_returnsSecondsLabel() {
-        val display = DeviceCheckIn.format(lastCheckInSeconds = 1_000L, nowSeconds = 1_010L)
-        assertEquals("10 sec ago", display.durationLabel)
+    fun format_tenSeconds_isSeconds() {
+        assertEquals(CheckInAge.Seconds(10), ageOf(lastCheckInSeconds = 1_000L, nowSeconds = 1_010L))
     }
 
     @Test
-    fun format_thirtySeconds_returnsSecondsLabel() {
-        val display = DeviceCheckIn.format(lastCheckInSeconds = 1_000L, nowSeconds = 1_030L)
-        assertEquals("30 sec ago", display.durationLabel)
+    fun format_thirtySeconds_isSeconds() {
+        assertEquals(CheckInAge.Seconds(30), ageOf(lastCheckInSeconds = 1_000L, nowSeconds = 1_030L))
     }
 
     @Test
-    fun format_oneMinuteEven_omitsSecondsComponent() {
-        val display = DeviceCheckIn.format(lastCheckInSeconds = 1_000L, nowSeconds = 1_060L)
-        assertEquals("1 min ago", display.durationLabel)
+    fun format_oneMinuteEven_hasNoSecondsComponent() {
+        assertEquals(CheckInAge.Minutes(minutes = 1, seconds = 0), ageOf(lastCheckInSeconds = 1_000L, nowSeconds = 1_060L))
     }
 
     @Test
-    fun format_oneMinuteThirtySeconds_includesSecondsComponent() {
-        val display = DeviceCheckIn.format(lastCheckInSeconds = 1_000L, nowSeconds = 1_090L)
-        assertEquals("1 min 30 sec ago", display.durationLabel)
+    fun format_oneMinuteThirtySeconds_keepsTheSecondsComponent() {
+        assertEquals(CheckInAge.Minutes(minutes = 1, seconds = 30), ageOf(lastCheckInSeconds = 1_000L, nowSeconds = 1_090L))
     }
 
     @Test
@@ -91,79 +92,58 @@ class DeviceCheckInTest {
     }
 
     @Test
-    fun format_oneHourEven_omitsMinutesComponent() {
-        val display = DeviceCheckIn.format(lastCheckInSeconds = 0L, nowSeconds = 3_600L)
-        assertEquals("1 hr ago", display.durationLabel)
+    fun format_oneHourEven_hasNoMinutesComponent() {
+        assertEquals(CheckInAge.Hours(hours = 1, minutes = 0), ageOf(lastCheckInSeconds = 0L, nowSeconds = 3_600L))
     }
 
     @Test
-    fun format_oneHourTwentyMinutes_includesMinutesComponent() {
-        val display = DeviceCheckIn.format(lastCheckInSeconds = 0L, nowSeconds = 4_800L)
-        assertEquals("1 hr 20 min ago", display.durationLabel)
+    fun format_oneHourTwentyMinutes_keepsTheMinutesComponent() {
+        assertEquals(CheckInAge.Hours(hours = 1, minutes = 20), ageOf(lastCheckInSeconds = 0L, nowSeconds = 4_800L))
     }
 
     @Test
-    fun format_oneDay_returnsSingularDayLabel() {
-        val display = DeviceCheckIn.format(lastCheckInSeconds = 0L, nowSeconds = 86_400L)
-        assertEquals("1 day ago", display.durationLabel)
+    fun format_oneDay_isOneDay() {
+        assertEquals(CheckInAge.Days(1), ageOf(lastCheckInSeconds = 0L, nowSeconds = 86_400L))
     }
 
     @Test
-    fun format_threeDays_returnsPluralDaysLabel() {
-        val display = DeviceCheckIn.format(lastCheckInSeconds = 0L, nowSeconds = 86_400L * 3)
-        assertEquals("3 days ago", display.durationLabel)
+    fun format_threeDays_isThreeDays() {
+        assertEquals(CheckInAge.Days(3), ageOf(lastCheckInSeconds = 0L, nowSeconds = 3 * 86_400L))
     }
 
     @Test
     fun format_negativeAge_clampedToJustNow() {
-        // Clock skew protection: if `now` is somehow earlier than the check-in,
-        // we don't render "-30 sec ago".
-        val display = DeviceCheckIn.format(lastCheckInSeconds = 1_000L, nowSeconds = 970L)
-        assertEquals("Just now", display.durationLabel)
+        // A check-in "from the future" (clock skew) reads as just now, and
+        // never alarms.
+        val display = DeviceCheckIn.format(lastCheckInSeconds = 2_000L, nowSeconds = 1_000L)
+        assertEquals(CheckInAge.JustNow, (display.status as CheckInStatus.Reported).age)
         assertFalse(display.isStale)
     }
 
     /**
-     * The settle window silences the pill's RED, never its words. Same aged
-     * heartbeat as [format_aboveStaleThreshold_isStale] (whose default
-     * `freshness` is STALE); only the alarm differs.
+     * The settle window: an aged heartbeat keeps its AGE (the same words
+     * the user would read once the window closes, since `freshness` is
+     * STALE by default) and only the alarm is held.
      */
     @Test
-    fun format_settling_keepsTheLabelButDropsTheAlarm() {
-        val display = DeviceCheckIn.format(
-            lastCheckInSeconds = 0L,
-            nowSeconds = 661L,
-            freshness = DataFreshness.SETTLING,
-        )
-        assertEquals("11 min 1 sec ago", display.durationLabel)
+    fun format_settling_keepsTheAgeButDropsTheAlarm() {
+        val display =
+            DeviceCheckIn.format(
+                lastCheckInSeconds = 0L,
+                nowSeconds = 661L,
+                freshness = DataFreshness.SETTLING,
+            )
+        val reported = display.status as CheckInStatus.Reported
+        assertEquals(CheckInAge.Minutes(minutes = 11, seconds = 1), reported.age)
+        assertTrue("the shared verdict still knows the heartbeat is stale", reported.isStale)
         assertFalse("the pill must not alarm inside the settle window", display.isStale)
     }
 
-    /**
-     * Positive control for the pair above: with the window expired the same
-     * inputs DO alarm. Without this, a `freshness.isSpoken` that had
-     * degenerated to always-false would satisfy the settling test and the
-     * suite would go green while the pill had quietly stopped working.
-     */
-    @Test
-    fun format_spoken_alarmsOnTheSameAgedCheckIn() {
-        val display = DeviceCheckIn.format(
-            lastCheckInSeconds = 0L,
-            nowSeconds = 661L,
-            freshness = DataFreshness.STALE,
-        )
-        assertEquals("11 min 1 sec ago", display.durationLabel)
-        assertTrue("the pill must alarm once the window has passed", display.isStale)
-    }
-
-    /** A fresh heartbeat never alarms, whatever the verdict. */
-    @Test
-    fun format_freshCheckInNeverAlarmsEvenWhenSpoken() {
-        val display = DeviceCheckIn.format(
-            lastCheckInSeconds = 0L,
-            nowSeconds = 60L,
-            freshness = DataFreshness.STALE,
-        )
-        assertFalse(display.isStale)
+    private fun ageOf(
+        lastCheckInSeconds: Long,
+        nowSeconds: Long,
+    ): CheckInAge {
+        val status = DeviceCheckIn.format(lastCheckInSeconds = lastCheckInSeconds, nowSeconds = nowSeconds).status
+        return (status as CheckInStatus.Reported).age
     }
 }

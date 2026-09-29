@@ -66,6 +66,8 @@ import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.presentation.CheckInAge
+import com.chriscartland.garage.presentation.CheckInStatus
 import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.DoorHeadline
 import com.chriscartland.garage.presentation.DoorHeadlineMapper
@@ -808,11 +810,11 @@ private object HomePreviewData {
     // Heartbeat cadence is ~10 min, so a representative typical pill reads
     // ~5 min — comfortably under the 11-min staleness threshold.
     val freshCheckIn = DeviceCheckInDisplay(
-        durationLabel = "5 min ago",
+        status = CheckInStatus.Reported(CheckInAge.Minutes(minutes = 5, seconds = 0), isStale = false),
         isStale = false,
     )
     val staleCheckIn = DeviceCheckInDisplay(
-        durationLabel = "23 min ago",
+        status = CheckInStatus.Reported(CheckInAge.Minutes(minutes = 23, seconds = 0), isStale = true),
         isStale = true,
     )
 
@@ -822,14 +824,15 @@ private object HomePreviewData {
      * See `DeviceCheckIn.format`'s `freshness` parameter.
      */
     val settlingCheckIn = DeviceCheckInDisplay(
-        durationLabel = "23 min ago",
+        // The shared verdict knows the heartbeat is stale; only the alarm is held.
+        status = CheckInStatus.Reported(CheckInAge.Minutes(minutes = 23, seconds = 0), isStale = true),
         isStale = false,
     )
 
-    // Cold-start pill: label must equal DeviceCheckIn's no-data output so the
-    // pill hides its text exactly like production before the first event.
+    // Cold-start pill: the typed NoData status hides the text exactly like
+    // production before the first event — no sentinel label to keep in step.
     val noDataCheckIn = DeviceCheckInDisplay(
-        durationLabel = "No data yet",
+        status = CheckInStatus.NoData,
         isStale = false,
     )
 }

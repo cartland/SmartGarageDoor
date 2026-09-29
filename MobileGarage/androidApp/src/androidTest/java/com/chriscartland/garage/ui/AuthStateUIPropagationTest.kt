@@ -27,6 +27,7 @@ import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.presentation.CheckInStatus
 import com.chriscartland.garage.ui.home.DeviceCheckInDisplay
 import com.chriscartland.garage.ui.home.HomeMapper
 import com.chriscartland.garage.ui.home.HomeStatusDisplay
@@ -70,7 +71,7 @@ class AuthStateUIPropagationTest {
     private val unknownSinceLine = "Last change time unknown"
 
     private val noDataCheckIn = DeviceCheckInDisplay(
-        durationLabel = "No data yet",
+        status = CheckInStatus.NoData,
         isStale = false,
     )
 

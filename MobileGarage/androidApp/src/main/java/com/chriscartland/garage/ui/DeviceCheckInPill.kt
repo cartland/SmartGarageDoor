@@ -39,8 +39,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.chriscartland.garage.ui.home.DeviceCheckIn
+import com.chriscartland.garage.presentation.CheckInAge
+import com.chriscartland.garage.presentation.CheckInStatus
 import com.chriscartland.garage.ui.home.DeviceCheckInDisplay
+import com.chriscartland.garage.ui.home.DeviceCheckInWords
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 import com.chriscartland.garage.ui.theme.Spacing
 
@@ -83,7 +85,7 @@ fun DeviceCheckInPill(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
-    val showText = display.durationLabel != DeviceCheckIn.NO_DATA_LABEL
+    val status = display.status
     val baseModifier = modifier
         .background(color = backgroundColor, shape = pillShape)
     val tapModifier = if (onTap != null) {
@@ -99,12 +101,18 @@ fun DeviceCheckInPill(
                 .padding(start = 8.dp, end = 4.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (showText) {
-                    Text(
-                        text = display.durationLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                    Spacer(modifier = Modifier.width(Spacing.Tight))
+                when (status) {
+                    // Before the first heartbeat there is nothing to date; the
+                    // icon alone says the pill is waiting. A typed case, not a
+                    // comparison against a sentinel label (strategy 4.6).
+                    CheckInStatus.NoData -> Unit
+                    is CheckInStatus.Reported -> {
+                        Text(
+                            text = DeviceCheckInWords.label(status.age),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.Tight))
+                    }
                 }
                 if (display.isStale) {
                     Icon(
@@ -133,7 +141,7 @@ fun DeviceCheckInPillFreshPreview() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             DeviceCheckInPill(
                 display = DeviceCheckInDisplay(
-                    durationLabel = "30 sec ago",
+                    status = CheckInStatus.Reported(CheckInAge.Seconds(30), isStale = false),
                     isStale = false,
                 ),
             )
@@ -148,7 +156,7 @@ fun DeviceCheckInPillAgingPreview() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             DeviceCheckInPill(
                 display = DeviceCheckInDisplay(
-                    durationLabel = "5 min 20 sec ago",
+                    status = CheckInStatus.Reported(CheckInAge.Minutes(minutes = 5, seconds = 20), isStale = false),
                     isStale = false,
                 ),
             )
@@ -163,7 +171,7 @@ fun DeviceCheckInPillStalePreview() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             DeviceCheckInPill(
                 display = DeviceCheckInDisplay(
-                    durationLabel = "23 min ago",
+                    status = CheckInStatus.Reported(CheckInAge.Minutes(minutes = 23, seconds = 0), isStale = true),
                     isStale = true,
                 ),
             )
@@ -178,7 +186,7 @@ fun DeviceCheckInPillNoDataPreview() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             DeviceCheckInPill(
                 display = DeviceCheckInDisplay(
-                    durationLabel = "No data yet",
+                    status = CheckInStatus.NoData,
                     isStale = false,
                 ),
             )
