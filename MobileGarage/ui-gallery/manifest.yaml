@@ -96,6 +96,37 @@ sections:
               android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentSignedOutPreviewTest_{theme}_*.png
               ios: {light: "${ios}/Home-sign-in-row.1.png", dark: "${ios}/Home-sign-in-row-dark.1.png"}
 
+      - id: home-settle-window
+        title: Home, the settle window
+        height: 300
+        note: >-
+          Two before/after PAIRS, reviewed together (CLAUDE.md § "The settle
+          window"). Settling vs settled stale: the same muted door, and only the
+          banner differs. Connecting vs no signal: an empty cache, and only the
+          headline escalates. A regression is the muted look appearing or
+          disappearing BETWEEN the two of a pair.
+        items:
+          - id: settling
+            label: Settling
+            images:
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentSettlingPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Home-settling.1.png", dark: "${ios}/Home-settling-dark.1.png"}
+          - id: settled-stale
+            label: Settled, stale
+            images:
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentSettledStalePreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Home-settled-stale.1.png", dark: "${ios}/Home-settled-stale-dark.1.png"}
+          - id: connecting
+            label: Connecting
+            images:
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentConnectingPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Home-connecting.1.png", dark: "${ios}/Home-connecting-dark.1.png"}
+          - id: no-signal
+            label: No signal
+            images:
+              android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentNoSignalPreviewTest_{theme}_*.png
+              ios: {light: "${ios}/Home-no-signal.1.png", dark: "${ios}/Home-no-signal-dark.1.png"}
+
       - id: home-remote-pill
         title: Home, remote pill states
         height: 300

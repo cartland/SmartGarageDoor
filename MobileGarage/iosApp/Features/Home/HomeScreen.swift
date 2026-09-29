@@ -1048,6 +1048,41 @@ private struct HomeInfoSheetView: View {
     }
 }
 
+// Five seconds later: the same muted card, now with the banner it earned.
+// Review this with "Home settling" as a PAIR (CLAUDE.md § "The settle
+// window"): the picture is identical and only the banner differs. Android's
+// HomeContentSettling / HomeContentSettledStale previews are the same pair.
+#Preview("Home settled stale") {
+    NavigationStack {
+        HomeContentView(
+            doorPosition: .open,
+            lastChangeTimeSeconds: nil,
+            sinceLine: previewText("Since 8:15 AM · 1 hr 5 min"),
+            warning: nil,
+            isCheckInStale: true,
+            buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
+            buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
+            authState: .signedIn,
+            hasDoorData: true,
+            freshness: .stale,
+            alerts: [
+                HomeAlertItem(
+                    id: "stale",
+                    kind: .stale,
+                    message: .copy("Not receiving updates from server"),
+                    actionLabel: "Retry"
+                ),
+            ],
+            checkIn: DeviceCheckInItem(label: previewText("23 min ago"), isStale: true),
+            onButtonTap: {},
+            onSignIn: {},
+            onRefresh: {},
+            onSnooze: {},
+            onAlertAction: { _ in }
+        )
+    }
+}
+
 /// Firebase has not resolved the session yet. The remote section says so rather
 /// than showing a sign-in call to action an already-signed-in user would see
 /// flash on every launch.

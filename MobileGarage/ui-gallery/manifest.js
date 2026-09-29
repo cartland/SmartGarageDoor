@@ -254,6 +254,142 @@ window.UI_GALLERY = {
      ]
     },
     {
+     "id": "home-settle-window",
+     "title": "Home, the settle window",
+     "axis": null,
+     "note": "Two before/after PAIRS, reviewed together (CLAUDE.md \u00a7 \"The settle window\"). Settling vs settled stale: the same muted door, and only the banner differs. Connecting vs no signal: an empty cache, and only the headline escalates. A regression is the muted look appearing or disappearing BETWEEN the two of a pair.",
+     "height": 300,
+     "maxw": null,
+     "variants": [
+      {
+       "id": "default",
+       "label": "Default"
+      }
+     ],
+     "items": [
+      {
+       "id": "settling",
+       "label": "Settling",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSettlingPreviewTest_Light_fc5b723e_0.png",
+         "w": 1080,
+         "h": 2400
+        },
+        "default|android|dark": {
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSettlingPreviewTest_Dark_77106447_0.png",
+         "w": 1080,
+         "h": 2400
+        },
+        "default|ios|light": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-settling.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-settling-dark.1.png",
+         "w": 1125,
+         "h": 2436
+        }
+       }
+      },
+      {
+       "id": "settled-stale",
+       "label": "Settled, stale",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSettledStalePreviewTest_Light_fc5b723e_0.png",
+         "w": 1080,
+         "h": 2400
+        },
+        "default|android|dark": {
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSettledStalePreviewTest_Dark_77106447_0.png",
+         "w": 1080,
+         "h": 2400
+        },
+        "default|ios|light": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-settled-stale.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-settled-stale-dark.1.png",
+         "w": 1125,
+         "h": 2436
+        }
+       }
+      },
+      {
+       "id": "connecting",
+       "label": "Connecting",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentConnectingPreviewTest_Light_fc5b723e_0.png",
+         "w": 1080,
+         "h": 2400
+        },
+        "default|android|dark": {
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentConnectingPreviewTest_Dark_77106447_0.png",
+         "w": 1080,
+         "h": 2400
+        },
+        "default|ios|light": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-connecting.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-connecting-dark.1.png",
+         "w": 1125,
+         "h": 2436
+        }
+       }
+      },
+      {
+       "id": "no-signal",
+       "label": "No signal",
+       "platforms": [
+        "android",
+        "ios"
+       ],
+       "images": {
+        "default|android|light": {
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentNoSignalPreviewTest_Light_fc5b723e_0.png",
+         "w": 1080,
+         "h": 2400
+        },
+        "default|android|dark": {
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentNoSignalPreviewTest_Dark_77106447_0.png",
+         "w": 1080,
+         "h": 2400
+        },
+        "default|ios|light": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-no-signal.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-no-signal-dark.1.png",
+         "w": 1125,
+         "h": 2436
+        }
+       }
+      }
+     ]
+    },
+    {
      "id": "home-remote-pill",
      "title": "Home, remote pill states",
      "axis": null,
@@ -853,12 +989,12 @@ window.UI_GALLERY = {
         "default|android|light": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentOffPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
-         "h": 1519
+         "h": 1498
         },
         "default|android|dark": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentOffPreviewTest_Dark_77106447_0.png",
          "w": 1080,
-         "h": 1519
+         "h": 1498
         },
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Snooze-sheet-nothing-selected.1.png",
@@ -883,12 +1019,12 @@ window.UI_GALLERY = {
         "default|android|light": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentActivePreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
-         "h": 1519
+         "h": 1498
         },
         "default|android|dark": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentActivePreviewTest_Dark_77106447_0.png",
          "w": 1080,
-         "h": 1519
+         "h": 1498
         },
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Snooze-sheet-option-selected.1.png",
@@ -929,12 +1065,12 @@ window.UI_GALLERY = {
         "default|android|light": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/AccountSheetContentSignedInPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
-         "h": 736
+         "h": 705
         },
         "default|android|dark": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/AccountSheetContentSignedInPreviewTest_Dark_77106447_0.png",
          "w": 1080,
-         "h": 736
+         "h": 705
         },
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Account-sheet.1.png",
@@ -958,12 +1094,12 @@ window.UI_GALLERY = {
         "default|android|light": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/VersionSheetContentPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
-         "h": 1255
+         "h": 1213
         },
         "default|android|dark": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/VersionSheetContentPreviewTest_Dark_77106447_0.png",
          "w": 1080,
-         "h": 1255
+         "h": 1213
         }
        }
       }
@@ -994,12 +1130,12 @@ window.UI_GALLERY = {
         "default|android|light": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/DoorStatusInfoSheetContentPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
-         "h": 634
+         "h": 687
         },
         "default|android|dark": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/DoorStatusInfoSheetContentPreviewTest_Dark_77106447_0.png",
          "w": 1080,
-         "h": 634
+         "h": 687
         },
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Info-door-status.1.png",
@@ -1024,12 +1160,12 @@ window.UI_GALLERY = {
         "default|android|light": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/RemoteControlInfoSheetContentPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
-         "h": 634
+         "h": 878
         },
         "default|android|dark": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/RemoteControlInfoSheetContentPreviewTest_Dark_77106447_0.png",
          "w": 1080,
-         "h": 634
+         "h": 878
         },
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Info-remote-control.1.png",
@@ -2347,12 +2483,12 @@ window.UI_GALLERY = {
        "images": {
         "default|android|light": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnavailablePreviewTest_Light_fc5b723e_0.png",
-         "w": 425,
+         "w": 565,
          "h": 45
         },
         "default|android|dark": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnavailablePreviewTest_Dark_77106447_0.png",
-         "w": 425,
+         "w": 565,
          "h": 45
         }
        }
@@ -2401,12 +2537,12 @@ window.UI_GALLERY = {
        "images": {
         "default|android|light": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillFreshPreviewTest_Light_fc5b723e_0.png",
-         "w": 408,
+         "w": 548,
          "h": 45
         },
         "default|android|dark": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillFreshPreviewTest_Dark_77106447_0.png",
-         "w": 408,
+         "w": 548,
          "h": 45
         }
        }
@@ -2420,12 +2556,12 @@ window.UI_GALLERY = {
        "images": {
         "default|android|light": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillAgingPreviewTest_Light_fc5b723e_0.png",
-         "w": 425,
+         "w": 565,
          "h": 45
         },
         "default|android|dark": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillAgingPreviewTest_Dark_77106447_0.png",
-         "w": 425,
+         "w": 565,
          "h": 45
         }
        }
@@ -2439,12 +2575,12 @@ window.UI_GALLERY = {
        "images": {
         "default|android|light": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillStalePreviewTest_Light_fc5b723e_0.png",
-         "w": 386,
+         "w": 526,
          "h": 45
         },
         "default|android|dark": {
          "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillStalePreviewTest_Dark_77106447_0.png",
-         "w": 386,
+         "w": 526,
          "h": 45
         }
        }
