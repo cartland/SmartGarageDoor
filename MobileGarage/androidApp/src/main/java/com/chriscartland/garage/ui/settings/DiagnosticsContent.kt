@@ -364,7 +364,9 @@ private fun CounterRow(
         Text(
             text = value.toString(),
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
+            // onSurface, not primary: primaryLight is 1.66:1 on the light
+            // background, and titleMedium (16sp) is not WCAG large text.
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }

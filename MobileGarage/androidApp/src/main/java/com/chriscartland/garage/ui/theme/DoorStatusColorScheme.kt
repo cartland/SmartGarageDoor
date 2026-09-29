@@ -39,6 +39,12 @@ data class DoorStatusColorScheme(
     val onUnknownFresh: Color,
     val unknownStale: Color,
     val onUnknownStale: Color,
+    /**
+     * Advisory text/icon colour for a door-status note that is a warning, not
+     * an alarm (the History "took longer than expected" tag). Lives here rather
+     * than on the M3 scheme because M3 has no caution role; see `cautionLight`.
+     */
+    val caution: Color,
 )
 
 /**
@@ -89,6 +95,7 @@ val doorStatusLightScheme =
         onUnknownFresh = onUnknownFreshLight,
         unknownStale = unknownStaleLight,
         onUnknownStale = onUnknownStaleLight,
+        caution = cautionLight,
     )
 
 val doorStatusDarkScheme =
@@ -105,6 +112,7 @@ val doorStatusDarkScheme =
         onUnknownFresh = onUnknownFreshDark,
         unknownStale = unknownStaleDark,
         onUnknownStale = onUnknownStaleDark,
+        caution = cautionDark,
     )
 
 /**

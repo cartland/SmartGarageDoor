@@ -229,7 +229,7 @@ private fun HistoryDaySection(
         Text(
             text = dayLabelText(day.label).uppercase(),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = Spacing.SectionHeaderStart),
         )
         Surface(
@@ -440,14 +440,14 @@ private fun HistoryStateRow(
                         Icon(
                             imageVector = Icons.Outlined.WarningAmber,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
+                            tint = LocalDoorStatusColorScheme.current.caution,
                             modifier = Modifier.size(14.dp),
                         )
                         Spacer(Modifier.width(Spacing.Tight))
                         Text(
                             text = warning,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.tertiary,
+                            color = LocalDoorStatusColorScheme.current.caution,
                         )
                     }
                 }
