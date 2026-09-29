@@ -20,14 +20,12 @@ import UIKit
 
 /// Semantic colors for the app. Light/dark follow the system appearance.
 ///
-/// Baseline mirrors the Android door-status palette at a high level; the full
-/// per-state `DoorStatusColorScheme.kt` translation lands with the Home screen
-/// (the only screen that renders the colored door-status surfaces).
+/// These are the tones the screens use AROUND the door — alarm and advisory.
+/// The door's own colours are `DoorPalette`, driven by the shared
+/// `DoorAnimation` palette so all three apps paint one door. (An earlier
+/// `statusOk` / `statusOpen` / `cardBackground` trio predated that and was
+/// never read; pruned in strategy 4.7.)
 enum GarageColors {
-    /// Surface that reads "everything is fine" (door closed).
-    static let statusOk = Color.green
-    /// Surface that reads "door is open / in motion".
-    static let statusOpen = Color.orange
     /// The alarm tint: the THEME's error red — the same `#BA1A1A` / `#FFB4AB`
     /// Android's Material scheme paints its banners, pills and alarm chips with,
     /// so both phones raise an alarm in one colour. Until strategy 1.6 this was
@@ -56,6 +54,4 @@ enum GarageColors {
             )
         })
     }
-    /// Neutral container background for cards.
-    static let cardBackground = Color(uiColor: .secondarySystemBackground)
 }

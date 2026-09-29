@@ -599,16 +599,6 @@ sections:
             images:
               android: ${ref}/ComponentsScreenshotTestKt/RemoteOfflinePillVeryStalePreviewTest_{theme}_*.png
 
-      - id: status-card
-        title: Door status card
-        height: 160
-        maxw: 320
-        items:
-          - id: card
-            label: Card
-            images:
-              android: ${ref}/ComponentsScreenshotTestKt/DoorStatusCardPreviewTest_{theme}_*.png
-
       - id: error-card
         title: Error card
         height: 160

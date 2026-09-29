@@ -2326,41 +2326,6 @@ window.UI_GALLERY = {
      ]
     },
     {
-     "id": "status-card",
-     "title": "Door status card",
-     "axis": null,
-     "note": null,
-     "height": 160,
-     "maxw": 320,
-     "variants": [
-      {
-       "id": "default",
-       "label": "Default"
-      }
-     ],
-     "items": [
-      {
-       "id": "card",
-       "label": "Card",
-       "platforms": [
-        "android"
-       ],
-       "images": {
-        "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DoorStatusCardPreviewTest_Light_fc5b723e_0.png",
-         "w": 1080,
-         "h": 2400
-        },
-        "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DoorStatusCardPreviewTest_Dark_77106447_0.png",
-         "w": 1080,
-         "h": 2400
-        }
-       }
-      }
-     ]
-    },
-    {
      "id": "error-card",
      "title": "Error card",
      "axis": null,

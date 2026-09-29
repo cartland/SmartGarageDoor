@@ -121,17 +121,13 @@ class UiObjectStringLiteralKonsistTest {
     private companion object {
         /**
          * Burn-down: files that still carry copy in Kotlin, each with the PR
-         * that retires it. The goal is an empty list; the check does not
-         * fail on a stale entry, so remove one the moment its file is fixed.
+         * that retires it. Empty since strategy 4.7 deleted the two it opened
+         * with (`ui/DoorStatusCard.kt`, `ui/TimeFormats.kt`); the check does
+         * not fail on a stale entry, so remove one the moment its file is
+         * fixed, and keep this empty unless a real, time-boxed exemption is
+         * added with the PR that will retire it.
          */
-        val EXEMPT_PATH_SUFFIXES: List<String> =
-            listOf(
-                // Unrouted since the Home rewrite; title-case literals. Deleted by strategy 4.7.
-                "/ui/DoorStatusCard.kt",
-                // Hand-rolled English units and plural ("2 days, 3h"), reachable only from
-                // DoorStatusCard and its own test. Goes with it in strategy 4.7.
-                "/ui/TimeFormats.kt",
-            )
+        val EXEMPT_PATH_SUFFIXES: List<String> = emptyList()
 
         val STRING_LITERAL = Regex("\"((?:[^\"\\\\]|\\\\.)*)\"")
         val INTERPOLATION = Regex("""\$\{[^}]*}|\$[A-Za-z_][A-Za-z0-9_]*""")

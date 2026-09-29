@@ -6,7 +6,7 @@ last_verified: 2026-06-28
 
 # Door Animation
 
-Contract for the animated `GarageIcon` rendered in `DoorStatusCard` and the recent events list. The icon translates a [`DoorPosition`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/DoorPosition.kt) into a vertical door offset and animates between offsets as the state changes.
+Contract for the animated `GarageIcon` rendered on the Home screen (`HomeContent` / `AnimatableGarageDoor`) and in the recent events list. The icon translates a [`DoorPosition`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/DoorPosition.kt) into a vertical door offset and animates between offsets as the state changes.
 
 See ADR-025 in [`DECISIONS.md`](DECISIONS.md) for the design decision that motivated this contract.
 

@@ -7,7 +7,6 @@ import com.chriscartland.garage.ui.DeviceCheckInPillAgingPreview
 import com.chriscartland.garage.ui.DeviceCheckInPillFreshPreview
 import com.chriscartland.garage.ui.DeviceCheckInPillNoDataPreview
 import com.chriscartland.garage.ui.DeviceCheckInPillStalePreview
-import com.chriscartland.garage.ui.DoorStatusCardPreview
 import com.chriscartland.garage.ui.ErrorCardLongButtonWordPreview
 import com.chriscartland.garage.ui.ErrorCardManyButtonWordsPreview
 import com.chriscartland.garage.ui.ErrorCardPreview
@@ -47,20 +46,6 @@ import com.chriscartland.garage.ui.RemoteOfflinePillFreshPreview
 import com.chriscartland.garage.ui.RemoteOfflinePillStalePreview
 import com.chriscartland.garage.ui.RemoteOfflinePillVeryStalePreview
 import com.chriscartland.garage.ui.theme.AppTheme
-
-@PreviewTest
-@Preview(showBackground = true, name = "Light")
-@Preview(
-    showBackground = true,
-    name = "Dark",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
-fun DoorStatusCardPreviewTest() {
-    AppTheme {
-        DoorStatusCardPreview()
-    }
-}
 
 @PreviewTest
 @Preview(showBackground = true, name = "Light")
