@@ -33,7 +33,7 @@ struct HomeScreen: View {
             doorPosition: wrapper.doorPosition,
             lastChangeTimeSeconds: wrapper.lastChangeTimeSeconds,
             sinceLine: wrapper.sinceLine,
-            warningText: wrapper.warningText,
+            warning: wrapper.warning,
             isCheckInStale: wrapper.isCheckInStale,
             buttonItem: wrapper.buttonItem,
             buttonHealth: wrapper.buttonHealth,
@@ -65,9 +65,10 @@ struct HomeContentView: View {
     /// typed `SinceStatus` in the wrapper); `nil` when the last-change time is
     /// unknown. Mirrors Android's status line; replaces the old raw door message.
     let sinceLine: LocalizedStringResource?
-    /// Already-localized warning text (resolved from the shared typed
-    /// `DoorWarning` in the wrapper). Non-nil only for stuck/anomalous states.
-    let warningText: DisplayText?
+    /// The door's warning, already worded, with the shared severity that says
+    /// how loud the chip is (resolved from the typed `DoorWarning` in the
+    /// wrapper). Non-nil only for stuck/anomalous states.
+    let warning: HomeWarningDisplay?
     let isCheckInStale: Bool
     /// View-ready remote-button state — styling kind + copy + the shared diagram.
     /// All logic lives in the shared `ButtonStateMachine`; this is display data
@@ -124,7 +125,7 @@ struct HomeContentView: View {
         doorPosition: DoorPosition,
         lastChangeTimeSeconds: Int64?,
         sinceLine: LocalizedStringResource?,
-        warningText: DisplayText?,
+        warning: HomeWarningDisplay?,
         isCheckInStale: Bool,
         buttonItem: RemoteButtonItem,
         buttonHealth: ButtonHealthItem?,
@@ -141,7 +142,7 @@ struct HomeContentView: View {
         self.doorPosition = doorPosition
         self.lastChangeTimeSeconds = lastChangeTimeSeconds
         self.sinceLine = sinceLine
-        self.warningText = warningText
+        self.warning = warning
         self.isCheckInStale = isCheckInStale
         self.buttonItem = buttonItem
         self.buttonHealth = buttonHealth
@@ -247,8 +248,8 @@ struct HomeContentView: View {
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
                         }
-                        if hasDoorData, let warningText {
-                            DoorWarningChip(text: warningText)
+                        if hasDoorData, let warning {
+                            DoorWarningChip(warning: warning)
                         }
                         // Staleness now surfaces via the top Stale banner +
                         // the muted door color (`GarageDoorView(isStale:)`),
@@ -623,23 +624,41 @@ private struct RemoteButtonHealthPill: View {
     }
 }
 
-/// Warning chip for stuck / anomalous door states — the SwiftUI analog of
-/// Android's errorContainer warning Surface in `HomeContent`. Renders the
-/// already-localized `text` (resolved from the shared typed `DoorWarning`).
-private struct DoorWarningChip: View {
+/// What the Home warning chip renders: the worded warning plus the shared
+/// `WarningSeverity` that decides how loud it is. The wrapper builds it from
+/// the typed `DoorWarning`; the view only maps severity to a tint.
+struct HomeWarningDisplay {
     /// `DisplayText`: one arm of the shared `DoorWarning` is a server-supplied
     /// message, which must render verbatim rather than through the catalog.
     let text: DisplayText
+    let severity: WarningSeverity
+}
+
+/// Warning chip for stuck / anomalous door states — the SwiftUI analog of the
+/// warning Surface in Android's `HomeContent`, coloured by the same shared
+/// severity: an ALARM takes the theme's error tint, an ADVISORY (the door is
+/// open but askew — it works, the seat is off) the caution amber. Outlined
+/// triangle, like the alert banner and the History tag: one triangle variant
+/// on the screen (strategy 1.6), and the shape Android's `WarningAmber` draws.
+private struct DoorWarningChip: View {
+    let warning: HomeWarningDisplay
+
+    private var tint: Color {
+        switch warning.severity {
+        case .alarm: return GarageColors.statusWarning
+        case .advisory: return GarageColors.statusCaution
+        }
+    }
 
     var body: some View {
-        Label { text.view } icon: { Image(systemName: "exclamationmark.triangle.fill") }
+        Label { warning.text.view } icon: { Image(systemName: "exclamationmark.triangle") }
             .font(.footnote)
             .multilineTextAlignment(.leading)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(GarageColors.statusWarning.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
-            .foregroundStyle(GarageColors.statusWarning)
+            .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+            .foregroundStyle(tint)
     }
 }
 
@@ -724,7 +743,7 @@ private struct HomeInfoSheetView: View {
             doorPosition: .closed,
             lastChangeTimeSeconds: nil,
             sinceLine: previewText("Since 11:22 AM · 38 min"),
-            warningText: nil,
+            warning: nil,
             isCheckInStale: true,
             buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: ButtonHealthItem(label: "Unauthorized", kind: .unauthorized),
@@ -747,7 +766,7 @@ private struct HomeInfoSheetView: View {
             doorPosition: .open,
             lastChangeTimeSeconds: nil,
             sinceLine: previewText("Since 9:47 AM · 2 hr 14 min"),
-            warningText: nil,
+            warning: nil,
             isCheckInStale: false,
             buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
@@ -770,7 +789,30 @@ private struct HomeInfoSheetView: View {
             doorPosition: .openingTooLong,
             lastChangeTimeSeconds: nil,
             sinceLine: previewText("Since 12:01 PM · 4 min"),
-            warningText: .copy("Opening, taking longer than expected"),
+            warning: HomeWarningDisplay(text: .copy("Opening, taking longer than expected"), severity: .alarm),
+            isCheckInStale: false,
+            buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
+            buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
+            authState: .signedIn,
+            hasDoorData: true,
+            freshness: .fresh,
+            alerts: [],
+            checkIn: DeviceCheckInItem(label: previewText("1 min ago"), isStale: false),
+            onButtonTap: {},
+            onSignIn: {},
+            onRefresh: {},
+            onAlertAction: { _ in }
+        )
+    }
+}
+
+#Preview("Home open misaligned advisory") {
+    NavigationStack {
+        HomeContentView(
+            doorPosition: .openMisaligned,
+            lastChangeTimeSeconds: nil,
+            sinceLine: previewText("Since 12:01 PM · 4 min"),
+            warning: HomeWarningDisplay(text: .copy("Door is open and misaligned"), severity: .advisory),
             isCheckInStale: false,
             buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
@@ -793,7 +835,7 @@ private struct HomeInfoSheetView: View {
             doorPosition: .unknown,
             lastChangeTimeSeconds: nil,
             sinceLine: previewText("Since 8:15 AM · 1 hr 5 min"),
-            warningText: nil,
+            warning: nil,
             isCheckInStale: true,
             buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: ButtonHealthItem(label: previewText("Unavailable · 11 min ago"), kind: .offline),
@@ -908,7 +950,7 @@ private struct HomeInfoSheetView: View {
             doorPosition: .unknown,
             lastChangeTimeSeconds: nil,
             sinceLine: nil,
-            warningText: nil,
+            warning: nil,
             isCheckInStale: false,
             buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: nil,
@@ -939,7 +981,7 @@ private struct HomeInfoSheetView: View {
             doorPosition: .unknown,
             lastChangeTimeSeconds: nil,
             sinceLine: nil,
-            warningText: nil,
+            warning: nil,
             isCheckInStale: false,
             buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: nil,
@@ -966,7 +1008,7 @@ private struct HomeInfoSheetView: View {
             doorPosition: .open,
             lastChangeTimeSeconds: nil,
             sinceLine: previewText("Since 8:15 AM · 1 hr 5 min"),
-            warningText: nil,
+            warning: nil,
             isCheckInStale: true,
             buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
@@ -995,7 +1037,7 @@ private struct HomeInfoSheetView: View {
             doorPosition: .closed,
             lastChangeTimeSeconds: nil,
             sinceLine: previewText("Since 11:22 AM · 38 min"),
-            warningText: nil,
+            warning: nil,
             isCheckInStale: false,
             buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
             buttonHealth: nil,
@@ -1018,7 +1060,7 @@ private struct HomeInfoSheetView: View {
             doorPosition: .closed,
             lastChangeTimeSeconds: nil,
             sinceLine: previewText("Since 11:22 AM · 38 min"),
-            warningText: nil,
+            warning: nil,
             isCheckInStale: false,
             buttonItem: RemoteButtonItem(kind: .confirm, title: "Door will move.", subtitle: "Tap again to confirm", diagram: RemoteButtonDiagramMapper.shared.forState(state: RemoteButtonStateAwaitingConfirmation.shared)),
             buttonHealth: ButtonHealthItem(label: "Available", kind: .online),

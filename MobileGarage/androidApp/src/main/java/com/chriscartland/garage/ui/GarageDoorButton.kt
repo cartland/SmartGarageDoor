@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
@@ -38,6 +39,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 import com.chriscartland.garage.ui.theme.cautionContainer
 import com.chriscartland.garage.ui.theme.onCautionContainer
@@ -115,10 +117,11 @@ fun GarageDoorButton(
                     .fillMaxWidth()
                     .heightIn(min = 64.dp),
                 enabled = false,
-                colors = ButtonDefaults.filledTonalButtonColors(
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                ),
+                // Outcomes are coloured — "Done" in the closed-door green, the two
+                // failures in the error tone — because iOS already did, and a grey
+                // "Done" on one phone beside a green one on the other was two
+                // rules for one fact. The rule itself is RemoteButtonOutcome.
+                colors = outcomeColors(RemoteButtonOutcome.toneFor(state)),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -161,6 +164,27 @@ private fun RemoteButtonState.disabledLabel(): String =
         RemoteButtonState.Ready,
         RemoteButtonState.AwaitingConfirmation,
         -> ""
+    }
+
+/** Material colours for an [OutcomeTone]; the decision is [RemoteButtonOutcome]'s. */
+@Composable
+private fun outcomeColors(tone: OutcomeTone): ButtonColors =
+    when (tone) {
+        OutcomeTone.SUCCESS ->
+            ButtonDefaults.filledTonalButtonColors(
+                disabledContainerColor = LocalDoorStatusColorScheme.current.closedFresh,
+                disabledContentColor = LocalDoorStatusColorScheme.current.onClosedFresh,
+            )
+        OutcomeTone.FAILURE ->
+            ButtonDefaults.filledTonalButtonColors(
+                disabledContainerColor = MaterialTheme.colorScheme.errorContainer,
+                disabledContentColor = MaterialTheme.colorScheme.onErrorContainer,
+            )
+        OutcomeTone.NEUTRAL ->
+            ButtonDefaults.filledTonalButtonColors(
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            )
     }
 
 // region Previews

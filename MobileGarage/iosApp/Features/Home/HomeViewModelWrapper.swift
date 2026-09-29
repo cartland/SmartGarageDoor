@@ -39,15 +39,17 @@ final class HomeViewModelWrapper: ObservableObject {
     /// localized-unit formatting happen here (mirrors Android's
     /// `rememberSinceLine`).
     @Published private(set) var sinceLine: LocalizedStringResource?
-    /// Localized text for the typed `DoorWarning` exposed by the shared VM
-    /// (ADR-031), or `nil` when the current state warrants no warning. The
-    /// shared layer emits a *typed* warning; this wrapper resolves it to a
-    /// string here (iOS's localization boundary) — mirrors Android's
-    /// `doorWarningText` Composable + `strings.xml`.
-    /// `DisplayText` because one arm is a SERVER-SUPPLIED message. Routing that
-    /// through the catalog would look the server's sentence up as a key — a
-    /// collision would silently replace it. The fallbacks are our own copy.
-    @Published private(set) var warningText: DisplayText?
+    /// The typed `DoorWarning` exposed by the shared VM (ADR-031), resolved to
+    /// what the chip needs: localized text plus the shared `WarningSeverity`
+    /// (how loud the chip is — the same decision Android's chip colours by).
+    /// `nil` when the current state warrants no warning. The shared layer
+    /// emits a *typed* warning; this wrapper words it here (iOS's localization
+    /// boundary) — mirrors Android's `doorWarningText` Composable +
+    /// `strings.xml`. `DisplayText` because one arm is a SERVER-SUPPLIED
+    /// message. Routing that through the catalog would look the server's
+    /// sentence up as a key — a collision would silently replace it. The
+    /// fallbacks are our own copy.
+    @Published private(set) var warning: HomeWarningDisplay?
     @Published private(set) var lastChangeTimeSeconds: Int64?
     @Published private(set) var isCheckInStale: Bool = false
     /// How current the door data is AND how loudly the screen may say so.
@@ -403,22 +405,25 @@ final class HomeViewModelWrapper: ObservableObject {
     /// both platforms read identically; a server-supplied message renders as-is.
     private func applyWarning(_ warning: DoorWarning?) {
         guard let warning else {
-            warningText = nil
+            self.warning = nil
             return
         }
+        let text: DisplayText
         switch onEnum(of: warning) {
         case .serverMessage(let message):
             // Server text: render exactly as received.
-            warningText = .data(message.text)
+            text = .data(message.text)
         case .openingTooLong:
-            warningText = .copy("Opening, taking longer than expected")
+            text = .copy("Opening, taking longer than expected")
         case .closingTooLong:
-            warningText = .copy("Closing, taking longer than expected")
+            text = .copy("Closing, taking longer than expected")
         case .openMisaligned:
-            warningText = .copy("Door is open and misaligned")
+            text = .copy("Door is open and misaligned")
         case .sensorConflict:
-            warningText = .copy("Sensor conflict. Check the door.")
+            text = .copy("Sensor conflict. Check the door.")
         }
+        // Loudness is the shared decision's; the words are this platform's.
+        self.warning = HomeWarningDisplay(text: text, severity: warning.severity)
     }
 
     private func applyButton(_ state: RemoteButtonState) {
