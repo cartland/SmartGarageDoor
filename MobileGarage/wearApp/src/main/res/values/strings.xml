@@ -261,6 +261,13 @@
 
     <!-- Content descriptions. -->
     <string name="cd_garage_door">Garage door</string>
+    <!-- The hold, for screen readers (strategy 2.2): two custom actions on the
+         door, never a single activation. Both drive the state machine's
+         two-tap path, so its confirmation window guards them as it guards a
+         hold. -->
+    <string name="a11y_arm_remote">Arm the remote</string>
+    <string name="a11y_confirm_remote">Confirm</string>
+    <string name="a11y_door_armed">Armed. Confirm to press the remote.</string>
     <string name="cd_voice">Speak a door command</string>
     <string name="cd_voice_mic">Tap to speak a door command</string>
     <string name="cd_voice_screen">Tap anywhere to cancel and speak again</string>

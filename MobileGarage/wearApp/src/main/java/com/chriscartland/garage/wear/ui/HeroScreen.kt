@@ -44,8 +44,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
@@ -117,6 +120,8 @@ fun HeroScreen(
         isHolding = isHolding,
         onHoldStart = viewModel::onHoldStart,
         onHoldEnd = viewModel::onHoldEnd,
+        onAccessibilityArm = viewModel::onAccessibilityArm,
+        onAccessibilityConfirm = viewModel::onAccessibilityConfirm,
         onVoiceClick = onVoiceClick,
         signInError = signInError,
         onSignInClick = {
@@ -158,6 +163,8 @@ fun HeroScreenContent(
     signInError: Boolean,
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
+    onAccessibilityArm: () -> Unit,
+    onAccessibilityConfirm: () -> Unit,
     onVoiceClick: () -> Unit,
     onSignInClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -187,6 +194,8 @@ fun HeroScreenContent(
         ring = ring,
         onHoldStart = onHoldStart,
         onHoldEnd = onHoldEnd,
+        onAccessibilityArm = onAccessibilityArm,
+        onAccessibilityConfirm = onAccessibilityConfirm,
         onVoiceClick = onVoiceClick,
         onSignInClick = onSignInClick,
         modifier = modifier,
@@ -222,6 +231,8 @@ internal fun HeroScreenLayout(
     ring: ConfirmRingState,
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
+    onAccessibilityArm: () -> Unit,
+    onAccessibilityConfirm: () -> Unit,
     onVoiceClick: () -> Unit,
     onSignInClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -240,6 +251,9 @@ internal fun HeroScreenLayout(
                             freshness = freshness,
                             onHoldStart = onHoldStart,
                             onHoldEnd = onHoldEnd,
+                            buttonState = buttonState,
+                            onAccessibilityArm = onAccessibilityArm,
+                            onAccessibilityConfirm = onAccessibilityConfirm,
                         )
                     },
                     labels = {
@@ -321,6 +335,9 @@ internal fun HeroScreenLayout(
                         freshness = freshness,
                         onHoldStart = onHoldStart,
                         onHoldEnd = onHoldEnd,
+                        buttonState = buttonState,
+                        onAccessibilityArm = onAccessibilityArm,
+                        onAccessibilityConfirm = onAccessibilityConfirm,
                         modifier = Modifier.fillMaxWidth(DOOR_WIDTH_FRACTION_SIGNED_OUT),
                     )
                     Text(
@@ -468,16 +485,57 @@ private fun GarageDoorTarget(
     freshness: DataFreshness,
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
+    buttonState: RemoteButtonState,
+    onAccessibilityArm: () -> Unit,
+    onAccessibilityConfirm: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val doorDescription = stringResource(R.string.cd_garage_door)
+    val armLabel = stringResource(R.string.a11y_arm_remote)
+    val confirmLabel = stringResource(R.string.a11y_confirm_remote)
+    val armedState = stringResource(R.string.a11y_door_armed)
     val currentOnHoldStart by rememberUpdatedState(onHoldStart)
     val currentOnHoldEnd by rememberUpdatedState(onHoldEnd)
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .semantics { contentDescription = doorDescription }
-            .pointerInput(Unit) {
+            .semantics {
+                contentDescription = doorDescription
+                // For screen readers, which cannot hold: two actions, never one
+                // activation. Both drive the state machine's two-tap path, so
+                // its confirmation window guards them exactly as it guards a
+                // hold. Only the action that applies right now is offered.
+                when (buttonState) {
+                    RemoteButtonState.Ready -> {
+                        customActions =
+                            listOf(
+                                CustomAccessibilityAction(armLabel) {
+                                    onAccessibilityArm()
+                                    true
+                                },
+                            )
+                    }
+                    RemoteButtonState.Preparing,
+                    RemoteButtonState.AwaitingConfirmation,
+                    -> {
+                        stateDescription = armedState
+                        customActions =
+                            listOf(
+                                CustomAccessibilityAction(confirmLabel) {
+                                    onAccessibilityConfirm()
+                                    true
+                                },
+                            )
+                    }
+                    RemoteButtonState.Cancelled,
+                    RemoteButtonState.SendingToServer,
+                    RemoteButtonState.SendingToDoor,
+                    RemoteButtonState.Succeeded,
+                    RemoteButtonState.ServerFailed,
+                    RemoteButtonState.DoorFailed,
+                    -> Unit
+                }
+            }.pointerInput(Unit) {
                 val cancelSlopPx = HOLD_CANCEL_SLOP_DP.dp.toPx()
                 awaitEachGesture {
                     val down = awaitFirstDown()
@@ -732,6 +790,8 @@ private fun HeroScreenContentReadyPreview() {
             signInError = false,
             onHoldStart = {},
             onHoldEnd = {},
+            onAccessibilityArm = {},
+            onAccessibilityConfirm = {},
             onVoiceClick = {},
             onSignInClick = {},
         )
@@ -755,6 +815,8 @@ private fun HeroScreenContentHoldingPreview() {
             signInError = false,
             onHoldStart = {},
             onHoldEnd = {},
+            onAccessibilityArm = {},
+            onAccessibilityConfirm = {},
             onVoiceClick = {},
             onSignInClick = {},
         )
@@ -778,6 +840,8 @@ private fun HeroScreenContentInferredPositionPreview() {
             signInError = false,
             onHoldStart = {},
             onHoldEnd = {},
+            onAccessibilityArm = {},
+            onAccessibilityConfirm = {},
             onVoiceClick = {},
             onSignInClick = {},
         )
@@ -800,6 +864,8 @@ private fun HeroScreenContentSignedOutPreview() {
             signInError = false,
             onHoldStart = {},
             onHoldEnd = {},
+            onAccessibilityArm = {},
+            onAccessibilityConfirm = {},
             onVoiceClick = {},
             onSignInClick = {},
         )

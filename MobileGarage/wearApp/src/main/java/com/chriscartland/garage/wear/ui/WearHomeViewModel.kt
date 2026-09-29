@@ -363,6 +363,34 @@ class WearHomeViewModel(
     }
 
     /**
+     * The hold, for people who cannot hold. A screen reader exposes two custom
+     * actions on the door — "Arm the remote", then "Confirm" — and each is one
+     * call here. They drive the SAME [ButtonStateMachine] two-tap path as the
+     * hold, with the same confirmation window, so the guard is the state
+     * machine's rather than the gesture's: arming without confirming times out
+     * back to Ready, confirming without arming does nothing, and neither is a
+     * single activation that reaches the door (strategy 2.2). Never wire a
+     * plain onClick to the door — that would swap the strongest guard on the
+     * watch for the weakest gesture available to it.
+     */
+    fun onAccessibilityArm() {
+        if (authState.value !is AuthState.Authenticated) return
+        if (holdJob?.isActive == true) return
+        if (buttonState.value !is RemoteButtonState.Ready) return
+        stateMachine.onTap()
+        _hapticCues.tryEmit(HapticCue.HoldEngaged)
+    }
+
+    /** The second action; see [onAccessibilityArm]. */
+    fun onAccessibilityConfirm() {
+        if (holdJob?.isActive == true) return
+        if (buttonState.value !is RemoteButtonState.AwaitingConfirmation) return
+        _hapticCues.tryEmit(HapticCue.PressCommitted)
+        stateMachine.onTap()
+        emitSecondCommitBeat()
+    }
+
+    /**
      * Screen became visible: start the foreground refresh loop, and open the
      * settle window.
      *
