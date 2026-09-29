@@ -24,7 +24,6 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,13 +39,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.wear.compose.material3.Button
@@ -65,6 +67,8 @@ import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.DoorHeadline
+import com.chriscartland.garage.presentation.ElapsedDuration
+import com.chriscartland.garage.presentation.SinceStatus
 import com.chriscartland.garage.presentation.StatusHeadline
 import com.chriscartland.garage.presentation.StatusHeadlineMapper
 import com.chriscartland.garage.wear.R
@@ -73,6 +77,7 @@ import com.chriscartland.garage.wear.di.WearSignInConfig
 import com.chriscartland.garage.wear.ui.theme.WearDoorColors
 import com.chriscartland.garage.wear.ui.theme.WearFreshnessTint
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /**
  * Stateful hero screen: collects the ViewModel flows, owns the sign-in
@@ -96,6 +101,7 @@ fun HeroScreen(
     val isHolding by viewModel.isHolding.collectAsStateWithLifecycle()
     val signInError by viewModel.signInError.collectAsStateWithLifecycle()
     val freshness by viewModel.freshness.collectAsStateWithLifecycle()
+    val sinceStatus by viewModel.sinceStatus.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -103,6 +109,7 @@ fun HeroScreen(
     HeroScreenContent(
         doorPosition = doorEvent?.doorPosition ?: DoorPosition.UNKNOWN,
         lastChangeTimeSeconds = doorEvent?.lastChangeTimeSeconds,
+        sinceStatus = sinceStatus,
         hasDoorData = doorEvent != null,
         freshness = freshness,
         authState = authState,
@@ -142,6 +149,7 @@ fun HeroScreen(
 fun HeroScreenContent(
     doorPosition: DoorPosition,
     lastChangeTimeSeconds: Long?,
+    sinceStatus: SinceStatus?,
     hasDoorData: Boolean,
     freshness: DataFreshness,
     authState: AuthState,
@@ -170,6 +178,7 @@ fun HeroScreenContent(
     HeroScreenLayout(
         doorPosition = doorPosition,
         lastChangeTimeSeconds = lastChangeTimeSeconds,
+        sinceStatus = sinceStatus,
         hasDoorData = hasDoorData,
         freshness = freshness,
         authState = authState,
@@ -204,6 +213,7 @@ fun HeroScreenContent(
 internal fun HeroScreenLayout(
     doorPosition: DoorPosition,
     lastChangeTimeSeconds: Long?,
+    sinceStatus: SinceStatus?,
     hasDoorData: Boolean,
     freshness: DataFreshness,
     authState: AuthState,
@@ -218,66 +228,55 @@ internal fun HeroScreenLayout(
 ) {
     val animationMemory = remember { DoorAnimationMemory() }
     ScreenScaffold(modifier = modifier) {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            // A round watch window is square, so either edge is the diameter.
-            val diameterDp = maxWidth.value
-            val bottomTextWidthDp = diameterDp * BOTTOM_TEXT_WIDTH_FRACTION
-            val bottomTextInset = HeroLayout.bottomInsetDp(diameterDp, bottomTextWidthDp).dp
+        Box(modifier = Modifier.fillMaxSize()) {
             if (authState is AuthState.Authenticated) {
-                GarageDoorTarget(
-                    doorPosition = doorPosition,
-                    lastChangeTimeSeconds = lastChangeTimeSeconds,
-                    animationMemory = animationMemory,
-                    suppressWarningOverlay = !hasDoorData,
-                    freshness = freshness,
-                    onHoldStart = onHoldStart,
-                    onHoldEnd = onHoldEnd,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth(DOOR_WIDTH_FRACTION),
+                DoorAndLabels(
+                    door = {
+                        GarageDoorTarget(
+                            doorPosition = doorPosition,
+                            lastChangeTimeSeconds = lastChangeTimeSeconds,
+                            animationMemory = animationMemory,
+                            suppressWarningOverlay = !hasDoorData,
+                            freshness = freshness,
+                            onHoldStart = onHoldStart,
+                            onHoldEnd = onHoldEnd,
+                        )
+                    },
+                    labels = {
+                        // Measured at the safe chord — near the bottom of a round
+                        // screen the usable width is far narrower than the full
+                        // width, so an unconstrained line is clipped by the mask
+                        // at BOTH ends rather than wrapping (this is what bit
+                        // "Hold to press the remote"). Long hints wrap, and the
+                        // door is placed from whatever height that yields.
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = HeroScreenMappers.doorStateLabel(doorPosition, hasDoorData, freshness),
+                                style = MaterialTheme.typography.titleMedium,
+                                textAlign = TextAlign.Center,
+                            )
+                            // ONE slot under the label; what it shows is
+                            // HeroScreenMappers.slotFor's decision. minLines keeps
+                            // the label still when the slot empties mid-hold.
+                            Text(
+                                text =
+                                    when (
+                                        val slot =
+                                            HeroScreenMappers.slotFor(buttonState, doorPosition, hasDoorData, freshness, sinceStatus)
+                                    ) {
+                                        is HeroSlot.Words -> stringResource(slot.res)
+                                        is HeroSlot.Since -> HeroSinceWords.text(slot.elapsed)
+                                        HeroSlot.Empty -> ""
+                                    },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                minLines = 1,
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize(),
                 )
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        // Near the bottom of a round screen the usable chord is
-                        // far narrower than the full width, so an unconstrained
-                        // line is clipped by the mask at BOTH ends rather than
-                        // wrapping (this is what bit "Hold to press the remote").
-                        // Constrain to the safe chord and let long hints wrap.
-                        .fillMaxWidth(BOTTOM_TEXT_WIDTH_FRACTION)
-                        // DERIVED, never hand-tuned: the block's bottom corners
-                        // sit exactly on HeroLayout's content circle. A constant
-                        // cannot work here — the block's width scales with the
-                        // screen while the ring's thickness does not, so a value
-                        // that clears the ring on a small watch is swallowed by
-                        // it on a large one.
-                        .padding(bottom = bottomTextInset),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = HeroScreenMappers.doorStateLabel(doorPosition, hasDoorData, freshness),
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center,
-                    )
-                    // Reserved slot: the hint goes empty mid-hold (the ring is
-                    // the progress channel there), and an empty line keeps the
-                    // state label from jumping when it does.
-                    Text(
-                        text = HeroScreenMappers
-                            .restingNote(buttonState, hasDoorData, freshness)
-                            ?.let { stringResource(it) }
-                            ?: HeroScreenMappers
-                                .buttonHint(
-                                    buttonState = buttonState,
-                                    doorPosition = doorPosition,
-                                    hasDoorData = hasDoorData,
-                                ).orEmpty(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        minLines = 1,
-                    )
-                }
                 // Voice demo entry point. Deliberately a SEPARATE target with a
                 // separate gesture: the door is the one and only path to the
                 // real garage, and its tap is deliberately dead so that only a
@@ -398,6 +397,58 @@ internal object HeroRing {
 }
 
 /**
+ * The door and the label block, placed from the block's MEASURED height.
+ *
+ * The block used to be pinned to the bottom and the door to the centre as two
+ * independent facts, and a two-line block — a hint that wraps, "Not confirmed",
+ * now the since line — crossed the door's frame on the small round watch. The
+ * block is measured first at its chord width, then [HeroLayout.doorPlacement]
+ * decides the door: dead centre at [DOOR_WIDTH_FRACTION] while the block has
+ * room below it, otherwise moved up by exactly what the block needs with its
+ * top corners kept inside the content circle, and shrunk only when moving is
+ * not enough. The block is label + slot, and the slot keeps its line even
+ * when empty (so the label never jumps), so at rest this is a TWO-line block:
+ * the door now sits a couple of dp higher than it did on the 45 mm watch and
+ * about a dozen higher on the 41 mm, and the label crosses nothing.
+ */
+@Composable
+private fun DoorAndLabels(
+    door: @Composable () -> Unit,
+    labels: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Layout(
+        contents = listOf(door, labels),
+        modifier = modifier,
+    ) { (doorMeasurables, labelMeasurables), constraints ->
+        // A round watch window is square, so either edge is the diameter.
+        val diameterPx = constraints.maxWidth
+        val blockWidthPx = (diameterPx * BOTTOM_TEXT_WIDTH_FRACTION).roundToInt()
+        val block = labelMeasurables.single().measure(Constraints(minWidth = blockWidthPx, maxWidth = blockWidthPx))
+        val placement =
+            HeroLayout.doorPlacement(
+                diameterDp = diameterPx.toDp().value,
+                blockHeightDp = block.height.toDp().value,
+                blockWidthDp = blockWidthPx.toDp().value,
+                doorFraction = DOOR_WIDTH_FRACTION,
+            )
+        val side = placement.sideDp.dp.roundToPx()
+        val doorPlaceable = doorMeasurables.single().measure(Constraints.fixed(side, side))
+        val bottomInsetPx = HeroLayout.bottomInsetDp(diameterPx.toDp().value, blockWidthPx.toDp().value).dp.roundToPx()
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            doorPlaceable.place(
+                x = (constraints.maxWidth - side) / 2,
+                y = placement.centreYDp.dp.roundToPx() - side / 2,
+            )
+            block.place(
+                x = (constraints.maxWidth - block.width) / 2,
+                y = constraints.maxHeight - bottomInsetPx - block.height,
+            )
+        }
+    }
+}
+
+/**
  * The holdable door: gestures land exactly on the door's box.
  *
  * There is deliberately no tap handler — a tap does nothing at all, and only
@@ -504,6 +555,41 @@ private fun VoiceChip(
     }
 }
 
+/** The one line under the door label; decided by [HeroScreenMappers.slotFor]. */
+internal sealed interface HeroSlot {
+    data class Words(
+        @StringRes val res: Int,
+    ) : HeroSlot
+
+    /** How long the door has been in its state — worded by [HeroSinceWords]. */
+    data class Since(
+        val elapsed: ElapsedDuration,
+    ) : HeroSlot
+
+    /** Mid-hold: the ring is the channel, and an empty line keeps the label still. */
+    data object Empty : HeroSlot
+}
+
+/**
+ * Words for the hero's since line, from the shared [ElapsedDuration] bucket
+ * (ADR-035: shared decides the granularity, the watch words it).
+ *
+ * Single unit, like the tile beside it ("for 2 hours", not "2 hr 14 min"): the
+ * bottom chord holds about a dozen characters. Under a minute says "just now"
+ * rather than a seconds figure — the poll loop ticks every ten seconds, and a
+ * number that jumps by ten reads as broken.
+ */
+internal object HeroSinceWords {
+    @Composable
+    fun text(elapsed: ElapsedDuration): String =
+        when (elapsed) {
+            is ElapsedDuration.Days -> pluralStringResource(R.plurals.hero_since_days, elapsed.days, elapsed.days)
+            is ElapsedDuration.HoursMinutes -> pluralStringResource(R.plurals.hero_since_hours, elapsed.hours, elapsed.hours)
+            is ElapsedDuration.Minutes -> stringResource(R.string.hero_since_minutes, elapsed.minutes)
+            is ElapsedDuration.Seconds -> stringResource(R.string.hero_since_just_now)
+        }
+}
+
 /** String/label mappers for the hero screen. */
 internal object HeroScreenMappers {
     /**
@@ -561,53 +647,43 @@ internal object HeroScreenMappers {
         }
 
     /**
-     * The one worded freshness line the hero has room for (strategy 1.1).
+     * What the ONE line under the door label shows — one slot, so the block
+     * never grows past two lines at rest and the door keeps its room.
      *
-     * The tile beside this screen says "Not confirmed" in the same width, so
-     * room was never the constraint; the hero simply went grey and silent on
-     * a reading it could not vouch for. At rest, that word replaces the hold
-     * hint — "Hold to open" is a prediction about a door we cannot confirm.
-     * Mid-hold the slot stays empty as before (the ring is the channel), and
-     * with no door at all the headline already says "No signal".
+     * At rest a dated, confirmed door says how long it has been that way: the
+     * pre-act question the watch could not answer before (strategy 2.1). A
+     * door we cannot vouch for says "Not confirmed" INSTEAD — a duration
+     * asserts the door has been that way continuously, and a door we have lost
+     * contact with may have moved twice since (the tile's rule, kept here). An
+     * undated door, or no door at all, keeps the hold hint — the one place a
+     * first-time user learns the gesture. Mid-hold the slot is the ring's
+     * (empty, so the label does not jump); in flight and on failure the hint
+     * for that state wins over everything.
      */
-    fun restingNote(
-        buttonState: RemoteButtonState,
-        hasDoorData: Boolean,
-        freshness: DataFreshness,
-    ): Int? =
-        if (buttonState == RemoteButtonState.Ready && hasDoorData && freshness.isSpoken) {
-            R.string.door_state_not_confirmed
-        } else {
-            null
-        }
-
-    /** Null means "render nothing here" — the reserved slot stays empty. */
-    @Composable
-    fun buttonHint(
+    fun slotFor(
         buttonState: RemoteButtonState,
         doorPosition: DoorPosition,
         hasDoorData: Boolean,
-    ): String? =
+        freshness: DataFreshness,
+        sinceStatus: SinceStatus?,
+    ): HeroSlot =
         when (buttonState) {
-            // At rest: say what a completed hold will do.
-            RemoteButtonState.Ready -> stringResource(holdHint(doorPosition, hasDoorData))
-            // Mid-hold. Both of these states now exist ONLY inside a hold
-            // (Preparing is the machine's 500ms arming delay, which elapses
-            // under the user's finger), and the sweeping ring already reports
-            // progress — text would just duplicate it.
+            RemoteButtonState.Ready ->
+                when {
+                    !hasDoorData -> HeroSlot.Words(holdHint(doorPosition, hasDoorData))
+                    freshness.isSpoken -> HeroSlot.Words(R.string.door_state_not_confirmed)
+                    sinceStatus != null -> HeroSlot.Since(sinceStatus.elapsed)
+                    else -> HeroSlot.Words(holdHint(doorPosition, hasDoorData))
+                }
             RemoteButtonState.Preparing,
             RemoteButtonState.AwaitingConfirmation,
-            -> null
-            // Unreachable on Wear: an incomplete hold resets the machine
-            // immediately, so the confirmation timeout can never fire. Kept
-            // for `when` exhaustiveness.
-            RemoteButtonState.Cancelled -> null
-            RemoteButtonState.SendingToServer -> stringResource(R.string.button_hint_sending)
-            RemoteButtonState.SendingToDoor -> stringResource(R.string.button_hint_waiting_for_door)
-            // The door state label directly above already reads Opening/Closing.
-            RemoteButtonState.Succeeded -> null
-            RemoteButtonState.ServerFailed -> stringResource(R.string.button_hint_server_failed)
-            RemoteButtonState.DoorFailed -> stringResource(R.string.button_hint_door_failed)
+            RemoteButtonState.Cancelled,
+            RemoteButtonState.Succeeded,
+            -> HeroSlot.Empty
+            RemoteButtonState.SendingToServer -> HeroSlot.Words(R.string.button_hint_sending)
+            RemoteButtonState.SendingToDoor -> HeroSlot.Words(R.string.button_hint_waiting_for_door)
+            RemoteButtonState.ServerFailed -> HeroSlot.Words(R.string.button_hint_server_failed)
+            RemoteButtonState.DoorFailed -> HeroSlot.Words(R.string.button_hint_door_failed)
         }
 
     /**
@@ -647,6 +723,7 @@ private fun HeroScreenContentReadyPreview() {
         HeroScreenContent(
             doorPosition = DoorPosition.CLOSED,
             lastChangeTimeSeconds = null,
+            sinceStatus = SinceStatus(sinceEpochSeconds = 0L, elapsed = ElapsedDuration.HoursMinutes(hours = 2, minutes = 14)),
             hasDoorData = true,
             freshness = DataFreshness.FRESH,
             authState = PREVIEW_USER,
@@ -669,6 +746,7 @@ private fun HeroScreenContentHoldingPreview() {
         HeroScreenContent(
             doorPosition = DoorPosition.CLOSED,
             lastChangeTimeSeconds = null,
+            sinceStatus = null,
             hasDoorData = true,
             freshness = DataFreshness.FRESH,
             authState = PREVIEW_USER,
@@ -691,6 +769,7 @@ private fun HeroScreenContentInferredPositionPreview() {
         HeroScreenContent(
             doorPosition = DoorPosition.OPENING,
             lastChangeTimeSeconds = null,
+            sinceStatus = null,
             hasDoorData = true,
             freshness = DataFreshness.FRESH,
             authState = PREVIEW_USER,
@@ -712,6 +791,7 @@ private fun HeroScreenContentSignedOutPreview() {
         HeroScreenContent(
             doorPosition = DoorPosition.OPEN,
             lastChangeTimeSeconds = null,
+            sinceStatus = null,
             hasDoorData = true,
             freshness = DataFreshness.FRESH,
             authState = AuthState.Unauthenticated,
@@ -734,13 +814,17 @@ private val PREVIEW_USER = AuthState.Authenticated(
 )
 
 /**
- * Door size, as a fraction of the screen.
+ * Door size, as a fraction of the screen — the door's CEILING, not its size.
  *
- * Trimmed from 0.52 when the bottom block moved inward to clear the ring band:
- * the label rises with it, and the door is the one element with slack to give.
- * Text crossing the door's lower half is long-standing and fine — it is empty
- * whenever the door is open — but a label landing on the solid panels of a
- * CLOSED door is not, and 0.48 is what keeps the resting one-line case clear.
+ * Trimmed from 0.52 to 0.46 when the bottom block moved inward to clear the
+ * ring band: the label rises with it, and the door is the one element with
+ * slack to give. [DoorAndLabels] keeps the door at this size and dead centre
+ * whenever the measured label block leaves it room; the block is two lines
+ * even at rest (the slot keeps its line), and a taller one — a hint that
+ * wraps, "Not confirmed" — used to land on the door's frame (fine over the
+ * open half, not over the solid panels of a CLOSED door). Now
+ * [HeroLayout.doorPlacement] moves the door up by what the block needs, and
+ * shrinks it only if it must.
  */
 private const val DOOR_WIDTH_FRACTION = 0.46f
 private const val DOOR_WIDTH_FRACTION_SIGNED_OUT = 0.42f

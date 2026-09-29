@@ -69,6 +69,15 @@ internal object HeroLayout {
     /** Breathing room between the band's inner edge and the nearest content. */
     const val CONTENT_CLEARANCE_DP: Float = 4f
 
+    /** Least gap between the door's bottom edge and the label block's top. */
+    const val DOOR_LABEL_CLEARANCE_DP: Float = 2f
+
+    /**
+     * Lowest the door's flat top edge may sit, measured from the top of the
+     * screen: the ring band plus TimeText's arc, which owns the top centre.
+     */
+    const val TOP_CLEARANCE_DP: Float = 24f
+
     /** Radius inside which all content must stay. */
     fun contentRadiusDp(diameterDp: Float): Float = diameterDp / 2f - RING_EDGE_PADDING_DP - RING_BAND_DP - CONTENT_CLEARANCE_DP
 
@@ -102,11 +111,77 @@ internal object HeroLayout {
     /**
      * Side of the largest square that fits inside the content circle.
      *
-     * The door is square, so this is its ceiling. In practice the vertical
-     * space left over by the label usually binds first — see the `weight(1f)`
-     * slot in `HeroScreenLayout`, which is what actually budgets the door.
+     * The door is square, so this is its ceiling. In practice the room left
+     * above the label block binds first — [doorPlacement] is what actually
+     * sizes and places the door, from the block's measured height.
      */
     fun maxSquareSideDp(diameterDp: Float): Float = contentRadiusDp(diameterDp) * SQRT_TWO
+
+    /**
+     * Where the door goes once the label block beneath it has been MEASURED:
+     * a side and a vertical centre, in dp from the top of a round screen
+     * [diameterDp] across.
+     *
+     * The rule, in order of preference:
+     *  1. The door stays at [doorFraction] of the screen and dead centre — the
+     *     hand-tuned look — while its bottom edge clears the block's top by
+     *     [DOOR_LABEL_CLEARANCE_DP]. A one-line block fits; the hero's block
+     *     is two lines even at rest (the slot keeps its line), which is where
+     *     rule 2 begins on both watch sizes.
+     *  2. If the block would cross it, the door moves UP by exactly the
+     *     shortfall, as far as it may: its top corners must stay inside the
+     *     content circle like every other corner on this screen, and its flat
+     *     top must stay below [TOP_CLEARANCE_DP], where TimeText lives.
+     *  3. Only when moving is not enough does the door shrink — to the largest
+     *     square that still clears the block with its centre as high as rule 2
+     *     allows (closed form below).
+     *
+     * Before this the block was pinned to the bottom and the door to the
+     * centre as two independent facts, and a two-line block — a hint that
+     * wraps, "Not confirmed", the since line — crossed the door's frame on the
+     * small round watch. A block too tall for the circle at all is a caller
+     * bug ([bottomInsetDp] already reports it); the door then shrinks towards
+     * nothing rather than overlapping.
+     */
+    fun doorPlacement(
+        diameterDp: Float,
+        blockHeightDp: Float,
+        blockWidthDp: Float,
+        doorFraction: Float,
+    ): DoorPlacement {
+        val radius = contentRadiusDp(diameterDp)
+        val centre = diameterDp / 2f
+        val blockTop = diameterDp - bottomInsetDp(diameterDp, blockWidthDp) - blockHeightDp
+        val lowestBottom = blockTop - DOOR_LABEL_CLEARANCE_DP
+        var side = minOf(diameterDp * doorFraction, maxSquareSideDp(diameterDp))
+        var centreY = maxOf(highestCentreDp(side, radius, centre), minOf(centre, lowestBottom - side / 2f))
+        if (centreY + side / 2f > lowestBottom) {
+            // Rule 3. With the top corners on the circle the bottom edge sits at
+            // centre - sqrt(r² - s²/4) + s; setting that equal to the lowest
+            // allowed bottom (k = lowestBottom - centre) and solving for s gives
+            // s = (2k + sqrt(5r² - k²)) / 2.5. When TimeText binds instead the
+            // bottom edge is simply TOP_CLEARANCE + s.
+            val k = lowestBottom - centre
+            val cornerBound = (2f * k + sqrt((5f * radius * radius - k * k).coerceAtLeast(0f))) / 2.5f
+            side = minOf(cornerBound, lowestBottom - TOP_CLEARANCE_DP).coerceIn(0f, side)
+            centreY = highestCentreDp(side, radius, centre)
+        }
+        return DoorPlacement(sideDp = side, centreYDp = centreY)
+    }
+
+    /**
+     * Highest a square of [sideDp] may be centred: top corners inside the
+     * content circle, flat top below [TOP_CLEARANCE_DP].
+     */
+    private fun highestCentreDp(
+        sideDp: Float,
+        radiusDp: Float,
+        centreDp: Float,
+    ): Float {
+        val half = sideDp / 2f
+        val cornerBound = centreDp - (sqrt((radiusDp * radiusDp - half * half).coerceAtLeast(0f)) - half)
+        return maxOf(cornerBound, TOP_CLEARANCE_DP + half)
+    }
 
     /**
      * Stroke width for the commit bloom at [bloom] progress, growing from
@@ -127,3 +202,9 @@ internal object HeroLayout {
 
     private const val SQRT_TWO = 1.41421356f
 }
+
+/** A door's side and vertical centre, in dp, from [HeroLayout.doorPlacement]. */
+internal data class DoorPlacement(
+    val sideDp: Float,
+    val centreYDp: Float,
+)

@@ -30,6 +30,8 @@ import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.domain.model.VoiceIntent
 import com.chriscartland.garage.presentation.DataFreshness
+import com.chriscartland.garage.presentation.ElapsedDuration
+import com.chriscartland.garage.presentation.SinceStatus
 import com.chriscartland.garage.usecase.VoiceCommandIgnoreReason
 import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
@@ -196,6 +198,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
                         HeroScreenLayout(
                             doorPosition = fixture.doorPosition,
                             lastChangeTimeSeconds = null,
+                            sinceStatus = fixture.sinceStatus,
                             hasDoorData = fixture.hasDoorData,
                             freshness = fixture.freshness,
                             authState = fixture.authState,
@@ -211,6 +214,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
                         HeroScreenContent(
                             doorPosition = fixture.doorPosition,
                             lastChangeTimeSeconds = null,
+                            sinceStatus = fixture.sinceStatus,
                             hasDoorData = fixture.hasDoorData,
                             freshness = fixture.freshness,
                             authState = fixture.authState,
@@ -346,6 +350,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
         val freshness: DataFreshness = DataFreshness.FRESH,
         /** Non-null pins the ring directly instead of letting it animate. */
         val ring: ConfirmRingState? = null,
+        val sinceStatus: SinceStatus? = null,
     )
 
     private fun fixtureFor(stage: String): StageFixture =
@@ -386,7 +391,14 @@ class ScreenshotStagesActivity : ComponentActivity() {
                 ring = ConfirmRingState(sweep = 1f, bloom = 1f),
             )
             STAGE_MOVING -> StageFixture(DoorPosition.OPENING, RemoteButtonState.Succeeded)
-            STAGE_OPEN -> StageFixture(DoorPosition.OPEN, RemoteButtonState.Ready)
+            // Dated, so the gallery shows the resting since line and the door
+            // placed above a two-line block.
+            STAGE_OPEN ->
+                StageFixture(
+                    DoorPosition.OPEN,
+                    RemoteButtonState.Ready,
+                    sinceStatus = SinceStatus(sinceEpochSeconds = 0L, elapsed = ElapsedDuration.HoursMinutes(hours = 2, minutes = 14)),
+                )
             STAGE_SIGNED_OUT -> StageFixture(
                 DoorPosition.OPEN,
                 RemoteButtonState.Ready,
@@ -398,7 +410,12 @@ class ScreenshotStagesActivity : ComponentActivity() {
                 authState = AuthState.Unauthenticated,
                 signInError = true,
             )
-            else -> StageFixture(DoorPosition.CLOSED, RemoteButtonState.Ready)
+            else ->
+                StageFixture(
+                    DoorPosition.CLOSED,
+                    RemoteButtonState.Ready,
+                    sinceStatus = SinceStatus(sinceEpochSeconds = 0L, elapsed = ElapsedDuration.Days(days = 3)),
+                )
         }
 
     private companion object {

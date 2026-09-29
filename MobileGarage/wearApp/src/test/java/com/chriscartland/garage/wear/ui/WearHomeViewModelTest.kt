@@ -27,6 +27,7 @@ import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.presentation.CheckInStatusMapper
 import com.chriscartland.garage.presentation.DataFreshness
+import com.chriscartland.garage.presentation.ElapsedDuration
 import com.chriscartland.garage.testcommon.FakeAuthRepository
 import com.chriscartland.garage.testcommon.FakeClock
 import com.chriscartland.garage.testcommon.FakeDoorRepository
@@ -120,6 +121,24 @@ class WearHomeViewModelTest {
             appVersion = "wear-test",
         )
     }
+
+    @Test
+    fun theSinceLineFollowsTheDoorAndThePollClock() =
+        runTest {
+            val viewModel = createViewModel()
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.OPEN, lastChangeTimeSeconds = NOW - 2 * 3600 - 14 * 60),
+            )
+            runCurrent()
+            assertEquals(ElapsedDuration.HoursMinutes(hours = 2, minutes = 14), viewModel.sinceStatus.value?.elapsed)
+
+            // The poll loop is the watch's clock: a tick moves the line.
+            clock.advanceSeconds(60)
+            viewModel.onVisible()
+            runCurrent()
+            assertEquals(ElapsedDuration.HoursMinutes(hours = 2, minutes = 15), viewModel.sinceStatus.value?.elapsed)
+            viewModel.onHidden()
+        }
 
     private fun signIn() {
         authRepository.setAuthState(

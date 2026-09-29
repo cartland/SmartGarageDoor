@@ -32,6 +32,8 @@ import com.chriscartland.garage.presentation.CheckInStatus
 import com.chriscartland.garage.presentation.CheckInStatusMapper
 import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.DataFreshnessMapper
+import com.chriscartland.garage.presentation.SinceStatus
+import com.chriscartland.garage.presentation.SinceStatusMapper
 import com.chriscartland.garage.usecase.AppSettleWindow
 import com.chriscartland.garage.usecase.AppVisibilityState
 import com.chriscartland.garage.usecase.ButtonAckToken
@@ -188,6 +190,23 @@ class WearHomeViewModel(
                 lastFetchFailed.value,
                 nowEpochSeconds.value,
             ),
+        )
+
+    /**
+     * How long the door has been in its state, for the hero's resting line —
+     * the pre-act question the watch could not answer before (strategy 2.1;
+     * its own tile and complication could). The same shared
+     * [SinceStatusMapper] the phone's status line uses; the watch only words
+     * the bucket. Ticks with the poll loop's clock, so it is live exactly
+     * while someone is looking, which is the only time the line is on screen.
+     */
+    val sinceStatus: StateFlow<SinceStatus?> =
+        combine(currentDoorEvent, nowEpochSeconds) { event, now ->
+            SinceStatusMapper.forEvent(event?.lastChangeTimeSeconds, now)
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = SinceStatusMapper.forEvent(currentDoorEvent.value?.lastChangeTimeSeconds, nowEpochSeconds.value),
         )
 
     private val stateMachine = ButtonStateMachine(

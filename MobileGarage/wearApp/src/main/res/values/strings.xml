@@ -55,6 +55,15 @@
     <string name="button_hint_waiting_for_door">Waiting for the door</string>
     <string name="button_hint_server_failed">Server did not respond</string>
     <string name="button_hint_door_failed">Door did not move</string>
+    <!-- The hero's resting line: how long the door has been in its state,
+         from the shared ElapsedDuration bucket (the phone's "2 hr 14 min").
+         Single unit like the tile beside it ("for 2 hours"): the bottom chord
+         holds about a dozen characters. Under a minute is "just now" rather
+         than a seconds figure, because the poll loop ticks every ten seconds
+         and a number that jumps by ten reads as broken. Hours and days are
+         plurals (plurals.xml). -->
+    <string name="hero_since_minutes">for %1$d min</string>
+    <string name="hero_since_just_now">just now</string>
 
     <!-- The two GLANCE surfaces: the tile (swipe right from the watch face)
          and the watch-face complication. Both are read-only: they show the
