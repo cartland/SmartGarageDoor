@@ -17,9 +17,13 @@
 
 package com.chriscartland.garage.ui.home
 
+import com.chriscartland.garage.presentation.SinceClock
+import com.chriscartland.garage.presentation.SinceStatusMapper
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 /**
  * Pure-function clock-formatting helper for the Home tab's "Since X · Y" status
@@ -33,23 +37,30 @@ import java.time.format.DateTimeFormatter
  */
 object HomeStatusFormatter {
     /**
-     * Same-day → "9:47 AM"; different day → "Apr 28, 9:47 PM".
+     * Same-day → the time alone ("9:47 AM", or "21:47" in a 24-hour locale);
+     * different day → the date as well ("Apr 28, 9:47 PM").
      *
-     * Returns a localized time / date string built via [DateTimeFormatter].
-     * Pattern is locale-aware via the default Locale of the JVM at format
-     * time. Tests use `Locale.US` for reproducibility.
+     * WHICH of those is the shared [SinceStatusMapper.clockFor] decision, so
+     * iOS cannot draw the day line differently. The FORMAT is the locale's:
+     * `ofLocalizedTime(SHORT)` follows the locale's hour cycle, which a pinned
+     * "h:mm a" used to override (ADR-035: 12- vs 24-hour is a locale property,
+     * not a product decision). Tests pass an explicit [locale] so they do not
+     * depend on the JVM's default.
      */
     fun formatTimeOrDate(
         instant: Instant,
         now: Instant,
         zone: ZoneId,
+        locale: Locale = Locale.getDefault(),
     ): String {
         val zonedTime = instant.atZone(zone)
-        val zonedNow = now.atZone(zone)
-        val sameDay = zonedTime.toLocalDate() == zonedNow.toLocalDate()
-        return zonedTime.format(if (sameDay) TIME_ONLY else DATE_AND_TIME)
+        val time = zonedTime.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale))
+        return when (SinceStatusMapper.clockFor(instant.epochSecond, now.epochSecond, zone.id)) {
+            SinceClock.TIME_ONLY -> time
+            SinceClock.DATE_AND_TIME -> {
+                val date = zonedTime.format(DateTimeFormatter.ofPattern("MMM d", locale))
+                "$date, $time"
+            }
+        }
     }
-
-    private val TIME_ONLY = DateTimeFormatter.ofPattern("h:mm a")
-    private val DATE_AND_TIME = DateTimeFormatter.ofPattern("MMM d, h:mm a")
 }

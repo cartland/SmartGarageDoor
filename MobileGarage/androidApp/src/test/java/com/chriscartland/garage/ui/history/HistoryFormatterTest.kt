@@ -18,10 +18,14 @@
 package com.chriscartland.garage.ui.history
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 /**
  * Tests for [HistoryFormatter].
@@ -34,46 +38,52 @@ import java.time.ZoneOffset
 class HistoryFormatterTest {
     // ---------- formatTime ----------
 
-    @Test
-    fun formatTime_midnightUTC() {
-        val t = Instant.parse("2026-04-29T00:00:00Z").epochSecond
-        assertEquals("12:00 AM", HistoryFormatter.formatTime(t, ZoneOffset.UTC))
-    }
+    private fun shortTime(
+        epochSeconds: Long,
+        zone: ZoneOffset,
+        locale: Locale,
+    ): String =
+        Instant
+            .ofEpochSecond(epochSeconds)
+            .atZone(zone)
+            .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale))
 
     @Test
-    fun formatTime_noonUTC() {
-        val t = Instant.parse("2026-04-29T12:00:00Z").epochSecond
-        assertEquals("12:00 PM", HistoryFormatter.formatTime(t, ZoneOffset.UTC))
-    }
-
-    @Test
-    fun formatTime_morningUTC() {
+    fun formatTime_rendersTheLocalesShortTime() {
+        // Compared against the JDK's own localized rendering rather than a
+        // literal: CLDR's AM/PM spacing changed across JDK versions, and the
+        // property under test is the hour cycle, not the glyph.
         val t = Instant.parse("2026-04-29T10:15:00Z").epochSecond
-        assertEquals("10:15 AM", HistoryFormatter.formatTime(t, ZoneOffset.UTC))
-    }
-
-    @Test
-    fun formatTime_eveningUTC() {
-        val t = Instant.parse("2026-04-28T20:30:00Z").epochSecond
-        assertEquals("8:30 PM", HistoryFormatter.formatTime(t, ZoneOffset.UTC))
+        val rendered = HistoryFormatter.formatTime(t, ZoneOffset.UTC, Locale.US)
+        assertEquals(shortTime(t, ZoneOffset.UTC, Locale.US), rendered)
+        assertTrue("US is a 12-hour locale: $rendered", rendered.endsWith("AM"))
     }
 
     @Test
     fun formatTime_zoneOffsetShifts() {
-        // 10:15 AM in UTC = 7:15 AM in UTC-3
+        // 10:15 UTC is 7:15 at UTC-3
         val t = Instant.parse("2026-04-29T10:15:00Z").epochSecond
-        assertEquals("7:15 AM", HistoryFormatter.formatTime(t, ZoneOffset.ofHours(-3)))
+        val rendered = HistoryFormatter.formatTime(t, ZoneOffset.ofHours(-3), Locale.US)
+        assertEquals(shortTime(t, ZoneOffset.ofHours(-3), Locale.US), rendered)
+        assertTrue(rendered, rendered.startsWith("7:15"))
+    }
+
+    @Test
+    fun formatTime_followsA24HourLocale() {
+        // Strategy 1.8: a 24-hour device used to see AM/PM here regardless.
+        val t = Instant.parse("2026-04-29T20:30:00Z").epochSecond
+        assertEquals("20:30", HistoryFormatter.formatTime(t, ZoneOffset.UTC, Locale.GERMANY))
     }
 
     // ---------- formatDate ----------
 
     @Test
     fun formatDate_monday() {
-        assertEquals("Mon, Apr 27", HistoryFormatter.formatDate(LocalDate.parse("2026-04-27")))
+        assertEquals("Mon, Apr 27", HistoryFormatter.formatDate(LocalDate.parse("2026-04-27"), Locale.US))
     }
 
     @Test
     fun formatDate_wednesday() {
-        assertEquals("Wed, Apr 22", HistoryFormatter.formatDate(LocalDate.parse("2026-04-22")))
+        assertEquals("Wed, Apr 22", HistoryFormatter.formatDate(LocalDate.parse("2026-04-22"), Locale.US))
     }
 }
