@@ -931,12 +931,19 @@ and the complication. It contributes no verdict; it words and draws one.
   screen while serving two, which the ADR-035 naming corollary would normally
   flag — but `DECISIONS.md` already lists it in a PLANNED relocation to
   `presentation-model`, so renaming now would front-run a written plan. Leave it.)
-- **Colours and muting are inherited, not reimplemented.** `GarageWidgetColors`
-  reads `doorStatusLightScheme` / `doorStatusDarkScheme` and passes
-  `DataFreshness.isMuted` straight through, so the widget greys by exactly the
-  rule and amount every other surface does. Dark mode is Glance's
-  `ColorProvider(day, night)` — resolved by the host, the only thing that knows
-  the launcher's configuration.
+- **Colours are inherited; the muting is NOT yet the shared rule — a known
+  defect.** `GarageWidgetColors` reads `doorStatusLightScheme` /
+  `doorStatusDarkScheme` with `doorColorSet(isStale = isMuted)`, which is the
+  phone card's PARTIAL `_STALE_` palette and nothing else: no `FreshnessTint`
+  luma drain, no `MUTED_ALPHA`. So a stale open door on the widget stays
+  brick-red (`OPEN_STALE_LIGHT` `#9A655C`) where the tile and the Home card go
+  grey. The tile's own KDoc (`GarageTilePresentation.kt`) explains why that
+  mechanism is the wrong one — mixing the two "would grey the door twice, by
+  different amounts". An earlier version of this bullet claimed the widget
+  "greys by exactly the rule every other surface does"; it did not, and the
+  2026-09-28 cross-surface audit caught it. Fix + test are item 1.2 of
+  `docs/CROSS_SURFACE_UX_STRATEGY.md`. Dark mode IS handled correctly: Glance's
+  `ColorProvider(day, night)`, resolved by the host.
 - **The drawing IS tested, and that needed a deliberate split.** Glance is not
   Compose, so the screenshot gallery cannot render it and Layoutlib has no widget
   host — the layout would have been the one part of this surface nothing verified,
@@ -968,26 +975,31 @@ The door on the watch face — `GarageDoorComplicationService`, reading the same
 - **A complication CANNOT be muted, and that inverts the rule.** The watch face
   owns these pixels and picks the colours, so `DataFreshness.isMuted` — the
   grey-and-dim treatment every other surface leans on — has nowhere to land.
-  Doubt lives in the words or nowhere. Hence: **confirmed → the door leads
-  (`Open`, title `2m`); not vouched for → the AGE leads (`6h ago`, title
-  `Open`).** This does not violate `aKnownDoorIsStillNamedWhenTheVerdictIsSpoken`
-  — the door is still in the title — but **many faces render `text` alone**,
-  and there `Open` would be an unqualified claim about a six-hour-old reading.
+  Doubt lives in the words or nowhere. Hence (0.9.1+): **confirmed → the door
+  leads (`Open`, title = a face-counted running duration such as `2 mins`);
+  not vouched for → the word `Stale` leads and the door drops to the title.**
+  No age is printed anywhere — 0.9.1 removed it, see § "A glance shows
+  DURATION IN STATE". This does not violate
+  `aKnownDoorIsStillNamedWhenTheVerdictIsSpoken` — the door is still in the
+  title — but **many faces render `text` alone**, and there `Open` would be an
+  unqualified claim about a reading we cannot confirm.
 - **SUPPORTED_TYPES is deliberately only `SHORT_TEXT,LONG_TEXT`.** Icon-only
   and ranged-value slots have nowhere to state the age, so a door glyph there
   looks identical whether we heard a minute ago or last week. Declining them is
   the honest answer; `onlyTypesThatCanStateAnAgeAreAdvertised` reads the
   manifest and pins it.
 - **Seven characters is a hard budget** (`ShortTextComplicationData.MAX_TEXT_LENGTH`),
-  enforced by `GarageComplicationLengthTest` against the REAL `strings.xml`
-  with worst-case numbers substituted (minutes ≤ 59 and hours ≤ 23 from the
-  shared bucketing; days capped at 99 by `GarageComplicationWords` so `99d ago`
-  still fits). Overflow falls back to `Stale`. The complication has its OWN
+  enforced by `GarageComplicationLengthTest` against the REAL `strings.xml`.
+  The running duration is rendered by the face (`TimeDifferenceComplicationText`
+  in `SHORT_WORDS_SINGLE_UNIT` style, which falls back to the compact form when
+  the words will not fit), so no day cap is needed on our side. Overflow of our
+  own words falls back to `Stale`. The complication has its OWN
   vocabulary — "Sensor conflict" does not fit, and a deliberate short word beats
   an ellipsised one.
 - **It waits for the network; the tile does not.** A tile render is
   user-initiated, so it answers from cache and corrects itself. Nobody waits on
-  a complication, and a cache nothing refreshes would read `6h ago` forever — so
+  a complication, and a cache nothing refreshes would present a remembered door
+  as current forever — so
   the service spends a bounded 8s of the platform's ~20s budget asking for
   something current, then presents what it has either way.
   `UPDATE_PERIOD_SECONDS = 600` is chosen to sit UNDER
