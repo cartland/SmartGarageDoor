@@ -10,9 +10,19 @@
   The widget refreshes from the network on every render as well, so the real
   cadence is "whenever the launcher asks", and the reading says so when it could
   not be confirmed.
+
+  minWidth/minHeight are Android's cell arithmetic (70 dp x n - 30 dp) for the
+  2x1 default; GarageWidgetLayout declares the same 2x1 plus a 4x1 to
+  SizeMode.Responsive, and resizeMode lets the launcher stretch between them.
+
+  previewImage is the widget picker's image on launchers older than Android 15:
+  an emulator CAPTURE of the widget's own composable over the same canned
+  reading GarageDoorWidget.providePreview renders for newer ones. Regenerated
+  by scripts/generate-widget-screenshots.sh; never hand-drawn.
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/widget_description"
+    android:previewImage="@drawable/garage_door_widget_preview"
     android:minWidth="110dp"
     android:minHeight="40dp"
     android:resizeMode="horizontal|vertical"

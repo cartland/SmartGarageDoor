@@ -969,6 +969,48 @@ and the complication. It contributes no verdict; it words and draws one.
   look for it on a line of text — a first attempt asserted on the headline and
   failed with the Text node's modifier printed empty.
 
+### The Android widget (two sizes, one verdict)
+
+The phone's only glance surface — `GarageDoorWidget` (Glance), reading the
+same `GlanceStatus` the tile and complication do, through `WidgetGlanceStatus`.
+
+- **`SizeMode.Responsive` with exactly two sizes** (`GarageWidgetLayout.SIZES`:
+  2×1 and 4×1, Android's 70 dp × n − 30 dp cell arithmetic). The provider had
+  declared the widget resizable from the start, but with `SizeMode.Single`
+  every size got the 2×1 layout. Which arrangement a size gets is
+  `GarageWidgetLayout.forSize`, a pure decision pinned on the JVM
+  (`GarageWidgetLayoutTest`); the drawing reads `LocalSize` and only asks. Two
+  cells stack the lines, four put the since-line beside the headline. The
+  spoken description and the tap target stay on the container either way
+  (`GarageDoorWidgetBodyTest` asserts the arrangement by test tag, per size).
+- **The picker shows the real widget, never a drawing of it.**
+  `GarageDoorWidget.providePreview` renders `GarageWidgetPreview.status` (a
+  closed door, confirmed, closed three hours) through the same composable and
+  `GarageWidgetPreview.publish` hands it to the launcher at process start
+  (Android 15+, `setWidgetPreviews`; called at start because the picker is
+  consulted before any widget exists). Older launchers read
+  `android:previewImage`, which is the emulator CAPTURE of that same reading —
+  `scripts/generate-widget-screenshots.sh` copies `widget-closed_4x1-light.png`
+  into `drawable-nodpi/garage_door_widget_preview.png`. Regenerate it with the
+  gallery; never hand-edit it.
+- **Captured on an emulator, like the tile.** Glance is neither Compose nor
+  Layoutlib, so nothing but a device can show it drawn. The debug
+  `WidgetStagesActivity` composes the widget to RemoteViews with
+  `GlanceRemoteViews.compose` at a launcher-sized cell for each size class
+  (the declared sizes are Glance's BREAKPOINTS, the minimum each class needs;
+  a launcher lays the chosen composition out in its real cell, and rendering
+  at the bare breakpoint clips the headline), inflates the result, and copies
+  exactly that frame off the rendered window (`PixelCopy`, which keeps the
+  outline-clipped corner radius a software canvas would drop), so each capture
+  is what a launcher shows there;
+  the script (AVD
+  `widget_capture`, Pixel 7 profile, API 34 Google APIs image, clock pinned to
+  10:10) captures every stage in BOTH themes via `cmd uimode night`, writes
+  `MobileGarage/screenshots/store/widget/` + its README, and the gallery rows
+  read from there. Review the stages as PAIRS: `closed_2x1` vs `closed_4x1`
+  (same words, two rows vs one), `open_4x1` vs `stale_4x1` (same door, one
+  muted).
+
 ### The Wear complication (no pixels of our own)
 
 The door on the watch face — `GarageDoorComplicationService`, reading the same

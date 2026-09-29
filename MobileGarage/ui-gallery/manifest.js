@@ -2472,25 +2472,6 @@ window.UI_GALLERY = {
        }
       },
       {
-       "id": "armed",
-       "label": "Armed",
-       "platforms": [
-        "wear"
-       ],
-       "images": {
-        "default|wear|light": {
-         "src": "../screenshots/store/wear/wear-armed.png",
-         "w": 454,
-         "h": 454
-        },
-        "default|wear|dark": {
-         "src": "../screenshots/store/wear/wear-armed.png",
-         "w": 454,
-         "h": 454
-        }
-       }
-      },
-      {
        "id": "holding",
        "label": "Holding",
        "platforms": [
@@ -2550,6 +2531,152 @@ window.UI_GALLERY = {
      ]
     },
     {
+     "id": "wear-freshness",
+     "title": "Freshness",
+     "axis": null,
+     "note": "Review as a PAIR. Same dial, same art; the only thing that escalates is the word. A regression that makes the muted look appear or disappear between them is the thing to catch.",
+     "height": 190,
+     "maxw": null,
+     "variants": [
+      {
+       "id": "default",
+       "label": "Default"
+      }
+     ],
+     "items": [
+      {
+       "id": "connecting",
+       "label": "Arriving",
+       "platforms": [
+        "wear"
+       ],
+       "images": {
+        "default|wear|light": {
+         "src": "../screenshots/store/wear/wear-connecting.png",
+         "w": 454,
+         "h": 454
+        },
+        "default|wear|dark": {
+         "src": "../screenshots/store/wear/wear-connecting.png",
+         "w": 454,
+         "h": 454
+        }
+       }
+      },
+      {
+       "id": "no-signal",
+       "label": "No signal",
+       "platforms": [
+        "wear"
+       ],
+       "images": {
+        "default|wear|light": {
+         "src": "../screenshots/store/wear/wear-no_signal.png",
+         "w": 454,
+         "h": 454
+        },
+        "default|wear|dark": {
+         "src": "../screenshots/store/wear/wear-no_signal.png",
+         "w": 454,
+         "h": 454
+        }
+       }
+      }
+     ]
+    },
+    {
+     "id": "wear-tile",
+     "title": "Tile",
+     "axis": null,
+     "note": "The tile, swipe right from the watch face. Read-only. tile_open vs tile_stale is one door with one muted; tile_closed vs tile_no_signal is something known vs nothing known.",
+     "height": 190,
+     "maxw": null,
+     "variants": [
+      {
+       "id": "default",
+       "label": "Default"
+      }
+     ],
+     "items": [
+      {
+       "id": "tile-closed",
+       "label": "Closed",
+       "platforms": [
+        "wear"
+       ],
+       "images": {
+        "default|wear|light": {
+         "src": "../screenshots/store/wear/wear-tile_closed.png",
+         "w": 454,
+         "h": 454
+        },
+        "default|wear|dark": {
+         "src": "../screenshots/store/wear/wear-tile_closed.png",
+         "w": 454,
+         "h": 454
+        }
+       }
+      },
+      {
+       "id": "tile-open",
+       "label": "Open",
+       "platforms": [
+        "wear"
+       ],
+       "images": {
+        "default|wear|light": {
+         "src": "../screenshots/store/wear/wear-tile_open.png",
+         "w": 454,
+         "h": 454
+        },
+        "default|wear|dark": {
+         "src": "../screenshots/store/wear/wear-tile_open.png",
+         "w": 454,
+         "h": 454
+        }
+       }
+      },
+      {
+       "id": "tile-stale",
+       "label": "Not vouched for",
+       "platforms": [
+        "wear"
+       ],
+       "images": {
+        "default|wear|light": {
+         "src": "../screenshots/store/wear/wear-tile_stale.png",
+         "w": 454,
+         "h": 454
+        },
+        "default|wear|dark": {
+         "src": "../screenshots/store/wear/wear-tile_stale.png",
+         "w": 454,
+         "h": 454
+        }
+       }
+      },
+      {
+       "id": "tile-no-signal",
+       "label": "No signal",
+       "platforms": [
+        "wear"
+       ],
+       "images": {
+        "default|wear|light": {
+         "src": "../screenshots/store/wear/wear-tile_no_signal.png",
+         "w": 454,
+         "h": 454
+        },
+        "default|wear|dark": {
+         "src": "../screenshots/store/wear/wear-tile_no_signal.png",
+         "w": 454,
+         "h": 454
+        }
+       }
+      }
+     ]
+    },
+    {
      "id": "wear-signin",
      "title": "Sign-in",
      "axis": null,
@@ -2598,6 +2725,138 @@ window.UI_GALLERY = {
          "src": "../screenshots/store/wear/wear-sign_in_error.png",
          "w": 454,
          "h": 454
+        }
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Home-screen widget (Android)",
+   "rows": [
+    {
+     "id": "widget-sizes",
+     "title": "Two sizes",
+     "axis": null,
+     "note": "Same words, one row or two. GarageWidgetLayout.forSize decides from the size Glance composed for: two cells stack, four put the since-line inline. Emulator captures, clock pinned to 10:10; the 4x1 light capture is also the widget picker's image.",
+     "height": 120,
+     "maxw": null,
+     "variants": [
+      {
+       "id": "default",
+       "label": "Default"
+      }
+     ],
+     "items": [
+      {
+       "id": "closed-2x1",
+       "label": "2x1",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
+         "src": "../screenshots/store/widget/widget-closed_2x1-light.png",
+         "w": 373,
+         "h": 189
+        },
+        "default|android|dark": {
+         "src": "../screenshots/store/widget/widget-closed_2x1-dark.png",
+         "w": 373,
+         "h": 189
+        }
+       }
+      },
+      {
+       "id": "closed-4x1",
+       "label": "4x1",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
+         "src": "../screenshots/store/widget/widget-closed_4x1-light.png",
+         "w": 740,
+         "h": 189
+        },
+        "default|android|dark": {
+         "src": "../screenshots/store/widget/widget-closed_4x1-dark.png",
+         "w": 740,
+         "h": 189
+        }
+       }
+      }
+     ]
+    },
+    {
+     "id": "widget-freshness",
+     "title": "Freshness",
+     "axis": null,
+     "note": "Review as a PAIR. open vs stale is one door with one muted and the span replaced by \"Not confirmed\"; no signal is nothing known and nothing reachable.",
+     "height": 120,
+     "maxw": null,
+     "variants": [
+      {
+       "id": "default",
+       "label": "Default"
+      }
+     ],
+     "items": [
+      {
+       "id": "open-4x1",
+       "label": "Open",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
+         "src": "../screenshots/store/widget/widget-open_4x1-light.png",
+         "w": 740,
+         "h": 189
+        },
+        "default|android|dark": {
+         "src": "../screenshots/store/widget/widget-open_4x1-dark.png",
+         "w": 740,
+         "h": 189
+        }
+       }
+      },
+      {
+       "id": "stale-4x1",
+       "label": "Not vouched for",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
+         "src": "../screenshots/store/widget/widget-stale_4x1-light.png",
+         "w": 740,
+         "h": 189
+        },
+        "default|android|dark": {
+         "src": "../screenshots/store/widget/widget-stale_4x1-dark.png",
+         "w": 740,
+         "h": 189
+        }
+       }
+      },
+      {
+       "id": "no-signal-4x1",
+       "label": "No signal",
+       "platforms": [
+        "android"
+       ],
+       "images": {
+        "default|android|light": {
+         "src": "../screenshots/store/widget/widget-no_signal_4x1-light.png",
+         "w": 740,
+         "h": 189
+        },
+        "default|android|dark": {
+         "src": "../screenshots/store/widget/widget-no_signal_4x1-dark.png",
+         "w": 740,
+         "h": 189
         }
        }
       }

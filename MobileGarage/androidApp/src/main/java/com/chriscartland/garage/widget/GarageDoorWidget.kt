@@ -26,21 +26,28 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.LocalContext
+import androidx.glance.LocalSize
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
+import androidx.glance.layout.Row
+import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
+import androidx.glance.layout.width
 import androidx.glance.semantics.contentDescription
 import androidx.glance.semantics.semantics
+import androidx.glance.semantics.testTag
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import androidx.glance.unit.ColorProvider
 import com.chriscartland.garage.GarageApplication
 import com.chriscartland.garage.MainActivity
 import com.chriscartland.garage.R
@@ -90,8 +97,32 @@ import java.time.ZoneId
  * Failure is not silent: a refresh that could not reach the server flips the
  * reading to STALE via [WidgetGlanceStatus], and the subline says so instead of
  * claiming a span.
+ *
+ * ## Two sizes, two layouts
+ *
+ * The body is composed once per size in [GarageWidgetLayout.SIZES] and the
+ * launcher shows the largest that fits, so a widget stretched to four cells
+ * puts the since-line beside the headline instead of under it. Which
+ * arrangement a size gets is [GarageWidgetLayout.forSize]'s decision.
  */
 class GarageDoorWidget : GlanceAppWidget() {
+    override val sizeMode: SizeMode = SizeMode.Responsive(GarageWidgetLayout.SIZES)
+
+    /**
+     * The picker's image: the same composable over [GarageWidgetPreview.status],
+     * so what the user sees while choosing is what they get. Published by
+     * [GarageWidgetPreview.publish] at process start.
+     */
+    override suspend fun providePreview(
+        context: Context,
+        widgetCategory: Int,
+    ) {
+        val clock = (context.applicationContext as GarageApplication).component.appClock
+        provideContent {
+            GarageDoorWidgetContent(GarageWidgetPreview.status(nowEpochSeconds = clock.nowEpochSeconds()))
+        }
+    }
+
     override suspend fun provideGlance(
         context: Context,
         id: GlanceId,
@@ -166,6 +197,11 @@ internal fun GarageDoorWidgetContent(status: GlanceStatus) {
 /**
  * The drawing. Takes plain values, so a test can render it and assert on the
  * nodes without a widget host or a Context.
+ *
+ * Reads [LocalSize] — the size Glance composed THIS frame for — and lets
+ * [GarageWidgetLayout] say whether the lines stack or share a row. The spoken
+ * description and the tap target sit on the container either way, so a screen
+ * reader hears one statement and the whole card opens the app.
  */
 @Composable
 internal fun GarageDoorWidgetBody(
@@ -174,37 +210,74 @@ internal fun GarageDoorWidgetBody(
     freshness: DataFreshness,
 ) {
     val textColor = GarageWidgetColors.onBackground(colorState, freshness)
-    Column(
-        modifier = GlanceModifier
-            .fillMaxSize()
-            .background(GarageWidgetColors.background(colorState, freshness))
-            .cornerRadius(WIDGET_CORNER_RADIUS)
-            .padding(WIDGET_PADDING)
-            .clickable(actionStartActivity<MainActivity>())
-            .semantics { contentDescription = text.spoken },
-        verticalAlignment = Alignment.Vertical.CenterVertically,
-        horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
-    ) {
-        // One line each: a widget cell has no room to wrap, and a wrapped
-        // headline would push the subline out of the frame unread.
-        Text(
-            text = text.headline,
-            style = TextStyle(
-                color = textColor,
-                fontSize = HEADLINE_SIZE,
-                fontWeight = FontWeight.Medium,
-            ),
-            maxLines = 1,
-        )
-        val subline = text.subline
-        if (subline != null) {
-            Text(
-                text = subline,
-                style = TextStyle(color = textColor, fontSize = SUBLINE_SIZE),
-                maxLines = 1,
-            )
+    val card = GlanceModifier
+        .fillMaxSize()
+        .background(GarageWidgetColors.background(colorState, freshness))
+        .cornerRadius(WIDGET_CORNER_RADIUS)
+        .padding(WIDGET_PADDING)
+        .clickable(actionStartActivity<MainActivity>())
+    val subline = text.subline
+    when (GarageWidgetLayout.forSize(LocalSize.current)) {
+        WidgetLayout.STACKED -> Column(
+            modifier = card.semantics {
+                contentDescription = text.spoken
+                testTag = GarageWidgetLayout.TAG_STACKED
+            },
+            verticalAlignment = Alignment.Vertical.CenterVertically,
+            horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+        ) {
+            HeadlineText(text.headline, textColor)
+            if (subline != null) {
+                SublineText(subline, textColor)
+            }
+        }
+        WidgetLayout.INLINE -> Row(
+            modifier = card.semantics {
+                contentDescription = text.spoken
+                testTag = GarageWidgetLayout.TAG_INLINE
+            },
+            verticalAlignment = Alignment.Vertical.CenterVertically,
+            horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+        ) {
+            HeadlineText(text.headline, textColor)
+            if (subline != null) {
+                Spacer(modifier = GlanceModifier.width(INLINE_GAP))
+                SublineText(subline, textColor)
+            }
         }
     }
+}
+
+/**
+ * One line each: a widget cell has no room to wrap, and a wrapped headline
+ * would push the subline out of the frame unread.
+ */
+@Composable
+private fun HeadlineText(
+    text: String,
+    color: ColorProvider,
+) {
+    Text(
+        text = text,
+        style = TextStyle(
+            color = color,
+            fontSize = HEADLINE_SIZE,
+            fontWeight = FontWeight.Medium,
+        ),
+        maxLines = 1,
+    )
+}
+
+@Composable
+private fun SublineText(
+    text: String,
+    color: ColorProvider,
+) {
+    Text(
+        text = text,
+        style = TextStyle(color = color, fontSize = SUBLINE_SIZE),
+        maxLines = 1,
+    )
 }
 
 /**
@@ -244,5 +317,6 @@ private fun sublineText(status: GlanceStatus): String? {
 // grid, not by the app's rhythm.
 private val WIDGET_CORNER_RADIUS = 16.dp
 private val WIDGET_PADDING = 12.dp
+private val INLINE_GAP = 8.dp
 private val HEADLINE_SIZE = 20.sp
 private val SUBLINE_SIZE = 13.sp

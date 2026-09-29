@@ -48,6 +48,7 @@ pathAliases:
   ref: MobileGarage/android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests
   ios: MobileGarage/iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated
   wear: MobileGarage/screenshots/store/wear
+  widget: MobileGarage/screenshots/store/widget
 
 sections:
   - title: Screens
@@ -704,3 +705,44 @@ sections:
             label: Sign-in error
             images:
               wear: ${wear}/wear-sign_in_error.png
+
+  - title: Home-screen widget (Android)
+    rows:
+      - id: widget-sizes
+        title: Two sizes
+        height: 120
+        note: >-
+          Same words, one row or two. GarageWidgetLayout.forSize decides from
+          the size Glance composed for: two cells stack, four put the
+          since-line inline. Emulator captures, clock pinned to 10:10; the
+          4x1 light capture is also the widget picker's image.
+        items:
+          - id: closed-2x1
+            label: 2x1
+            images:
+              android: {light: "${widget}/widget-closed_2x1-light.png", dark: "${widget}/widget-closed_2x1-dark.png"}
+          - id: closed-4x1
+            label: 4x1
+            images:
+              android: {light: "${widget}/widget-closed_4x1-light.png", dark: "${widget}/widget-closed_4x1-dark.png"}
+
+      - id: widget-freshness
+        title: Freshness
+        height: 120
+        note: >-
+          Review as a PAIR. open vs stale is one door with one muted and the
+          span replaced by "Not confirmed"; no signal is nothing known and
+          nothing reachable.
+        items:
+          - id: open-4x1
+            label: Open
+            images:
+              android: {light: "${widget}/widget-open_4x1-light.png", dark: "${widget}/widget-open_4x1-dark.png"}
+          - id: stale-4x1
+            label: Not vouched for
+            images:
+              android: {light: "${widget}/widget-stale_4x1-light.png", dark: "${widget}/widget-stale_4x1-dark.png"}
+          - id: no-signal-4x1
+            label: No signal
+            images:
+              android: {light: "${widget}/widget-no_signal_4x1-light.png", dark: "${widget}/widget-no_signal_4x1-dark.png"}

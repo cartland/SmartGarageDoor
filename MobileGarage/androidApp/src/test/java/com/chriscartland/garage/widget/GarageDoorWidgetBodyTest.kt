@@ -20,6 +20,7 @@ package com.chriscartland.garage.widget
 import androidx.glance.appwidget.testing.unit.runGlanceAppWidgetUnitTest
 import androidx.glance.testing.unit.hasContentDescription
 import androidx.glance.testing.unit.hasStartActivityClickAction
+import androidx.glance.testing.unit.hasTestTag
 import androidx.glance.testing.unit.hasText
 import com.chriscartland.garage.MainActivity
 import com.chriscartland.garage.domain.model.DoorColorState
@@ -135,5 +136,61 @@ class GarageDoorWidgetBodyTest {
 
             onNode(hasText("Not confirmed")).assertExists()
             onNode(hasText("since")).assertDoesNotExist()
+        }
+
+    @Test
+    fun theWideWidgetPutsBothLinesOnOneRow() =
+        runGlanceAppWidgetUnitTest {
+            // SizeMode.Responsive composes the body once per declared size;
+            // this is the four-cell composition. The tag is on the container,
+            // so the assertion is about WHICH arrangement drew, not the words.
+            setAppWidgetSize(GarageWidgetLayout.WIDE)
+            provideComposable {
+                GarageDoorWidgetBody(
+                    text = GarageWidgetText(headline = "Closed", subline = "since 3:42 PM"),
+                    colorState = DoorColorState.CLOSED,
+                    freshness = DataFreshness.FRESH,
+                )
+            }
+            onNode(hasTestTag(GarageWidgetLayout.TAG_INLINE)).assertExists()
+            onNode(hasTestTag(GarageWidgetLayout.TAG_STACKED)).assertDoesNotExist()
+            onNode(hasText("Closed")).assertExists()
+            onNode(hasText("since 3:42 PM")).assertExists()
+        }
+
+    @Test
+    fun theCompactWidgetStacksTheLines() =
+        runGlanceAppWidgetUnitTest {
+            // Positive control for the test above: the two-cell composition
+            // must draw the OTHER arrangement, or the tag could be constant.
+            setAppWidgetSize(GarageWidgetLayout.COMPACT)
+            provideComposable {
+                GarageDoorWidgetBody(
+                    text = GarageWidgetText(headline = "Closed", subline = "since 3:42 PM"),
+                    colorState = DoorColorState.CLOSED,
+                    freshness = DataFreshness.FRESH,
+                )
+            }
+            onNode(hasTestTag(GarageWidgetLayout.TAG_STACKED)).assertExists()
+            onNode(hasTestTag(GarageWidgetLayout.TAG_INLINE)).assertDoesNotExist()
+            onNode(hasText("since 3:42 PM")).assertExists()
+        }
+
+    @Test
+    fun theSpokenStatementAndTheTapSurviveEitherArrangement() =
+        runGlanceAppWidgetUnitTest {
+            // Strategy 2.3's one-statement description and the read-only tap
+            // target both live on the container; a layout split must not
+            // leave either behind on one branch.
+            setAppWidgetSize(GarageWidgetLayout.WIDE)
+            provideComposable {
+                GarageDoorWidgetBody(
+                    text = GarageWidgetText(headline = "Open", subline = "since 9:12 AM"),
+                    colorState = DoorColorState.OPEN,
+                    freshness = DataFreshness.FRESH,
+                )
+            }
+            onNode(hasContentDescription("Open, since 9:12 AM")).assertExists()
+            onNode(hasStartActivityClickAction<MainActivity>()).assertExists()
         }
 }
