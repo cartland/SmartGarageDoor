@@ -64,6 +64,7 @@ import com.chriscartland.garage.ui.home.HomeContent as HomeContentInternal
 fun HomeContent(
     modifier: Modifier = Modifier,
     homeViewModel: HomeViewModel? = null,
+    onNavigateToSnooze: () -> Unit = {},
 ) {
     val component = rememberAppComponent()
     val resolved = homeViewModel ?: viewModel { component.homeViewModel }
@@ -174,6 +175,7 @@ fun HomeContent(
             }
         },
         onSignIn = { googleSignIn.launchSignIn() },
+        onSnoozeTap = onNavigateToSnooze,
         voiceControlSection = if (
             developerAccess == true &&
             homeAuthState == HomeAuthState.SignedIn

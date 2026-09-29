@@ -46,6 +46,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -74,6 +75,7 @@ import com.chriscartland.garage.presentation.HomeAlert
 import com.chriscartland.garage.presentation.PermissionNagLine
 import com.chriscartland.garage.presentation.PermissionNagMapper
 import com.chriscartland.garage.presentation.SinceStatus
+import com.chriscartland.garage.presentation.SnoozeRowStatusMapper
 import com.chriscartland.garage.presentation.StatusHeadline
 import com.chriscartland.garage.presentation.StatusHeadlineMapper
 import com.chriscartland.garage.presentation.WarningSeverity
@@ -190,6 +192,7 @@ fun HomeContent(
     onAlertAction: (HomeAlert) -> Unit = {},
     onRemoteButtonTap: () -> Unit = {},
     onSignIn: () -> Unit = {},
+    onSnoozeTap: () -> Unit = {},
     // Developer-flag-gated voice-control section (live: commits press
     // the real remote button). Null = hidden. A slot (not data +
     // lambdas) so the recognizer plumbing stays in
@@ -233,7 +236,7 @@ fun HomeContent(
                         )
                     },
                 ) {
-                    HomeStatusCardBody(status = status, sinceLine = sinceLine)
+                    HomeStatusCardBody(status = status, sinceLine = sinceLine, authState = authState, onSnoozeTap = onSnoozeTap)
                 }
             }
 
@@ -345,6 +348,8 @@ internal fun HomeSection(
 private fun HomeStatusCardBody(
     status: HomeStatusDisplay,
     sinceLine: String,
+    authState: HomeAuthState,
+    onSnoozeTap: () -> Unit,
 ) {
     // One grey, from one base: see DoorMuting. (The card used to pick the
     // palette's _STALE_ variant on a stale check-in and drain THAT, which made
@@ -460,6 +465,19 @@ private fun HomeStatusCardBody(
                             textAlign = TextAlign.Start,
                         )
                     }
+                }
+            }
+            // A door that is open is the one the notification is about, so the
+            // way to quiet it lives beside it (strategy 2.4). Whether to offer
+            // it is the shared decision's; the sheet itself stays on Settings.
+            if (status.hasData &&
+                SnoozeRowStatusMapper.offersHomeEntryPoint(
+                    doorPosition = status.doorPosition,
+                    signedIn = authState == HomeAuthState.SignedIn,
+                )
+            ) {
+                TextButton(onClick = onSnoozeTap) {
+                    Text(text = stringResource(R.string.home_snooze_action))
                 }
             }
         }

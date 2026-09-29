@@ -31,10 +31,14 @@ enum SettingsRoute: Hashable {
 struct SettingsScreen: View {
     private let component: NativeComponent
     @StateObject private var wrapper: SettingsViewModelWrapper
+    /// Home's hand-off (strategy 2.4): open the snooze sheet on arrival, then
+    /// clear the request. Owned by the tab host.
+    @Binding private var openSnoozeRequest: Bool
 
-    init(component: NativeComponent) {
+    init(component: NativeComponent, openSnoozeRequest: Binding<Bool> = .constant(false)) {
         self.component = component
         _wrapper = StateObject(wrappedValue: SettingsViewModelWrapper(component: component))
+        _openSnoozeRequest = openSnoozeRequest
     }
 
     private static var appVersion: String {
@@ -81,6 +85,7 @@ struct SettingsScreen: View {
             appPackage: Self.appPackage,
             appBuilt: Self.appBuilt,
             snoozeOptionEnabled: wrapper.snoozeOptionEnabled,
+            openSnoozeRequest: $openSnoozeRequest,
             onSignIn: { wrapper.signInWithGoogle() },
             onSignOut: { wrapper.signOut() },
             onSnooze: { wrapper.snooze($0) },
@@ -146,6 +151,8 @@ struct SettingsContentView: View {
     /// mirrors it so the two platforms honor the same switch. Defaults to the
     /// production value, so previews render the section.
     var snoozeOptionEnabled: Bool = true
+    /// Home's hand-off: open the snooze sheet on arrival, then clear it.
+    @Binding var openSnoozeRequest: Bool
     let onSignIn: () -> Void
     let onSignOut: () -> Void
     let onSnooze: (SnoozeDurationUIOption) -> Void
@@ -224,6 +231,7 @@ struct SettingsContentView: View {
         appPackage: String,
         appBuilt: String,
         snoozeOptionEnabled: Bool = true,
+        openSnoozeRequest: Binding<Bool> = .constant(false),
         onSignIn: @escaping () -> Void,
         onSignOut: @escaping () -> Void,
         onSnooze: @escaping (SnoozeDurationUIOption) -> Void,
@@ -246,6 +254,7 @@ struct SettingsContentView: View {
         self.appPackage = appPackage
         self.appBuilt = appBuilt
         self.snoozeOptionEnabled = snoozeOptionEnabled
+        _openSnoozeRequest = openSnoozeRequest
         self.onSignIn = onSignIn
         self.onSignOut = onSignOut
         self.onSnooze = onSnooze
@@ -394,6 +403,10 @@ struct SettingsContentView: View {
         }
         .navigationTitle("Settings")
         .refreshable { await onRefresh() }
+        // Home's hand-off, whether Settings is being built now or was already
+        // alive in the tab host. `newValue`, never the captured property.
+        .onAppear { consumeSnoozeRequest(openSnoozeRequest) }
+        .onChange(of: openSnoozeRequest) { newValue in consumeSnoozeRequest(newValue) }
         .sheet(isPresented: $snoozeSheetOpen) {
             SnoozeSheetView(
                 currentLabel: snoozeRow.subtitle,
@@ -662,6 +675,16 @@ private struct CopyableValueRow: View {
 // NOTE: a #Preview body is embedded verbatim into the generated PreviewTests, so
 // it may only reference symbols visible via `@testable import GarageControl` (internal+)
 // — never a `private` file-scope helper. Hence the durations are inlined here.
+
+private extension SettingsContentView {
+    /// Opens the sheet through the SAME gate as the row's tap, then clears the
+    /// request so a later visit does not reopen it.
+    func consumeSnoozeRequest(_ requested: Bool) {
+        guard requested else { return }
+        if snoozeRow.opensDurationSheet { snoozeSheetOpen = true }
+        openSnoozeRequest = false
+    }
+}
 
 #Preview("Settings signed out") {
     let durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)] =

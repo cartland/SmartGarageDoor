@@ -107,6 +107,32 @@ object SnoozeRowStatusMapper {
         }
     }
 
+    /**
+     * Whether Home offers a way to the snooze sheet beside the door (strategy
+     * 2.4). A door that is OPEN is the one the open-door notification is
+     * about, so the way to quiet it belongs beside it — but only when a save
+     * could succeed: the account is what the server authorises, and a moving
+     * door is what [DoorMoving] refuses. Decided here so both phones offer it
+     * for the same door.
+     */
+    fun offersHomeEntryPoint(
+        doorPosition: DoorPosition?,
+        signedIn: Boolean,
+    ): Boolean =
+        signedIn &&
+            when (doorPosition) {
+                DoorPosition.OPEN, DoorPosition.OPEN_MISALIGNED -> true
+                DoorPosition.CLOSED,
+                DoorPosition.OPENING,
+                DoorPosition.CLOSING,
+                DoorPosition.OPENING_TOO_LONG,
+                DoorPosition.CLOSING_TOO_LONG,
+                DoorPosition.UNKNOWN,
+                DoorPosition.ERROR_SENSOR_CONFLICT,
+                null,
+                -> false
+            }
+
     /** The positions during which a snooze cannot land — see [SnoozeRowStatus.DoorMoving]. */
     fun isMoving(position: DoorPosition?): Boolean =
         when (position) {

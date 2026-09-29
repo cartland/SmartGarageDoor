@@ -57,7 +57,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -217,6 +220,10 @@ private fun AppScaffold(
     navigationRailTopPaddingDp: Int,
 ) {
     val debug = LocalLayoutDebugEnabled.current
+    // Home's "Snooze notifications" lands on Settings with the sheet open
+    // (strategy 2.4). Saveable so a rotation mid-hand-off still arrives; cleared
+    // by Settings once consumed so a later visit does not reopen it.
+    var openSnoozeOnProfile by rememberSaveable { mutableStateOf(false) }
     Scaffold(
         topBar = {
             // Back stack is `List<NavKey>`; narrow to our app's `Screen` type
@@ -322,6 +329,12 @@ private fun AppScaffold(
                             mode = mode,
                             onNavigateToFunctionList = { backStack.add(Screen.FunctionList) },
                             onNavigateToDiagnostics = { backStack.add(Screen.Diagnostics) },
+                            onNavigateToSnooze = {
+                                openSnoozeOnProfile = true
+                                TabNavigation.navigateToTab(backStack, Screen.Profile)
+                            },
+                            openSnoozeOnProfile = openSnoozeOnProfile,
+                            onSnoozeEntryConsumed = { openSnoozeOnProfile = false },
                             onBack = { onPopBack() },
                         )
                     }
@@ -581,6 +594,9 @@ private fun RouteEntryFor(
     mode: AppLayoutMode,
     onNavigateToFunctionList: () -> Unit,
     onNavigateToDiagnostics: () -> Unit,
+    onNavigateToSnooze: () -> Unit,
+    openSnoozeOnProfile: Boolean,
+    onSnoozeEntryConsumed: () -> Unit,
     onBack: () -> Unit,
 ) {
     val canonicalScreen = mode.canonicalScreen(screen) ?: screen
@@ -601,7 +617,7 @@ private fun RouteEntryFor(
                         ThreePaneDashboardContent(
                             modifier = routeModifier.padding(horizontal = Spacing.Screen),
                             homePane = { paneModifier ->
-                                HomeContent(modifier = paneModifier)
+                                HomeContent(modifier = paneModifier, onNavigateToSnooze = onNavigateToSnooze)
                             },
                             historyPane = { paneModifier ->
                                 DoorHistoryContent(modifier = paneModifier)
@@ -634,7 +650,7 @@ private fun RouteEntryFor(
                         HomeDashboardContent(
                             modifier = routeModifier.padding(horizontal = Spacing.Screen),
                             homePane = { paneModifier ->
-                                HomeContent(modifier = paneModifier)
+                                HomeContent(modifier = paneModifier, onNavigateToSnooze = onNavigateToSnooze)
                             },
                             historyPane = { paneModifier ->
                                 DoorHistoryContent(modifier = paneModifier)
@@ -646,6 +662,7 @@ private fun RouteEntryFor(
                     RouteContent { routeModifier ->
                         HomeContent(
                             modifier = routeModifier.padding(horizontal = Spacing.Screen),
+                            onNavigateToSnooze = onNavigateToSnooze,
                         )
                     }
                 }
@@ -665,6 +682,8 @@ private fun RouteEntryFor(
                 ProfileContent(
                     onNavigateToFunctionList = onNavigateToFunctionList,
                     onNavigateToDiagnostics = onNavigateToDiagnostics,
+                    openSnoozeOnEntry = openSnoozeOnProfile,
+                    onSnoozeEntryConsumed = onSnoozeEntryConsumed,
                     modifier = routeModifier.padding(horizontal = Spacing.Screen),
                 )
             }
