@@ -193,6 +193,9 @@
     "Door responded": {
       "extractionState": "manual"
     },
+    "Door state changed before snooze could apply.": {
+      "extractionState": "manual"
+    },
     "Door state changed before snooze could apply. Try again.": {
       "extractionState": "manual"
     },
@@ -428,6 +431,9 @@
       "extractionState": "manual"
     },
     "Snooze notifications": {
+      "extractionState": "manual"
+    },
+    "Snooze once the door settles": {
       "extractionState": "manual"
     },
     "Snooze status": {

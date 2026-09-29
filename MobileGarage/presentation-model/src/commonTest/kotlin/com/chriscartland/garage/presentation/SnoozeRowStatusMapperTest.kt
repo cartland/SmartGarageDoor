@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.presentation
 
+import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.SnoozeState
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -38,7 +39,7 @@ class SnoozeRowStatusMapperTest {
         allSnoozeStates.forEach { state ->
             assertEquals(
                 SnoozeRowStatus.PermissionDenied,
-                SnoozeRowStatusMapper.forState(state, notificationsGranted = false),
+                SnoozeRowStatusMapper.forState(state, notificationsGranted = false, doorPosition = DoorPosition.CLOSED),
                 "snooze state $state should not survive a denied permission",
             )
         }
@@ -48,7 +49,7 @@ class SnoozeRowStatusMapperTest {
     fun grantedPermissionNeverReportsPermissionDenied() {
         allSnoozeStates.forEach { state ->
             assertTrue(
-                SnoozeRowStatusMapper.forState(state, notificationsGranted = true)
+                SnoozeRowStatusMapper.forState(state, notificationsGranted = true, doorPosition = DoorPosition.CLOSED)
                     !is SnoozeRowStatus.PermissionDenied,
                 "granted permission should never render as denied (state $state)",
             )
@@ -59,11 +60,11 @@ class SnoozeRowStatusMapperTest {
     fun snoozeStateMapsThroughWhenPermissionIsGranted() {
         assertEquals(
             SnoozeRowStatus.Loading,
-            SnoozeRowStatusMapper.forState(SnoozeState.Loading, notificationsGranted = true),
+            SnoozeRowStatusMapper.forState(SnoozeState.Loading, notificationsGranted = true, doorPosition = DoorPosition.CLOSED),
         )
         assertEquals(
             SnoozeRowStatus.Off,
-            SnoozeRowStatusMapper.forState(SnoozeState.NotSnoozing, notificationsGranted = true),
+            SnoozeRowStatusMapper.forState(SnoozeState.NotSnoozing, notificationsGranted = true, doorPosition = DoorPosition.CLOSED),
         )
     }
 
@@ -77,6 +78,7 @@ class SnoozeRowStatusMapperTest {
             SnoozeRowStatusMapper.forState(
                 SnoozeState.Snoozing(untilEpochSeconds = until),
                 notificationsGranted = true,
+                doorPosition = DoorPosition.CLOSED,
             ),
         )
     }
@@ -89,9 +91,60 @@ class SnoozeRowStatusMapperTest {
         val snoozing = SnoozeRowStatusMapper.forState(
             SnoozeState.Snoozing(untilEpochSeconds = 1L),
             notificationsGranted = true,
+            doorPosition = DoorPosition.CLOSED,
         )
-        val off = SnoozeRowStatusMapper.forState(SnoozeState.NotSnoozing, notificationsGranted = true)
-        val denied = SnoozeRowStatusMapper.forState(SnoozeState.NotSnoozing, notificationsGranted = false)
+        val off = SnoozeRowStatusMapper.forState(SnoozeState.NotSnoozing, notificationsGranted = true, doorPosition = DoorPosition.CLOSED)
+        val denied = SnoozeRowStatusMapper.forState(
+            SnoozeState.NotSnoozing,
+            notificationsGranted = false,
+            doorPosition = DoorPosition.CLOSED,
+        )
         assertEquals(3, setOf(snoozing, off, denied).size, "these three must not collapse")
+    }
+
+    // ---- the settled-door gate ----
+
+    private val movingPositions =
+        listOf(DoorPosition.OPENING, DoorPosition.CLOSING, DoorPosition.OPENING_TOO_LONG, DoorPosition.CLOSING_TOO_LONG)
+
+    @Test
+    fun aMovingDoorWithholdsTheSheetWhateverTheSnoozeState() {
+        movingPositions.forEach { position ->
+            allSnoozeStates.forEach { state ->
+                assertEquals(
+                    SnoozeRowStatus.DoorMoving,
+                    SnoozeRowStatusMapper.forState(state, notificationsGranted = true, doorPosition = position),
+                    "$position / $state",
+                )
+            }
+        }
+    }
+
+    @Test
+    fun aSettledOrUnreadDoorDoesNotWithholdIt() {
+        // Positive control for the test above, and the rule's edge: no reading
+        // at all is not "moving" — that save fails on its own terms.
+        listOf(
+            DoorPosition.OPEN,
+            DoorPosition.CLOSED,
+            DoorPosition.OPEN_MISALIGNED,
+            DoorPosition.UNKNOWN,
+            DoorPosition.ERROR_SENSOR_CONFLICT,
+            null,
+        ).forEach { position ->
+            assertTrue(
+                SnoozeRowStatusMapper.forState(SnoozeState.NotSnoozing, notificationsGranted = true, doorPosition = position)
+                    !is SnoozeRowStatus.DoorMoving,
+                "$position must not read as moving",
+            )
+        }
+    }
+
+    @Test
+    fun aDeniedPermissionStillOutranksAMovingDoor() {
+        assertEquals(
+            SnoozeRowStatus.PermissionDenied,
+            SnoozeRowStatusMapper.forState(SnoozeState.NotSnoozing, notificationsGranted = false, doorPosition = DoorPosition.OPENING),
+        )
     }
 }

@@ -309,7 +309,7 @@ struct SettingsContentView: View {
                     Button {
                         if snoozeRow.opensDurationSheet {
                             snoozeSheetOpen = true
-                        } else {
+                        } else if snoozeRow.promptsForPermission {
                             onEnableNotifications()
                         }
                     } label: {
@@ -322,7 +322,8 @@ struct SettingsContentView: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    .disabled(snoozeSending)
+                    // A moving door offers nothing to tap; the row is the message.
+                    .disabled(snoozeSending || snoozeRow == .doorMoving)
                     if let error = snoozeError {
                         Label(error, systemImage: "exclamationmark.triangle")
                             .font(.footnote)
@@ -671,6 +672,29 @@ private struct CopyableValueRow: View {
             displayName: nil,
             email: nil,
             snoozeRow: .off,
+            snoozeSending: false,
+            snoozeError: nil,
+            durations: durations,
+            developerAccess: false,
+            functionListAccess: false,
+            appVersion: "0.1.0",
+            appBuild: "1",
+            appPackage: "com.chriscartland.garage",
+            appBuilt: "2026-01-15 12:00:00 UTC",
+            onSignIn: {}, onSignOut: {}, onSnooze: { _ in }, onRefresh: {}
+        )
+    }
+}
+
+#Preview("Settings snooze door moving") {
+    let durations: [(label: LocalizedStringResource, option: SnoozeDurationUIOption)] =
+        SnoozeDurationUIOption.allCases.map { (SnoozeDurationLabels.text(for: $0), $0) }
+    return NavigationStack {
+        SettingsContentView(
+            authState: .signedOut,
+            displayName: nil,
+            email: nil,
+            snoozeRow: .doorMoving,
             snoozeSending: false,
             snoozeError: nil,
             durations: durations,

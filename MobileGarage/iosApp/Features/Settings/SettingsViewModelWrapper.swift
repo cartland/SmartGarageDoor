@@ -51,6 +51,8 @@ final class SettingsViewModelWrapper: ObservableObject {
     /// Last snooze state seen from shared, kept so the row can be recomputed
     /// when the permission changes without a new snooze emission.
     private var lastSnoozeState: SnoozeState = SnoozeStateNotSnoozing.shared
+    /// The door as last known, for the settled-door gate (strategy 2.4).
+    private var lastDoorPosition: DoorPosition?
     /// Tri-state allowlist flags (`nil` = not yet known). The Developer section
     /// is shown only when `developerAccess == true`; the Functions row inside it
     /// only when `functionListAccess == true` — mirrors Android. See FEATURE_FLAGS.md.
@@ -124,6 +126,10 @@ final class SettingsViewModelWrapper: ObservableObject {
             guard let stream = self?.vm.doorUpdateStrategy else { return }
             for await v in stream { self?.doorUpdateStrategy = v }
         })
+        tasks.append(Task { @MainActor [weak self] in
+            guard let stream = self?.vm.currentDoorEvent else { return }
+            for await v in stream { self?.applyDoor(v) }
+        })
     }
 
     private func applyAuth(_ state: AuthState) {
@@ -157,7 +163,8 @@ final class SettingsViewModelWrapper: ObservableObject {
     private func recomputeSnoozeRow() {
         let status = SnoozeRowStatusMapper.shared.forState(
             snoozeState: lastSnoozeState,
-            notificationsGranted: notificationsGranted
+            notificationsGranted: notificationsGranted,
+            doorPosition: lastDoorPosition
         )
         switch onEnum(of: status) {
         case .loading:
@@ -166,10 +173,17 @@ final class SettingsViewModelWrapper: ObservableObject {
             snoozeRow = .permissionDenied
         case .off:
             snoozeRow = .off
+        case .doorMoving:
+            snoozeRow = .doorMoving
         case .snoozingUntil(let snoozing):
             let date = Date(timeIntervalSince1970: TimeInterval(snoozing.untilEpochSeconds))
             snoozeRow = .snoozingUntil(date.formatted(date: .omitted, time: .shortened))
         }
+    }
+
+    private func applyDoor(_ event: DoorEvent?) {
+        lastDoorPosition = event?.doorPosition
+        recomputeSnoozeRow()
     }
 
     private func applyAction(_ action: SnoozeAction) {
@@ -185,7 +199,7 @@ final class SettingsViewModelWrapper: ObservableObject {
             // silently falling back to a generic message.
             switch onEnum(of: failed) {
             case .eventChanged:
-                snoozeError = "Door state changed before snooze could apply. Try again."
+                snoozeError = "Door state changed before snooze could apply."
             case .networkError:
                 snoozeError = "Snooze did not apply. Check your connection and try again."
             case .notAuthenticated:

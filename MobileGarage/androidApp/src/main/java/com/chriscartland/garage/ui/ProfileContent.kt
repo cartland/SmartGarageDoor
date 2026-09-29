@@ -96,6 +96,7 @@ fun ProfileContent(
     val authState by resolved.authState.collectAsState()
     val snoozeState by resolved.snoozeState.collectAsState()
     val snoozeAction by resolved.snoozeAction.collectAsState()
+    val currentDoorEvent by resolved.currentDoorEvent.collectAsState()
     val functionListAccess by resolved.functionListAccess.collectAsState()
     val developerAccess by resolved.developerAccess.collectAsState()
     val layoutDebugEnabled by resolved.layoutDebugEnabled.collectAsState()
@@ -200,6 +201,7 @@ fun ProfileContent(
     val snoozeRowStatus = SnoozeRowStatusMapper.forState(
         snoozeState = snoozeState,
         notificationsGranted = notificationPermissionState.status.isGranted,
+        doorPosition = currentDoorEvent?.doorPosition,
     )
     val snoozeRowState = ProfileContentHelpers.displayFor(snoozeRowStatus)
 
@@ -225,16 +227,23 @@ fun ProfileContent(
             onSnoozeTap = {
                 // Branch on the same status the row rendered from, so the tap
                 // target can never disagree with the label above it.
-                if (snoozeRowStatus !is SnoozeRowStatus.PermissionDenied) {
-                    // Force-refresh (not TTL-gated): the sheet pre-selects
-                    // from the current state, and opening it is the one
-                    // user gesture that deserves an immediate uncached
-                    // fetch — the Android manual-refresh path now that the
-                    // poll is gone (iOS keeps pull-to-refresh).
-                    resolved.fetchSnoozeStatus()
-                    snoozeSheetOpen = true
-                } else {
-                    notificationPermissionState.launchPermissionRequest()
+                when (snoozeRowStatus) {
+                    SnoozeRowStatus.PermissionDenied -> notificationPermissionState.launchPermissionRequest()
+                    // The row already says "Snooze once the door settles"; a
+                    // sheet here could only lead to the failure it warns about.
+                    SnoozeRowStatus.DoorMoving -> Unit
+                    SnoozeRowStatus.Loading,
+                    SnoozeRowStatus.Off,
+                    is SnoozeRowStatus.SnoozingUntil,
+                    -> {
+                        // Force-refresh (not TTL-gated): the sheet pre-selects
+                        // from the current state, and opening it is the one
+                        // user gesture that deserves an immediate uncached
+                        // fetch — the Android manual-refresh path now that the
+                        // poll is gone (iOS keeps pull-to-refresh).
+                        resolved.fetchSnoozeStatus()
+                        snoozeSheetOpen = true
+                    }
                 }
             },
             onFunctionListTap = onNavigateToFunctionList,
@@ -376,6 +385,7 @@ private object ProfileContentHelpers {
             SnoozeRowStatus.Loading -> SnoozeRowState.Loading
             SnoozeRowStatus.PermissionDenied -> SnoozeRowState.PermissionDenied
             SnoozeRowStatus.Off -> SnoozeRowState.Off
+            SnoozeRowStatus.DoorMoving -> SnoozeRowState.DoorMoving
             is SnoozeRowStatus.SnoozingUntil ->
                 SnoozeRowState.SnoozingUntil(formatSnoozeTime(status.untilEpochSeconds))
         }

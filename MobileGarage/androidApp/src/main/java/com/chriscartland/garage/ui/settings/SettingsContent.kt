@@ -106,6 +106,9 @@ sealed interface SnoozeRowState {
 
     data object Off : SnoozeRowState
 
+    /** The door is moving, so a snooze cannot land until it settles; the row says so. */
+    data object DoorMoving : SnoozeRowState
+
     data class SnoozingUntil(
         val displayTime: String,
     ) : SnoozeRowState
@@ -197,6 +200,9 @@ fun SettingsContent(
                         SnoozeRowState.Off ->
                             Icons.Outlined.Notifications to
                                 stringResource(R.string.settings_notifications_subtitle_off)
+                        SnoozeRowState.DoorMoving ->
+                            Icons.Outlined.Notifications to
+                                stringResource(R.string.settings_notifications_subtitle_door_moving)
                         is SnoozeRowState.SnoozingUntil ->
                             Icons.Outlined.NotificationsPaused to
                                 stringResource(
@@ -208,7 +214,8 @@ fun SettingsContent(
                         icon = icon,
                         title = stringResource(R.string.settings_notifications_row_title),
                         subtitle = subtitle,
-                        showChevron = true,
+                        // No chevron while the door moves: there is nothing to open.
+                        showChevron = snoozeState !is SnoozeRowState.DoorMoving,
                         onClick = onSnoozeTap,
                         inFlight = snoozeInFlight,
                     )

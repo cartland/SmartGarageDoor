@@ -17,10 +17,11 @@
 
 package com.chriscartland.garage.presentation
 
+import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.SnoozeState
 
 /**
- * What the snooze row is currently saying — as four mutually exclusive states.
+ * What the snooze row is currently saying — as five mutually exclusive states.
  *
  * The row answers one question ("will I be told when the door is open?"), but
  * the answer comes from two independent sources: the OS notification permission
@@ -48,6 +49,17 @@ sealed interface SnoozeRowStatus {
     data object Off : SnoozeRowStatus
 
     /**
+     * The door is in motion, so a snooze cannot land. The server binds a snooze
+     * to the door event that was current when it was set, and an OPENING or
+     * CLOSING event rolls over within seconds — then again at the 60-second
+     * stuck promotion — so the save is refused as "event changed" or voided a
+     * minute later, deterministically rather than by bad luck
+     * (docs/SNOOZE_BEHAVIOR.md). The row says so instead of offering a sheet
+     * whose only outcome is that failure (strategy 2.4).
+     */
+    data object DoorMoving : SnoozeRowStatus
+
+    /**
      * Snoozing until [untilEpochSeconds].
      *
      * Deliberately an instant, not a rendered time. Formatting a clock time is
@@ -61,14 +73,19 @@ sealed interface SnoozeRowStatus {
 }
 
 /**
- * Resolves the snooze row's state from the two inputs that feed it.
+ * Resolves the snooze row's state from the three inputs that feed it.
  *
- * The one real decision here is the precedence: **a missing notification
+ * The real decision here is the precedence: **a missing notification
  * permission outranks everything, including [SnoozeState.Loading]**. Permission
  * is known locally and synchronously; the snooze state is a network fact. If
  * both are unresolved-looking, the permission is the one the user can act on,
  * and showing "Loading…" over a denied permission would hide the actual problem
- * behind a spinner that never resolves into anything useful.
+ * behind a spinner that never resolves into anything useful. **A moving door
+ * comes next**, for the same reason — it is a local fact, and it makes the
+ * network one moot: a snooze set now will be refused or voided, so neither
+ * "Loading…" nor "Snoozing until" is what the user needs to hear. A door we
+ * have no reading for is NOT "moving" — that save fails on its own terms
+ * ("no recent door event"), which is the truthful message for it.
  *
  * Whether a save is in flight is deliberately *not* modeled here. Both platforms
  * already treat it as an orthogonal overlay on the row (a spinner replacing the
@@ -79,12 +96,31 @@ object SnoozeRowStatusMapper {
     fun forState(
         snoozeState: SnoozeState,
         notificationsGranted: Boolean,
+        doorPosition: DoorPosition?,
     ): SnoozeRowStatus {
         if (!notificationsGranted) return SnoozeRowStatus.PermissionDenied
+        if (isMoving(doorPosition)) return SnoozeRowStatus.DoorMoving
         return when (snoozeState) {
             SnoozeState.Loading -> SnoozeRowStatus.Loading
             SnoozeState.NotSnoozing -> SnoozeRowStatus.Off
             is SnoozeState.Snoozing -> SnoozeRowStatus.SnoozingUntil(snoozeState.untilEpochSeconds)
         }
     }
+
+    /** The positions during which a snooze cannot land — see [SnoozeRowStatus.DoorMoving]. */
+    fun isMoving(position: DoorPosition?): Boolean =
+        when (position) {
+            DoorPosition.OPENING,
+            DoorPosition.CLOSING,
+            DoorPosition.OPENING_TOO_LONG,
+            DoorPosition.CLOSING_TOO_LONG,
+            -> true
+            DoorPosition.OPEN,
+            DoorPosition.OPEN_MISALIGNED,
+            DoorPosition.CLOSED,
+            DoorPosition.UNKNOWN,
+            DoorPosition.ERROR_SENSOR_CONFLICT,
+            null,
+            -> false
+        }
 }

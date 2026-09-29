@@ -118,6 +118,13 @@ interface ProfileViewModel {
     val snoozeAction: StateFlow<SnoozeAction>
 
     /**
+     * The door as last known, for the snooze row's settled-door gate (strategy
+     * 2.4): a pass-through of the repository's StateFlow (ADR-022), so the
+     * screen reads the same reading Home does.
+     */
+    val currentDoorEvent: StateFlow<DoorEvent?>
+
+    /**
      * Per-user access for the Function List feature, used to gate the
      * Settings-screen Function-list entry. Tri-state: `null` (loading or
      * denied), `false` (server says denied), `true` (allowed). Full
@@ -355,7 +362,7 @@ class DefaultProfileViewModel(
     // unseeded copy of repository-owned state (G3,
     // docs/DATA_GRAPH_PLAN.md); the upstream IS a StateFlow, so pass
     // the reference through instead.
-    private val currentDoorEvent: StateFlow<DoorEvent?> = observeDoorEvents.current()
+    override val currentDoorEvent: StateFlow<DoorEvent?> = observeDoorEvents.current()
 
     init {
         viewModelScope.launch(dispatchers.io) {

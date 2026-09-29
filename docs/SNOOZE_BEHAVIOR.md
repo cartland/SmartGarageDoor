@@ -79,7 +79,7 @@ This is exactly the scenario reported in 2026-05-28 ("I was opening but the open
 
 - **Snooze works reliably only when the door is in a stable state** (`OPEN`, `CLOSED`, `OPEN_MISALIGNED`) AND the door doesn't change state for the duration of the snooze.
 - **The first state change after a snooze voids it.** Snooze-while-OPEN, then close the door — the next CLOSED event invalidates the snooze. There is no carry-over.
-- **In-motion snooze (`OPENING`/`CLOSING`) is functionally broken** by the 60s `TooLong` promotion. The UI accepts the action; the resulting snooze is either rejected at submit or void within a minute.
+- **In-motion snooze (`OPENING`/`CLOSING`) is functionally broken** by the 60s `TooLong` promotion. Since 2026-09-29 (strategy 2.4) **neither phone offers the sheet while the door is moving**: the row reads "Snooze once the door settles" (`SnoozeRowStatus.DoorMoving`, decided in `presentation-model` from the `DoorPosition`, covering `OPENING`/`CLOSING` and their `_TOO_LONG` promotions), and the event-changed message no longer says "Try again", because retrying cannot succeed.
 
 ## Why the model exists (preserved-quirk note, do not "fix" without re-litigating)
 
