@@ -385,7 +385,7 @@ private fun SettingsSection(
         Text(
             text = label.uppercase(),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = Spacing.SectionHeaderStart),
         )
         Surface(

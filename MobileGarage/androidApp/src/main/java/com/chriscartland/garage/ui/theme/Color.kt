@@ -60,6 +60,17 @@ val surfaceBrightLight = Color(0xFFFFFFFF)
 val surfaceContainerLowestLight = Color(0xFFFFFBFE)
 val surfaceContainerLowLight = Color(0xFFF1F1EC)
 val surfaceContainerLight = Color(0xFFE1E2DC)
+
+/**
+ * Advisory ("caution") text and icon colour: a door that took longer than
+ * expected, and any other note that is a warning rather than an alarm. NOT a
+ * Material 3 role — M3 has no caution slot, and `tertiary` was standing in for
+ * it at 1.33:1 on `surfaceContainer`, which is why the History transit tags
+ * were nearly invisible in light mode. Dark amber on light (6.75:1 on
+ * background, 5.31:1 on surfaceContainer), light amber on dark (7.74:1 /
+ * 6.28:1); both pinned by `ThemeContrastTest`.
+ */
+val cautionLight = Color(0xFF7A5200)
 val surfaceContainerHighLight = Color(0xFFD1D2C9)
 val surfaceContainerHighestLight = Color(0xFFC1C2B8)
 
@@ -101,6 +112,7 @@ val surfaceBrightDark = Color(0xFF4F5B4B)
 val surfaceContainerLowestDark = Color(0xFF1A1C19)
 val surfaceContainerLowDark = Color(0xFF21231E)
 val surfaceContainerDark = Color(0xFF2B2D27)
+val cautionDark = Color(0xFFE0A33A)
 val surfaceContainerHighDark = Color(0xFF363831)
 val surfaceContainerHighestDark = Color(0xFF41433C)
 

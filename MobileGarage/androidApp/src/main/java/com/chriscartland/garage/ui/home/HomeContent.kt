@@ -325,7 +325,7 @@ internal fun HomeSection(
             Text(
                 text = label.uppercase(),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             trailing()
         }

@@ -18,6 +18,19 @@
 package com.chriscartland.garage.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import com.chriscartland.garage.ui.theme.backgroundDark
+import com.chriscartland.garage.ui.theme.backgroundLight
+import com.chriscartland.garage.ui.theme.cautionDark
+import com.chriscartland.garage.ui.theme.cautionLight
+import com.chriscartland.garage.ui.theme.onSurfaceDark
+import com.chriscartland.garage.ui.theme.onSurfaceLight
+import com.chriscartland.garage.ui.theme.onSurfaceVariantDark
+import com.chriscartland.garage.ui.theme.onSurfaceVariantLight
+import com.chriscartland.garage.ui.theme.primaryLight
+import com.chriscartland.garage.ui.theme.surfaceContainerDark
+import com.chriscartland.garage.ui.theme.surfaceContainerLight
+import com.chriscartland.garage.ui.theme.tertiaryLight
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 // Network diagram colors are not paired — they're used on varying backgrounds.
@@ -136,5 +149,56 @@ class ThemeContrastTest {
     fun contrastCheckUtilityIdenticalColorsIsMinimum() {
         val ratio = ContrastCheck.contrastRatio(Color.Red, Color.Red)
         assertTrue("Same color should be 1:1, got $ratio", ratio < 1.01)
+    }
+
+    // ------------------------------------------------------------------
+    // USAGE pairs. The pairs above are Material's own "on-colour on its
+    // colour" contracts, which the theme met all along. What they cannot see
+    // is a role used AS TEXT on a ground it was never paired with — and that
+    // is exactly how light mode shipped section headers at 1.66:1 and history
+    // transit tags at 1.33:1 (2026-09-28 cross-surface audit). These pairs are
+    // the combinations the UI actually draws.
+    // ------------------------------------------------------------------
+
+    private val usagePairs = listOf(
+        // Section headers ("STATUS", "ACCOUNT", day labels): labelMedium on the page.
+        ColorPair("light: section header on background", onSurfaceVariantLight, backgroundLight),
+        ColorPair("light: section header on surfaceContainer", onSurfaceVariantLight, surfaceContainerLight),
+        ColorPair("dark: section header on background", onSurfaceVariantDark, backgroundDark),
+        ColorPair("dark: section header on surfaceContainer", onSurfaceVariantDark, surfaceContainerDark),
+        // History transit tag ("took longer than expected"): bodySmall inside a card.
+        ColorPair("light: caution tag on surfaceContainer", cautionLight, surfaceContainerLight),
+        ColorPair("light: caution tag on background", cautionLight, backgroundLight),
+        ColorPair("dark: caution tag on surfaceContainer", cautionDark, surfaceContainerDark),
+        ColorPair("dark: caution tag on background", cautionDark, backgroundDark),
+        // Diagnostics counter values: titleMedium (16sp) on the page — not WCAG large text.
+        ColorPair("light: counter value on background", onSurfaceLight, backgroundLight),
+        ColorPair("dark: counter value on background", onSurfaceDark, backgroundDark),
+    )
+
+    @Test
+    fun everyTextRoleIsLegibleOnTheGroundItIsDrawnOn() {
+        val failures = usagePairs.mapNotNull { pair ->
+            val ratio = ContrastCheck.contrastRatio(pair.foreground, pair.background)
+            if (ratio < pair.minRatio) "${pair.name}: ratio %.2f < %.1f".format(ratio, pair.minRatio) else null
+        }
+        assertTrue("Text drawn below WCAG AA:\n" + failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    @Test
+    fun theOldChoicesReallyWereIllegible() {
+        // Positive control. If the usage check could not distinguish a good
+        // pair from a bad one, it would be measuring nothing: the two roles
+        // light mode USED to draw text with must FAIL it.
+        val header = ContrastCheck.contrastRatio(primaryLight, backgroundLight)
+        val tag = ContrastCheck.contrastRatio(tertiaryLight, surfaceContainerLight)
+        assertFalse(
+            "primary on background is %.2f:1 — if that now passes, either the token changed or the check is blind".format(header),
+            header >= ContrastCheck.WCAG_AA_NORMAL_TEXT,
+        )
+        assertFalse(
+            "tertiary on surfaceContainer is %.2f:1 — same".format(tag),
+            tag >= ContrastCheck.WCAG_AA_NORMAL_TEXT,
+        )
     }
 }
