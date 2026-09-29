@@ -425,4 +425,11 @@
     <string name="widget_liveness_stale">Stale</string>
     <!-- Shown in the launcher's widget picker. -->
     <string name="widget_description">Garage door status. Tap to open the app.</string>
+    <!-- Qualifiers appended to the door word when the shared GlanceWarning
+         says one applies: "Opening · stuck". The phone's warning strings are
+         full sentences the widget has no room for, so these are the widget's
+         own words by necessity, not a second copy of a door state. -->
+    <string name="widget_warning_stuck">stuck</string>
+    <string name="widget_warning_misaligned">misaligned</string>
+    <string name="widget_headline_with_warning">%1$s · %2$s</string>
 </resources>

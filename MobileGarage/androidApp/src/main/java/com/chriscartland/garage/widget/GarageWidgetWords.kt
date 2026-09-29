@@ -17,9 +17,12 @@
 
 package com.chriscartland.garage.widget
 
+import android.content.Context
 import androidx.annotation.StringRes
 import com.chriscartland.garage.R
 import com.chriscartland.garage.presentation.DoorHeadline
+import com.chriscartland.garage.presentation.GlanceStatus
+import com.chriscartland.garage.presentation.GlanceWarning
 import com.chriscartland.garage.presentation.StatusHeadline
 
 /**
@@ -56,4 +59,26 @@ object GarageWidgetWords {
             StatusHeadline.Connecting -> R.string.home_door_state_connecting
             StatusHeadline.NoSignal -> R.string.home_door_state_no_signal
         }
+
+    /** The qualifier appended to the door word when the mapper says one applies. */
+    @StringRes
+    fun warning(warning: GlanceWarning): Int =
+        when (warning) {
+            GlanceWarning.STUCK -> R.string.widget_warning_stuck
+            GlanceWarning.MISALIGNED -> R.string.widget_warning_misaligned
+        }
+
+    /**
+     * The whole first line, resolved: the door word, qualified when the
+     * shared decision says it must be. "Opening · stuck" rather than a plain
+     * "Opening" beside a growing duration.
+     */
+    fun headlineText(
+        context: Context,
+        status: GlanceStatus,
+    ): String {
+        val door = context.getString(headline(status.headline))
+        val warning = status.warning ?: return door
+        return context.getString(R.string.widget_headline_with_warning, door, context.getString(warning(warning)))
+    }
 }

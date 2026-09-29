@@ -21,6 +21,7 @@ import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.presentation.DoorHeadline
+import com.chriscartland.garage.presentation.GlanceWarning
 import com.chriscartland.garage.presentation.Liveness
 import com.chriscartland.garage.presentation.StatusHeadline
 import com.chriscartland.garage.testcommon.FakeDoorRepository
@@ -173,5 +174,24 @@ class WidgetGlanceStatusTest {
             val status = readerFor(local, repo).current()
 
             assertEquals(Liveness.STALE, status.liveness)
+        }
+
+    @Test
+    fun aStuckDoorReachesTheWidgetAsAWarning() =
+        runTest {
+            // The finding this whole change exists for: a door stuck opening
+            // used to read as a plain "Opening" here.
+            val local = InMemoryLocalDoorDataSource()
+            local.insertDoorEvent(
+                DoorEvent(
+                    doorPosition = DoorPosition.OPENING_TOO_LONG,
+                    lastChangeTimeSeconds = now - 1_200,
+                    lastCheckInTimeSeconds = now - 30,
+                ),
+            )
+
+            val status = readerFor(local, FakeDoorRepository()).current()
+
+            assertEquals(GlanceWarning.STUCK, status.warning)
         }
 }

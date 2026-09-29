@@ -143,7 +143,7 @@ internal data class GarageWidgetText(
 internal fun GarageDoorWidgetContent(status: GlanceStatus) {
     GarageDoorWidgetBody(
         text = GarageWidgetText(
-            headline = LocalContext.current.getString(GarageWidgetWords.headline(status.headline)),
+            headline = GarageWidgetWords.headlineText(LocalContext.current, status),
             subline = sublineText(status),
         ),
         colorState = status.colorState,

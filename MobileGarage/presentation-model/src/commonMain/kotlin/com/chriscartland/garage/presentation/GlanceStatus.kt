@@ -49,6 +49,30 @@ enum class Liveness {
 }
 
 /**
+ * A note about the door that a glance surface must NOT leave out.
+ *
+ * The phone's [DoorWarning] is a sentence ("Opening, taking longer than
+ * expected") and can carry text from the server. A glance has a word or two
+ * — seven characters on a complication — so this is the same decision
+ * reduced to what a glance can carry. It is decided HERE, from the position,
+ * so the widget, the tile and the complication cannot disagree about which
+ * doors deserve a qualifier (ADR-035: shared decides, platform words it).
+ *
+ * Why it exists: `DoorHeadline` collapses `OPENING_TOO_LONG` to `OPENING`,
+ * so a door stuck for twenty minutes read as a plain "Opening" with a live
+ * duration on every glance surface — an accurate number attached to an
+ * unqualified word, on exactly the surfaces someone checks when they wonder
+ * whether the door ever closed (2026-09-28 audit, finding 3.3).
+ */
+enum class GlanceWarning {
+    /** Opening or closing for longer than a door takes. The alarm case. */
+    STUCK,
+
+    /** Open, but the sensors say it did not seat. */
+    MISALIGNED,
+}
+
+/**
  * Everything a GLANCE surface needs to say about the door, decided once.
  *
  * A glance surface is one the SYSTEM renders while the app is not running and
@@ -85,6 +109,14 @@ data class GlanceStatus(
     val liveness: Liveness,
     val stateSinceEpochSeconds: Long?,
     val colorState: DoorColorState,
+    /**
+     * A qualifier the surface must show beside the door word, or null. Only
+     * ever set for a reading we can vouch for: a stuck door we have lost
+     * contact with is already "not confirmed", which says everything a glance
+     * has room to say. Defaulted only so test fixtures need not name it; the
+     * mapper always sets it.
+     */
+    val warning: GlanceWarning? = null,
 )
 
 /**
@@ -167,6 +199,24 @@ object GlanceStatusMapper {
             // a colour we would have to invent — the same thing the door
             // screen shows before it has heard anything.
             colorState = doorPosition?.let(DoorAnimation::colorStateFor) ?: DoorColorState.UNKNOWN,
+            // Withheld on the same condition as the duration: a warning is a
+            // claim about the door NOW, and a reading we cannot confirm is
+            // already qualified by the liveness word.
+            warning = doorPosition?.let(::glanceWarningFor)?.takeIf { !freshness.isMuted },
         )
     }
+
+    /** Which positions a glance must qualify. Exhaustive so a new position is a compile error here, not a silent "Opening". */
+    private fun glanceWarningFor(position: DoorPosition): GlanceWarning? =
+        when (position) {
+            DoorPosition.OPENING_TOO_LONG, DoorPosition.CLOSING_TOO_LONG -> GlanceWarning.STUCK
+            DoorPosition.OPEN_MISALIGNED -> GlanceWarning.MISALIGNED
+            DoorPosition.UNKNOWN,
+            DoorPosition.CLOSED,
+            DoorPosition.OPEN,
+            DoorPosition.OPENING,
+            DoorPosition.CLOSING,
+            DoorPosition.ERROR_SENSOR_CONFLICT,
+            -> null
+        }
 }

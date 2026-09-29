@@ -18,6 +18,7 @@
 package com.chriscartland.garage.widget
 
 import com.chriscartland.garage.presentation.DoorHeadline
+import com.chriscartland.garage.presentation.GlanceWarning
 import com.chriscartland.garage.presentation.StatusHeadline
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -70,7 +71,14 @@ class GarageWidgetWordsTest {
             "GarageWidgetWords referenced no strings at all — this check went blind",
             referenced.isNotEmpty(),
         )
-        val ownWords = referenced.filterNot { it.startsWith("home_door_state_") }
+        // The door STATE words must be the Home screen's. The qualifiers are
+        // the widget's own by necessity — the phone's warnings are sentences
+        // ("Opening, taking longer than expected") with no one-word form to
+        // reuse — so they are allow-listed by exact name rather than by
+        // prefix, which keeps a future widget_door_state_open from slipping
+        // through as "just another widget string".
+        val allowedOwnWords = setOf("widget_warning_stuck", "widget_warning_misaligned", "widget_headline_with_warning")
+        val ownWords = referenced.filterNot { it.startsWith("home_door_state_") || it in allowedOwnWords }
         assertTrue(
             "The widget must reuse the Home screen's door words. These look like a " +
                 "second vocabulary: $ownWords",
@@ -93,5 +101,12 @@ class GarageWidgetWordsTest {
                 "does reference widget_ strings — the pattern is not measuring anything",
             referenced.any { it.startsWith("widget_") },
         )
+    }
+
+    @Test
+    fun everyGlanceWarningHasItsOwnWord() {
+        val ids = GlanceWarning.entries.map { GarageWidgetWords.warning(it) }
+        assertEquals("two warnings resolve to one string: $ids", ids.size, ids.toSet().size)
+        assertTrue("a warning with no string resource", ids.none { it == 0 })
     }
 }
