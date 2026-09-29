@@ -18,11 +18,13 @@
 package com.chriscartland.garage.widget
 
 import androidx.glance.appwidget.testing.unit.runGlanceAppWidgetUnitTest
+import androidx.glance.testing.unit.hasContentDescription
 import androidx.glance.testing.unit.hasStartActivityClickAction
 import androidx.glance.testing.unit.hasText
 import com.chriscartland.garage.MainActivity
 import com.chriscartland.garage.domain.model.DoorColorState
 import com.chriscartland.garage.presentation.DataFreshness
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
@@ -52,6 +54,27 @@ class GarageDoorWidgetBodyTest {
             onNode(hasText("Closed")).assertExists()
             onNode(hasText("since 3:42 PM")).assertExists()
         }
+
+    @Test
+    fun aScreenReaderHearsBothLinesAsOneStatement() =
+        runGlanceAppWidgetUnitTest {
+            provideComposable {
+                GarageDoorWidgetBody(
+                    text = GarageWidgetText(headline = "Closed", subline = "since 3:42 PM"),
+                    colorState = DoorColorState.CLOSED,
+                    freshness = DataFreshness.FRESH,
+                )
+            }
+
+            onNode(hasContentDescription("Closed, since 3:42 PM")).assertExists()
+        }
+
+    @Test
+    fun theHeadlineAloneIsSpokenWhenThereIsNoSecondLine() {
+        assertEquals("No signal", GarageWidgetText(headline = "No signal", subline = null).spoken)
+        // Positive control: a second line changes what is spoken.
+        assertEquals("Open, Not confirmed", GarageWidgetText(headline = "Open", subline = "Not confirmed").spoken)
+    }
 
     @Test
     fun aSilentSublineDrawsNoSecondLine() =

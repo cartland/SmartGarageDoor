@@ -85,6 +85,49 @@ object GarageComplicationWords {
         }
 
     /**
+     * What a screen reader hears for the complication, in EVERY slot type.
+     *
+     * The face draws our text in its own style, and many faces render the
+     * short `text` alone — so the spoken description must not be the bare door
+     * word the visual design refuses to leave unqualified (strategy 2.3): a
+     * live reading is spoken with its running duration, a reading we cannot
+     * vouch for as "not confirmed" instead of any duration (the same rule the
+     * long text follows), and no door at all as "no signal". Decided here so
+     * the JVM can pin it; the service only turns each case into a
+     * `ComplicationText`.
+     */
+    sealed interface Spoken {
+        data object NoSignal : Spoken
+
+        data class NotConfirmed(
+            val door: String,
+        ) : Spoken
+
+        data class Live(
+            val door: String,
+            val sinceEpochSeconds: Long,
+        ) : Spoken
+
+        /** Live but undated: the door word alone, which is then the whole truth. */
+        data class Undated(
+            val door: String,
+        ) : Spoken
+    }
+
+    fun spoken(
+        status: GlanceStatus,
+        door: String?,
+    ): Spoken {
+        val since = status.stateSinceEpochSeconds
+        return when {
+            door == null -> Spoken.NoSignal
+            staleLeads(status) -> Spoken.NotConfirmed(door)
+            since != null -> Spoken.Live(door, since)
+            else -> Spoken.Undated(door)
+        }
+    }
+
+    /**
      * Whether the doubt has to lead.
      *
      * When the reading cannot be vouched for there is no live duration to
