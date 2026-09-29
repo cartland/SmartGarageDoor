@@ -262,6 +262,9 @@
     "Just now": {
       "extractionState": "manual"
     },
+    "Last change time unknown": {
+      "extractionState": "manual"
+    },
     "Last seen %@": {
       "extractionState": "manual"
     },

@@ -318,10 +318,15 @@ final class HomeViewModelWrapper: ObservableObject {
     /// `SinceStatus`. The elapsed bucket is decided in shared code; here we
     /// format the clock time (same-day → time only, else month + time) and the
     /// localized units — the unit wording mirrors Android's `home_duration_*`
-    /// resources verbatim. `nil` status → no line (unknown last-change time).
+    /// resources verbatim. `nil` status → "Last change time unknown", the same
+    /// line Android shows.
     private func applySince(_ status: SinceStatus?) {
         guard let status else {
-            sinceLine = nil
+            // A door we know but cannot date. Android says so; iOS rendered
+            // nothing here until strategy 1.7. The view still prefers its
+            // "Waiting for the latest door status" line when there is no door
+            // at all, so this only shows for a dated-less known door.
+            sinceLine = "Last change time unknown"
             return
         }
         let date = Date(timeIntervalSince1970: TimeInterval(status.sinceEpochSeconds))

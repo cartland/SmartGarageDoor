@@ -53,6 +53,10 @@
     <string name="button_hint_hold_to_press_remote">Hold to press the remote</string>
     <string name="button_hint_sending">Sending</string>
     <string name="button_hint_waiting_for_door">Waiting for the door</string>
+    <!-- Deliberately not the phone's "Server error": this slot has room and
+         "did not respond" is what actually happened (a timeout, not a
+         verdict). Recorded as a chosen divergence in the 2026-09-28 audit
+         (strategy 1.7), not an accident. -->
     <string name="button_hint_server_failed">Server did not respond</string>
     <string name="button_hint_door_failed">Door did not move</string>
     <!-- The hero's resting line: how long the door has been in its state,
@@ -212,7 +216,7 @@
     <string name="voice_live_committing">Pressing the remote…</string>
     <string name="voice_live_committed">Command sent</string>
     <string name="voice_live_committed_hint">The door should start moving</string>
-    <string name="voice_live_failed">Button press failed</string>
+    <string name="voice_live_failed">Remote press failed</string>
     <string name="voice_live_ignored_already_open">The door is already open</string>
     <string name="voice_live_ignored_already_closed">The door is already closed</string>
     <string name="voice_live_ignored_moving">The door is moving</string>

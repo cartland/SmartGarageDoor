@@ -165,12 +165,12 @@
     <!-- Countdown line while a command is armed. %1$d is seconds left. -->
     <string name="voice_control_armed_opening">Opening in %1$d · Tap to cancel</string>
     <string name="voice_control_armed_closing">Closing in %1$d · Tap to cancel</string>
-    <string name="voice_control_sending">Pressing the button…</string>
+    <string name="voice_control_sending">Pressing the remote…</string>
     <string name="voice_control_sent">Command sent</string>
     <string name="voice_control_failed">Button press failed</string>
-    <string name="voice_control_ignored_no_speech">No speech captured</string>
+    <string name="voice_control_ignored_no_speech">No speech heard</string>
     <string name="voice_control_ignored_unavailable">Speech recognition is not available on this device</string>
-    <string name="voice_control_ignored_not_a_command">No command heard</string>
+    <string name="voice_control_ignored_not_a_command">Not a door command</string>
     <string name="voice_control_ignored_not_confident">Heard a command, but not confident enough to act</string>
     <string name="voice_control_ignored_already_open">The door is already open</string>
     <string name="voice_control_ignored_already_closed">The door is already closed</string>
@@ -381,7 +381,7 @@
     <!-- Appended at attempt count 4+. -->
     <string name="notification_justification_attempt_4">Android might be blocking requests because the permission was denied multiple times.</string>
     <!-- Appended at attempt count 5+. %1$d is the attempt count. -->
-    <string name="notification_justification_attempt_5">You have clicked the button %1$d times.</string>
+    <string name="notification_justification_attempt_5">You have tapped the button %1$d times.</string>
 
     <!-- App-owned notification channel id for garage-door alerts (the open-door
          warning and its resolution). SINGLE SOURCE: referenced both by the
