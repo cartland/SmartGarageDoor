@@ -222,11 +222,18 @@ else
     fail "layer imports"
 fi
 
-step "Hardcoded colors (must use theme)"
+step "Hardcoded colors (must use theme; androidApp + wearApp)"
 if $GRADLE checkHardcodedColors; then
     pass "hardcoded colors"
 else
     fail "hardcoded colors"
+fi
+
+step "Door slide duration derives from DoorAnimation (no literals in door views)"
+if $GRADLE checkNoLiteralDoorDurations; then
+    pass "door duration literals"
+else
+    fail "door duration literals"
 fi
 
 step "ViewModel StateFlow (no stateIn(viewModelScope, ...))"

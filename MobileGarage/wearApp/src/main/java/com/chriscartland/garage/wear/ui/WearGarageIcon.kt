@@ -52,6 +52,7 @@ import com.chriscartland.garage.domain.model.DoorOverlayKind
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.GarageDoorGeometry
 import com.chriscartland.garage.wear.R
+import com.chriscartland.garage.wear.ui.theme.WearDoorColors
 
 /**
  * Animated garage door icon for Wear OS — the port of the phone's
@@ -77,7 +78,10 @@ fun WearGarageIcon(
     doorPosition: DoorPosition,
     animationMemory: DoorAnimationMemory,
     modifier: Modifier = Modifier,
-    color: Color = Color(0xFF3C5232),
+    // The theme's colour for this position (the hero passes its own; the
+    // default exists for previews). A literal here was the one hardcoded
+    // colour checkHardcodedColors found when it reached the watch.
+    color: Color = WearDoorColors.forPosition(doorPosition),
     lastChangeTimeSeconds: Long? = null,
     suppressWarningOverlay: Boolean = false,
 ) {
