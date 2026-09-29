@@ -85,6 +85,8 @@ fun ProfileContent(
     profileViewModel: ProfileViewModel? = null,
     onNavigateToDiagnostics: () -> Unit = {},
     onNavigateToFunctionList: () -> Unit = {},
+    openSnoozeOnEntry: Boolean = false,
+    onSnoozeEntryConsumed: () -> Unit = {},
 ) {
     val component = rememberAppComponent()
     val resolved = profileViewModel ?: viewModel { component.profileViewModel }
@@ -204,6 +206,36 @@ fun ProfileContent(
         doorPosition = currentDoorEvent?.doorPosition,
     )
     val snoozeRowState = ProfileContentHelpers.displayFor(snoozeRowStatus)
+    // ONE gate for both ways in — the row's tap and Home's hand-off — so the
+    // two can never disagree about when the sheet may open.
+    val openSnooze: () -> Unit = {
+        when (snoozeRowStatus) {
+            SnoozeRowStatus.PermissionDenied -> notificationPermissionState.launchPermissionRequest()
+            // The row already says "Snooze once the door settles"; a sheet here
+            // could only lead to the failure it warns about.
+            SnoozeRowStatus.DoorMoving -> Unit
+            SnoozeRowStatus.Loading,
+            SnoozeRowStatus.Off,
+            is SnoozeRowStatus.SnoozingUntil,
+            -> {
+                // Force-refresh (not TTL-gated): the sheet pre-selects from the
+                // current state, and opening it is the one user gesture that
+                // deserves an immediate uncached fetch — the Android
+                // manual-refresh path now that the poll is gone (iOS keeps
+                // pull-to-refresh).
+                resolved.fetchSnoozeStatus()
+                snoozeSheetOpen = true
+            }
+        }
+    }
+    // Home's "Snooze notifications" arrives here with the request set; consume
+    // it once so a later visit to Settings does not reopen the sheet.
+    LaunchedEffect(openSnoozeOnEntry) {
+        if (openSnoozeOnEntry) {
+            openSnooze()
+            onSnoozeEntryConsumed()
+        }
+    }
 
     Box(modifier = modifier) {
         SettingsContent(
@@ -224,28 +256,7 @@ fun ProfileContent(
             onInstallOnWatchTap = resolved::installOnWatch,
             onAccountTap = { accountSheetOpen = true },
             onSignInTap = { googleSignIn.launchSignIn() },
-            onSnoozeTap = {
-                // Branch on the same status the row rendered from, so the tap
-                // target can never disagree with the label above it.
-                when (snoozeRowStatus) {
-                    SnoozeRowStatus.PermissionDenied -> notificationPermissionState.launchPermissionRequest()
-                    // The row already says "Snooze once the door settles"; a
-                    // sheet here could only lead to the failure it warns about.
-                    SnoozeRowStatus.DoorMoving -> Unit
-                    SnoozeRowStatus.Loading,
-                    SnoozeRowStatus.Off,
-                    is SnoozeRowStatus.SnoozingUntil,
-                    -> {
-                        // Force-refresh (not TTL-gated): the sheet pre-selects
-                        // from the current state, and opening it is the one
-                        // user gesture that deserves an immediate uncached
-                        // fetch — the Android manual-refresh path now that the
-                        // poll is gone (iOS keeps pull-to-refresh).
-                        resolved.fetchSnoozeStatus()
-                        snoozeSheetOpen = true
-                    }
-                }
-            },
+            onSnoozeTap = openSnooze,
             onFunctionListTap = onNavigateToFunctionList,
             onVersionTap = { versionSheetOpen = true },
             onPlayStoreTap = {

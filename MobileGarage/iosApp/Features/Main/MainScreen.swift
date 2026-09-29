@@ -32,8 +32,13 @@ struct MainScreen: View {
     /// the tree via the `\.doorAnimationMemory` environment value.
     @State private var doorAnimationMemory = DoorAnimationMemory()
 
+    @State private var selectedTab: MainTab = .home
+    /// Home's "Snooze notifications" affordance: switch to Settings and open
+    /// the snooze sheet on arrival (strategy 2.4). Settings clears it once
+    /// consumed, so a later visit does not reopen the sheet.
+    @State private var openSnoozeRequest = false
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             ForEach(MainTab.allCases) { tab in
                 NavigationStack {
                     screen(for: tab)
@@ -49,6 +54,7 @@ struct MainScreen: View {
                 .tabItem {
                     Label(tab.title, systemImage: tab.systemImage)
                 }
+                .tag(tab)
             }
         }
         .environment(\.doorAnimationMemory, doorAnimationMemory)
@@ -58,11 +64,17 @@ struct MainScreen: View {
     private func screen(for tab: MainTab) -> some View {
         switch tab {
         case .home:
-            HomeScreen(component: component)
+            HomeScreen(
+                component: component,
+                onSnoozeRequested: {
+                    openSnoozeRequest = true
+                    selectedTab = .settings
+                }
+            )
         case .history:
             HistoryScreen(component: component)
         case .settings:
-            SettingsScreen(component: component)
+            SettingsScreen(component: component, openSnoozeRequest: $openSnoozeRequest)
         }
     }
 }

@@ -301,6 +301,8 @@
     <string name="home_since_connecting">Waiting for the latest door status</string>
     <!-- "Since X · Y" line. %1$s is a time (e.g. "9:47 AM"); %2$s is a duration (e.g. "2 hr 14 min"). -->
     <string name="home_since_format">Since %1$s · %2$s</string>
+    <!-- Home's way to the snooze sheet, shown beside an open door when signed in (strategy 2.4). -->
+    <string name="home_snooze_action">Snooze notifications</string>
     <!-- Duration when hours and minutes are both shown ("2 hr 14 min"). -->
     <string name="home_duration_hours_minutes">%1$d hr %2$d min</string>
 

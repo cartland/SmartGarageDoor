@@ -23,9 +23,13 @@ import SwiftUI
 /// preview-able `HomeContentView`.
 struct HomeScreen: View {
     @StateObject private var wrapper: HomeViewModelWrapper
+    /// Home's way to the snooze sheet (strategy 2.4); the tab host owns the
+    /// switch, so this screen only asks.
+    private let onSnoozeRequested: () -> Void
 
-    init(component: NativeComponent) {
+    init(component: NativeComponent, onSnoozeRequested: @escaping () -> Void = {}) {
         _wrapper = StateObject(wrappedValue: HomeViewModelWrapper(component: component))
+        self.onSnoozeRequested = onSnoozeRequested
     }
 
     var body: some View {
@@ -45,6 +49,7 @@ struct HomeScreen: View {
             onButtonTap: { wrapper.onButtonTap() },
             onSignIn: { wrapper.signInWithGoogle() },
             onRefresh: { await wrapper.refresh() },
+            onSnooze: { onSnoozeRequested() },
             onAlertAction: { wrapper.onAlertAction($0) }
         )
     }
@@ -104,6 +109,8 @@ struct HomeContentView: View {
     /// section header. `label == nil` renders icon-only (no heartbeat yet).
     let checkIn: DeviceCheckInItem
     let onButtonTap: () -> Void
+    /// Home's way to the snooze sheet, offered beside an open door (strategy 2.4).
+    let onSnooze: () -> Void
     /// Triggers Google Sign-In from Home — shown only when signed out, where the
     /// remote button is replaced by a sign-in CTA (mirrors Android's signed-out
     /// Home, which hides the button and shows a "Sign in" card).
@@ -137,6 +144,7 @@ struct HomeContentView: View {
         onButtonTap: @escaping () -> Void,
         onSignIn: @escaping () -> Void,
         onRefresh: @escaping () async -> Void,
+        onSnooze: @escaping () -> Void,
         onAlertAction: @escaping (HomeAlertItem.Kind) -> Void
     ) {
         self.doorPosition = doorPosition
@@ -152,6 +160,7 @@ struct HomeContentView: View {
         self.alerts = alerts
         self.checkIn = checkIn
         self.onButtonTap = onButtonTap
+        self.onSnooze = onSnooze
         self.onSignIn = onSignIn
         self.onRefresh = onRefresh
         self.onAlertAction = onAlertAction
@@ -250,6 +259,18 @@ struct HomeContentView: View {
                         }
                         if hasDoorData, let warning {
                             DoorWarningChip(warning: warning)
+                        }
+                        // A door that is open is the one the notification is
+                        // about, so the way to quiet it lives beside it
+                        // (strategy 2.4). Whether to offer it is the shared
+                        // decision's; the sheet itself stays on Settings.
+                        if hasDoorData,
+                           SnoozeRowStatusMapper.shared.offersHomeEntryPoint(
+                               doorPosition: doorPosition,
+                               signedIn: authState == .signedIn
+                           ) {
+                            Button("Snooze notifications", action: onSnooze)
+                                .font(.footnote)
                         }
                         // Staleness now surfaces via the top Stale banner +
                         // the muted door color (`GarageDoorView(isStale:)`),
@@ -755,6 +776,7 @@ private struct HomeInfoSheetView: View {
             onButtonTap: {},
             onSignIn: {},
             onRefresh: {},
+            onSnooze: {},
             onAlertAction: { _ in }
         )
     }
@@ -778,6 +800,7 @@ private struct HomeInfoSheetView: View {
             onButtonTap: {},
             onSignIn: {},
             onRefresh: {},
+            onSnooze: {},
             onAlertAction: { _ in }
         )
     }
@@ -801,6 +824,7 @@ private struct HomeInfoSheetView: View {
             onButtonTap: {},
             onSignIn: {},
             onRefresh: {},
+            onSnooze: {},
             onAlertAction: { _ in }
         )
     }
@@ -824,6 +848,7 @@ private struct HomeInfoSheetView: View {
             onButtonTap: {},
             onSignIn: {},
             onRefresh: {},
+            onSnooze: {},
             onAlertAction: { _ in }
         )
     }
@@ -864,6 +889,7 @@ private struct HomeInfoSheetView: View {
             onButtonTap: {},
             onSignIn: {},
             onRefresh: {},
+            onSnooze: {},
             onAlertAction: { _ in }
         )
     }
@@ -962,6 +988,7 @@ private struct HomeInfoSheetView: View {
             onButtonTap: {},
             onSignIn: {},
             onRefresh: {},
+            onSnooze: {},
             onAlertAction: { _ in }
         )
     }
@@ -993,6 +1020,7 @@ private struct HomeInfoSheetView: View {
             onButtonTap: {},
             onSignIn: {},
             onRefresh: {},
+            onSnooze: {},
             onAlertAction: { _ in }
         )
     }
@@ -1023,6 +1051,7 @@ private struct HomeInfoSheetView: View {
             onButtonTap: {},
             onSignIn: {},
             onRefresh: {},
+            onSnooze: {},
             onAlertAction: { _ in }
         )
     }
@@ -1049,6 +1078,7 @@ private struct HomeInfoSheetView: View {
             onButtonTap: {},
             onSignIn: {},
             onRefresh: {},
+            onSnooze: {},
             onAlertAction: { _ in }
         )
     }
@@ -1072,6 +1102,7 @@ private struct HomeInfoSheetView: View {
             onButtonTap: {},
             onSignIn: {},
             onRefresh: {},
+            onSnooze: {},
             onAlertAction: { _ in }
         )
     }

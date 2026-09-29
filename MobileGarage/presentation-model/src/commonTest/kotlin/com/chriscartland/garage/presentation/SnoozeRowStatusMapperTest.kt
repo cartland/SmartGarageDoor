@@ -147,4 +147,29 @@ class SnoozeRowStatusMapperTest {
             SnoozeRowStatusMapper.forState(SnoozeState.NotSnoozing, notificationsGranted = false, doorPosition = DoorPosition.OPENING),
         )
     }
+
+    // ---- Home's way to the sheet ----
+
+    @Test
+    fun homeOffersSnoozeBesideAnOpenDoorWhenSignedIn() {
+        assertTrue(SnoozeRowStatusMapper.offersHomeEntryPoint(DoorPosition.OPEN, signedIn = true))
+        assertTrue(SnoozeRowStatusMapper.offersHomeEntryPoint(DoorPosition.OPEN_MISALIGNED, signedIn = true))
+    }
+
+    @Test
+    fun homeDoesNotOfferSnoozeWhereASaveCouldNotSucceed() {
+        // Positive control for the test above, and the two refusals: no account,
+        // and a door the sheet itself would refuse.
+        assertTrue(!SnoozeRowStatusMapper.offersHomeEntryPoint(DoorPosition.OPEN, signedIn = false), "signed out")
+        listOf(
+            DoorPosition.CLOSED,
+            DoorPosition.OPENING,
+            DoorPosition.CLOSING,
+            DoorPosition.OPENING_TOO_LONG,
+            DoorPosition.UNKNOWN,
+            null,
+        ).forEach { position ->
+            assertTrue(!SnoozeRowStatusMapper.offersHomeEntryPoint(position, signedIn = true), "$position")
+        }
+    }
 }
