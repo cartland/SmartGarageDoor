@@ -57,6 +57,8 @@ class GarageComplicationLengthTest {
         "complication_door_sensor_conflict",
         "complication_no_data",
         "complication_stale",
+        "complication_warning_stuck",
+        "complication_warning_misaligned",
         "complication_preview_duration",
     )
 

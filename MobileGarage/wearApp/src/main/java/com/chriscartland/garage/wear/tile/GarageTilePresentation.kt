@@ -17,12 +17,15 @@
 
 package com.chriscartland.garage.wear.tile
 
+import android.content.Context
 import androidx.annotation.StringRes
 import com.chriscartland.garage.domain.model.DoorColorState
 import com.chriscartland.garage.domain.model.GarageDoorPalette
 import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.DoorHeadline
 import com.chriscartland.garage.presentation.FreshnessTint
+import com.chriscartland.garage.presentation.GlanceStatus
+import com.chriscartland.garage.presentation.GlanceWarning
 import com.chriscartland.garage.presentation.StatusHeadline
 import com.chriscartland.garage.wear.R
 
@@ -55,6 +58,23 @@ object GarageTileWords {
             DoorHeadline.CLOSING -> R.string.door_state_closing
             DoorHeadline.SENSOR_CONFLICT -> R.string.door_state_sensor_conflict
         }
+
+    /** The qualifier beside the door word when the shared decision says one applies. */
+    fun warning(warning: GlanceWarning): Int =
+        when (warning) {
+            GlanceWarning.STUCK -> R.string.tile_warning_stuck
+            GlanceWarning.MISALIGNED -> R.string.tile_warning_misaligned
+        }
+
+    /** The whole headline, resolved: "Opening · stuck" when it must be, the door word otherwise. */
+    fun headlineText(
+        context: Context,
+        status: GlanceStatus,
+    ): String {
+        val door = context.getString(headline(status.headline))
+        val warning = status.warning ?: return door
+        return context.getString(R.string.tile_headline_with_warning, door, context.getString(warning(warning)))
+    }
 
     /**
      * NO AGE WORDING LIVES HERE ANY MORE.

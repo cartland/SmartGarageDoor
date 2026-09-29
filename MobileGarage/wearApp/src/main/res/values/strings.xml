@@ -87,6 +87,12 @@
          drift the way a figure can. Shown only when we CANNOT vouch for the
          reading — when we can, the running duration is itself the proof. -->
     <string name="tile_not_confirmed">Not confirmed</string>
+    <!-- Qualifier appended to the door word when the shared GlanceWarning
+         applies: "Opening · stuck". The duration line is untouched, so a
+         stuck door reads "Opening · stuck" over "22 min". -->
+    <string name="tile_warning_stuck">stuck</string>
+    <string name="tile_warning_misaligned">misaligned</string>
+    <string name="tile_headline_with_warning">%1$s · %2$s</string>
     <!-- Shown in the watch's tile picker, under the app name. -->
     <string name="tile_description">Garage door status</string>
 
@@ -115,6 +121,12 @@
          an unknown age, or a reading so old the number would overflow. Says
          the same thing and always fits. -->
     <string name="complication_stale">Stale</string>
+    <!-- Leads the short text when the shared GlanceWarning applies and the
+         reading is live: a face that renders text alone must not show a
+         stuck door as a plain "Opening". Seven characters: "Askew" is the
+         one short English word for a door that did not seat. -->
+    <string name="complication_warning_stuck">Stuck</string>
+    <string name="complication_warning_misaligned">Askew</string>
 
     <!-- NO AGE STRINGS HERE, deliberately. The one number worth showing is
          how long the door has been in its state, and it is rendered by the

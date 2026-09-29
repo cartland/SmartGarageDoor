@@ -20,6 +20,7 @@ package com.chriscartland.garage.wear.complication
 import androidx.annotation.StringRes
 import com.chriscartland.garage.presentation.DoorHeadline
 import com.chriscartland.garage.presentation.GlanceStatus
+import com.chriscartland.garage.presentation.GlanceWarning
 import com.chriscartland.garage.presentation.Liveness
 import com.chriscartland.garage.presentation.StatusHeadline
 import com.chriscartland.garage.wear.R
@@ -93,6 +94,18 @@ object GarageComplicationWords {
      * the front, where a text-only face will see it.
      */
     fun staleLeads(status: GlanceStatus): Boolean = status.liveness == Liveness.STALE
+
+    /**
+     * The word that LEADS when the shared decision says the door must be
+     * qualified and the reading is live. Stale still wins over it (the mapper
+     * withholds the warning when muted), so a face never shows "Stuck" about a
+     * door we cannot confirm.
+     */
+    fun warningWord(warning: GlanceWarning): Int =
+        when (warning) {
+            GlanceWarning.STUCK -> R.string.complication_warning_stuck
+            GlanceWarning.MISALIGNED -> R.string.complication_warning_misaligned
+        }
 
     /**
      * The word for a reading we cannot vouch for. Five characters, no number,

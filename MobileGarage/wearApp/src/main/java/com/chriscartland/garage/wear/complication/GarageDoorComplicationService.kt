@@ -155,6 +155,12 @@ class GarageDoorComplicationService : SuspendingComplicationDataSourceService() 
             // A text-only face must not be left showing an unqualified door.
             return shortText(plain(getString(GarageComplicationWords.STALE)), plain(door), description)
         }
+        val warning = status.warning?.let { getString(GarageComplicationWords.warningWord(it)) }
+        if (warning != null) {
+            // The alarm case, and the reason the mapper carries a warning at
+            // all: a stuck door used to read as a plain "Opening" here.
+            return shortText(plain(warning), plain(door), description)
+        }
         return shortText(plain(door), runningDuration(status), description)
     }
 

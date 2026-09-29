@@ -112,7 +112,7 @@ internal object GarageDoorTileLayout {
             onClick = openTheApp(context),
             title = {
                 text(
-                    context.getString(GarageTileWords.headline(status.headline)).layoutString,
+                    GarageTileWords.headlineText(context, status).layoutString,
                     typography = DOOR_WORD_TYPOGRAPHY,
                 )
             },

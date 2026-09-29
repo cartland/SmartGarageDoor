@@ -144,4 +144,41 @@ class GlanceStatusMapperTest {
     private companion object {
         const val NOW = 1_700_000_000L
     }
+
+    // ---------------------------------------------------------------- warnings
+
+    private fun glanceOf(
+        position: DoorPosition,
+        checkInAgeSeconds: Long,
+    ) = GlanceStatusMapper.forGlance(
+        doorPosition = position,
+        lastCheckInEpochSeconds = 1_000_000L - checkInAgeSeconds,
+        lastChangeEpochSeconds = 1_000_000L - 1_200L,
+        nowEpochSeconds = 1_000_000L,
+        isFetchError = false,
+    )
+
+    @Test
+    fun aStuckDoorWeCanVouchForCarriesAWarning() {
+        assertEquals(GlanceWarning.STUCK, glanceOf(DoorPosition.OPENING_TOO_LONG, checkInAgeSeconds = 10).warning)
+        assertEquals(GlanceWarning.STUCK, glanceOf(DoorPosition.CLOSING_TOO_LONG, checkInAgeSeconds = 10).warning)
+        assertEquals(GlanceWarning.MISALIGNED, glanceOf(DoorPosition.OPEN_MISALIGNED, checkInAgeSeconds = 10).warning)
+    }
+
+    @Test
+    fun anOrdinaryDoorCarriesNoWarning() {
+        // Positive control for the test above: a mapper that warned about
+        // every door would satisfy it.
+        assertNull(glanceOf(DoorPosition.OPENING, checkInAgeSeconds = 10).warning)
+        assertNull(glanceOf(DoorPosition.OPEN, checkInAgeSeconds = 10).warning)
+        assertNull(glanceOf(DoorPosition.CLOSED, checkInAgeSeconds = 10).warning)
+    }
+
+    @Test
+    fun aStuckDoorWeCannotVouchForIsNotConfirmedRatherThanStuck() {
+        // Same rule as the duration: a warning is a claim about the door NOW.
+        val stale = glanceOf(DoorPosition.OPENING_TOO_LONG, checkInAgeSeconds = 4_000)
+        assertEquals(Liveness.STALE, stale.liveness)
+        assertNull(stale.warning)
+    }
 }
