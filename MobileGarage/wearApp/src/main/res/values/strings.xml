@@ -27,6 +27,9 @@
       at the bottom of the dial.
     -->
     <string name="door_state_no_signal">No signal</string>
+    <!-- The one worded freshness line the hero shows for a door it cannot
+         vouch for. Same word the tile uses (strategy 1.1). -->
+    <string name="door_state_not_confirmed">Not confirmed</string>
     <string name="door_state_unknown">Unknown</string>
     <string name="door_state_closed">Closed</string>
     <string name="door_state_opening">Opening</string>
@@ -150,7 +153,10 @@
     <!-- Auth. -->
     <string name="sign_in">Sign in</string>
     <string name="sign_in_hint">Sign in to control the door</string>
-    <string name="sign_in_failed">Sign-in failed</string>
+    <string name="sign_in_failed">Sign-in failed here. Sign in on your phone instead.</string>
+    <!-- Resting caption under the watch's Sign in button. Local sign-in cannot
+         succeed on some watches; the phone relay is the path that works. -->
+    <string name="sign_in_on_phone">Sign in on your phone to use the watch</string>
     <string name="checking_sign_in">Checking sign-in…</string>
 
     <!-- Voice control. TWO surfaces share one loop and one screen: the LIVE

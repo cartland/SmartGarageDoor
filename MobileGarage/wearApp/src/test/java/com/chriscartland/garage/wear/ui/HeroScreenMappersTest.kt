@@ -18,8 +18,14 @@
 package com.chriscartland.garage.wear.ui
 
 import com.chriscartland.garage.domain.model.DoorPosition
+import com.chriscartland.garage.domain.model.RemoteButtonState
+import com.chriscartland.garage.presentation.DataFreshness
+import com.chriscartland.garage.presentation.DoorHeadline
+import com.chriscartland.garage.presentation.StatusHeadline
 import com.chriscartland.garage.wear.R
+import com.chriscartland.garage.wear.tile.GarageTileWords
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -101,5 +107,55 @@ class HeroScreenMappersTest {
             DoorPosition.OPEN,
             DoorPosition.OPEN_MISALIGNED,
         )
+    }
+
+    // ---------------------------------------------------------- shared headline
+
+    @Test
+    fun theHeroWordsEveryHeadlineTheTileWords() {
+        // Strategy 1.4. The tile and the complication consume the shared
+        // DoorHeadline; until now the hero re-collapsed DoorPosition by hand
+        // and nothing bound the two. This binds them: the screen a tile opens
+        // must name the door with the tile's own word.
+        DoorHeadline.entries.forEach { headline ->
+            assertEquals(
+                "$headline",
+                GarageTileWords.headline(StatusHeadline.Door(headline)),
+                HeroScreenMappers.doorHeadlineRes(headline),
+            )
+        }
+    }
+
+    @Test
+    fun everyHeadlineHasItsOwnWord() {
+        val ids = DoorHeadline.entries.map { HeroScreenMappers.doorHeadlineRes(it) }
+        assertEquals("two headlines share a string: $ids", ids.size, ids.toSet().size)
+    }
+
+    // ---------------------------------------------------------- resting note
+
+    @Test
+    fun aDoorWeCannotVouchForSaysSoAtRest() {
+        assertEquals(
+            R.string.door_state_not_confirmed,
+            HeroScreenMappers.restingNote(RemoteButtonState.Ready, hasDoorData = true, freshness = DataFreshness.STALE),
+        )
+    }
+
+    @Test
+    fun aConfirmedDoorKeepsTheHoldHint() {
+        // Positive control: a note that appeared for every door would pass
+        // the test above.
+        assertNull(HeroScreenMappers.restingNote(RemoteButtonState.Ready, hasDoorData = true, freshness = DataFreshness.FRESH))
+    }
+
+    @Test
+    fun theNoteYieldsToTheRingMidHoldAndToTheHeadlineWithNoDoor() {
+        // Mid-hold the slot is the ring's; with nothing known the headline
+        // already says "No signal", so a second line would repeat it.
+        assertNull(
+            HeroScreenMappers.restingNote(RemoteButtonState.AwaitingConfirmation, hasDoorData = true, freshness = DataFreshness.STALE),
+        )
+        assertNull(HeroScreenMappers.restingNote(RemoteButtonState.Ready, hasDoorData = false, freshness = DataFreshness.STALE))
     }
 }

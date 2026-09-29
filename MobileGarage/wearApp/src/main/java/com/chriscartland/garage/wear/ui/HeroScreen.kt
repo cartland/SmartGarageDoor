@@ -64,6 +64,7 @@ import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.presentation.DataFreshness
+import com.chriscartland.garage.presentation.DoorHeadline
 import com.chriscartland.garage.presentation.StatusHeadline
 import com.chriscartland.garage.presentation.StatusHeadlineMapper
 import com.chriscartland.garage.wear.R
@@ -263,11 +264,14 @@ internal fun HeroScreenLayout(
                     // state label from jumping when it does.
                     Text(
                         text = HeroScreenMappers
-                            .buttonHint(
-                                buttonState = buttonState,
-                                doorPosition = doorPosition,
-                                hasDoorData = hasDoorData,
-                            ).orEmpty(),
+                            .restingNote(buttonState, hasDoorData, freshness)
+                            ?.let { stringResource(it) }
+                            ?: HeroScreenMappers
+                                .buttonHint(
+                                    buttonState = buttonState,
+                                    doorPosition = doorPosition,
+                                    hasDoorData = hasDoorData,
+                                ).orEmpty(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -339,13 +343,16 @@ internal fun HeroScreenLayout(
                         ) {
                             Text(text = stringResource(R.string.sign_in))
                         }
-                        // Reserved caption slot: empty text keeps the height
-                        // stable so the transient failure message (auto-cleared
-                        // by the ViewModel) never reflows the column.
+                        // The caption always points at the phone: local sign-in
+                        // fails on watches whose Play services lack the Identity
+                        // module, and "Sign-in failed" alone was a dead end
+                        // (strategy 0.5). Same slot at rest and on failure, so the
+                        // transient failure (auto-cleared by the ViewModel) never
+                        // reflows the column.
                         Text(
-                            text = if (signInError) stringResource(R.string.sign_in_failed) else "",
+                            text = stringResource(if (signInError) R.string.sign_in_failed else R.string.sign_in_on_phone),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
+                            color = if (signInError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                             minLines = 1,
                         )
@@ -524,31 +531,55 @@ internal object HeroScreenMappers {
         freshness: DataFreshness,
     ): String =
         when (
-            StatusHeadlineMapper.forDoor(
-                doorPosition = doorPosition.takeIf { hasDoorData },
-                freshness = freshness,
-            )
+            val headline =
+                StatusHeadlineMapper.forDoor(
+                    doorPosition = doorPosition.takeIf { hasDoorData },
+                    freshness = freshness,
+                )
         ) {
-            is StatusHeadline.Door -> doorStateLabel(doorPosition)
+            // The shared DoorHeadline, not a local re-collapse of DoorPosition:
+            // the tile and the complication already word this enum, and the
+            // screen behind them must not be the one place that could drift
+            // from it (strategy 1.4).
+            is StatusHeadline.Door -> stringResource(doorHeadlineRes(headline.headline))
             StatusHeadline.Connecting -> stringResource(R.string.door_state_connecting)
             StatusHeadline.NoSignal -> stringResource(R.string.door_state_no_signal)
         }
 
-    @Composable
-    fun doorStateLabel(doorPosition: DoorPosition): String =
-        stringResource(
-            when (doorPosition) {
-                DoorPosition.UNKNOWN -> R.string.door_state_unknown
-                DoorPosition.CLOSED -> R.string.door_state_closed
-                DoorPosition.OPENING -> R.string.door_state_opening
-                DoorPosition.OPENING_TOO_LONG -> R.string.door_state_opening
-                DoorPosition.OPEN -> R.string.door_state_open
-                DoorPosition.OPEN_MISALIGNED -> R.string.door_state_open
-                DoorPosition.CLOSING -> R.string.door_state_closing
-                DoorPosition.CLOSING_TOO_LONG -> R.string.door_state_closing
-                DoorPosition.ERROR_SENSOR_CONFLICT -> R.string.door_state_sensor_conflict
-            },
-        )
+    /**
+     * The word for each shared [DoorHeadline]. Plain (not @Composable) so it is
+     * pinned on the JVM against the tile's words — see HeroScreenMappersTest.
+     */
+    fun doorHeadlineRes(headline: DoorHeadline): Int =
+        when (headline) {
+            DoorHeadline.UNKNOWN -> R.string.door_state_unknown
+            DoorHeadline.CLOSED -> R.string.door_state_closed
+            DoorHeadline.OPENING -> R.string.door_state_opening
+            DoorHeadline.OPEN -> R.string.door_state_open
+            DoorHeadline.CLOSING -> R.string.door_state_closing
+            DoorHeadline.SENSOR_CONFLICT -> R.string.door_state_sensor_conflict
+        }
+
+    /**
+     * The one worded freshness line the hero has room for (strategy 1.1).
+     *
+     * The tile beside this screen says "Not confirmed" in the same width, so
+     * room was never the constraint; the hero simply went grey and silent on
+     * a reading it could not vouch for. At rest, that word replaces the hold
+     * hint — "Hold to open" is a prediction about a door we cannot confirm.
+     * Mid-hold the slot stays empty as before (the ring is the channel), and
+     * with no door at all the headline already says "No signal".
+     */
+    fun restingNote(
+        buttonState: RemoteButtonState,
+        hasDoorData: Boolean,
+        freshness: DataFreshness,
+    ): Int? =
+        if (buttonState == RemoteButtonState.Ready && hasDoorData && freshness.isSpoken) {
+            R.string.door_state_not_confirmed
+        } else {
+            null
+        }
 
     /** Null means "render nothing here" — the reserved slot stays empty. */
     @Composable
