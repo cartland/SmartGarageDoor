@@ -137,16 +137,36 @@ tasks.register<architecture.LayerImportCheckTask>("checkLayerImports") {
 }
 
 tasks.register<architecture.HardcodedColorCheckTask>("checkHardcodedColors") {
+    // androidApp includes the widget package; wearApp added by strategy 4.4 —
+    // until then the watch's only-in-Kotlin colours were checked by nobody.
     sourceDirs = listOf(
         "$rootDir/androidApp/src/main/java",
+        "$rootDir/wearApp/src/main/java",
     )
     // Only these files may define Color(0x...) — all others must use theme colors.
     allowedFilePatterns = listOf(
         "Color\\.kt",
         "DoorStatusColorScheme\\.kt",
         // Canvas/drawing files use Color for rendering, not text contrast.
+        // (The name matches the phone's and the watch's canvas alike.)
         "GarageDoorCanvas\\.kt",
         "AnimatableGarageDoor\\.kt",
+        // The watch's theme files: the ring's two schemes and the door colours
+        // resolved from the shared GarageDoorPalette.
+        "WearRingColors\\.kt",
+        "WearDoorColors\\.kt",
+    )
+}
+
+tasks.register<architecture.DoorDurationLiteralCheckTask>("checkNoLiteralDoorDurations") {
+    // The door views on both Android apps. The slide's duration is the shared
+    // DoorAnimation.ANIMATION_DURATION_SECONDS; a literal here would re-type
+    // it on one platform (docs/UI_FIDELITY_TIERS.md § animation, layer 1).
+    // The iOS twin is scripts/check-ios-door-duration-literals.sh.
+    doorViewFiles = listOf(
+        "$rootDir/androidApp/src/main/java/com/chriscartland/garage/ui/GarageIcon.kt",
+        "$rootDir/androidApp/src/main/java/com/chriscartland/garage/ui/AnimatableGarageDoor.kt",
+        "$rootDir/wearApp/src/main/java/com/chriscartland/garage/wear/ui/WearGarageIcon.kt",
     )
 }
 

@@ -34,6 +34,7 @@ on:
       - 'MobileGarage/ios-localizable-text-exemptions.txt'
       - 'scripts/check-swift-default-arms.sh'
       - 'MobileGarage/ios-swift-default-exemptions.txt'
+      - 'scripts/check-ios-door-duration-literals.sh'
   pull_request:
     paths:
       - 'MobileGarage/iosApp/**'
@@ -54,6 +55,7 @@ on:
       - 'MobileGarage/ios-localizable-text-exemptions.txt'
       - 'scripts/check-swift-default-arms.sh'
       - 'MobileGarage/ios-swift-default-exemptions.txt'
+      - 'scripts/check-ios-door-duration-literals.sh'
 
 concurrency:
   group: ios-ci-${{ github.ref }}
@@ -90,6 +92,13 @@ jobs:
       # MobileGarage/ios-swift-default-exemptions.txt (empty since strategy 4.2).
       - name: Check Swift default arms
         run: ./scripts/check-swift-default-arms.sh
+
+      # Cheap grep: the door's slide duration is the shared DoorAnimation spec;
+      # a literal `.linear(duration: 12)` in the Swift door view would re-type
+      # it on one platform. Gradle's checkNoLiteralDoorDurations is the
+      # phone/Wear twin (validate.sh).
+      - name: Check iOS door duration literals
+        run: ./scripts/check-ios-door-duration-literals.sh
 
       - name: Set up JDK
         uses: actions/setup-java@v5
