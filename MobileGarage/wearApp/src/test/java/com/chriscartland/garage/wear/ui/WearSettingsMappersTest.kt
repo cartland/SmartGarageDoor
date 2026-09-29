@@ -97,4 +97,18 @@ class WearSettingsMappersTest {
             WearSettingsMappers.placeholderFor(AccountDisplay.SignedIn("real@example.com")),
         )
     }
+
+    /** Below Android 13 there is nothing to ask for, so the row never offers to. */
+    @Test
+    fun theDoorProgressRowOnlyAsksWhereAskingIsPossible() {
+        assertEquals(DoorProgressDisplay.ON, WearSettingsMappers.doorProgress(permissionRequired = false, granted = false))
+        assertEquals(DoorProgressDisplay.ON, WearSettingsMappers.doorProgress(permissionRequired = true, granted = true))
+        assertEquals(DoorProgressDisplay.ASK, WearSettingsMappers.doorProgress(permissionRequired = true, granted = false))
+    }
+
+    @Test
+    fun theTwoDoorProgressLinesAreDistinct() {
+        assertEquals(R.string.settings_door_progress_on, WearSettingsMappers.doorProgressSubtitle(DoorProgressDisplay.ON))
+        assertEquals(R.string.settings_door_progress_ask, WearSettingsMappers.doorProgressSubtitle(DoorProgressDisplay.ASK))
+    }
 }

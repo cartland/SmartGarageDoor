@@ -25,7 +25,7 @@ by a frame. A diff in any other stage means a real visual change.
 | signed_out | <img src="wear-signed_out.png" width="180" alt="signed out"> | Signed out: Sign in button (no mic chip — voice is signed-in only) |
 | sign_in_error | <img src="wear-sign_in_error.png" width="180" alt="sign in error"> | Transient "Sign-in failed" caption |
 | settings | <img src="wear-settings.png" width="180" alt="settings"> | Settings, one swipe left of the door: a scrolling list (crown included) with the signed-in account, the version, and an edge button to the store |
-| settings_bottom | <img src="wear-settings_bottom.png" width="180" alt="settings bottom"> | The end of the same list, which a settle-then-capture fixture cannot otherwise reach: the update button is below the fold at scroll position 0 |
+| settings_bottom | <img src="wear-settings_bottom.png" width="180" alt="settings bottom"> | The end of the same list, which a settle-then-capture fixture cannot otherwise reach: the Door progress row in its ASK state (a button until notifications are allowed), then the rehearsal |
 | settings_local | <img src="wear-settings_local.png" width="180" alt="settings local"> | The same list signed out and on a build that never came from a release, which is the one case that still names itself |
 | voice_ready | <img src="wear-voice_ready.png" width="180" alt="voice ready"> | Voice at rest against the REAL door: "Tap to speak", door Closed |
 | voice_listening | <img src="wear-voice_listening.png" width="180" alt="voice listening"> | Voice listening, nothing said yet: one line, and pulse rings capped so they clear it |
@@ -41,3 +41,4 @@ by a frame. A diff in any other stage means a real visual change.
 | tile_open | <img src="wear-tile_open.png" width="180" alt="tile open"> | The same tile with the door open. Review against tile_stale: identical reading, one of them muted |
 | tile_stale | <img src="wear-tile_stale.png" width="180" alt="tile stale"> | Six hours since the garage last reported: same open door, now drained to grey and dimmed, with an age line that explains why |
 | tile_no_signal | <img src="wear-tile_no_signal.png" width="180" alt="tile no signal"> | Nothing known and nothing reachable: the unknown door, "No signal", and no age line at all — a reading we cannot date is never given one |
+| ongoing_waiting | <img src="wear-ongoing_waiting.png" width="180" alt="ongoing waiting"> | The WATCH FACE, not the app: a press is awaiting the door and the wrist has dropped, so the platform's ongoing indicator (our icon, beside the charging bolt) sits at the bottom of the face, its status reading "Waiting for the door" and a tap opening the app — the whole chain from permission to foreground service to face, photographed |

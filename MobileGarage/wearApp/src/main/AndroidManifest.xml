@@ -21,6 +21,12 @@
     <uses-feature android:name="android.hardware.type.watch" />
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The watch face's "Waiting for the door" chip: an ongoing notification
+         from a short foreground service, bounded to the same window that
+         keeps the screen awake (strategy 3.3). POST_NOTIFICATIONS is runtime
+         on Android 13+ and is asked for from Settings, never mid-press. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Voice demo only, and requested at the moment you first tap the mic —
          never on launch. It buys ONE-TAP speech: RecognizerIntent on Wear goes
@@ -131,6 +137,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- The ongoing "Waiting for the door" chip. Not exported and no
+             intent filter: only WearApp starts it, from
+             WearHomeViewModel.doorActivity, and it holds nothing that could
+             press the button (DoorActivitySafetyTest). shortService is the
+             platform's own three-minute cap; the app stops it within
+             KEEP_SCREEN_ON_MILLIS. -->
+        <service
+            android:name=".ongoing.DoorActivityService"
+            android:exported="false"
+            android:foregroundServiceType="shortService" />
     </application>
 
 </manifest>

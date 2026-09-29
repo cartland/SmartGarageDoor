@@ -25,7 +25,6 @@ import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
-import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.GoogleIdToken
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.presentation.CheckInStatus
@@ -97,6 +96,11 @@ import kotlinx.coroutines.launch
  * physically moving — the moments the user needs to watch the screen.
  * Normal viewing, and the hold itself, never hold the screen awake; the
  * battery cost is only paid while something is actually happening.
+ *
+ * The same trigger, typed as [DoorActivity], is published as [doorActivity]
+ * for the watch face's ongoing chip, and while it is non-null the poll loop
+ * outlives [onHidden]: a wrist that drops mid-press still sees the door move,
+ * which is the only way the chip can be told to say so (strategy 3.3).
  *
  * Failure grace: the watch's network path (BT relay / Wi-Fi at the garage)
  * is less reliable than the phone's, and door-moved detection additionally
@@ -255,26 +259,48 @@ class WearHomeViewModel(
      */
     val keepScreenOn: StateFlow<Boolean> = _keepScreenOn
 
+    private val _doorActivity = MutableStateFlow<DoorActivity?>(null)
+
+    /**
+     * What the watch face's ongoing chip should say, or null for no chip.
+     *
+     * The SAME window as [keepScreenOn] — non-null exactly while that is true
+     * — because both answer one question ("is something happening to the
+     * door?") and a chip that stayed up after the screen's reason to stay on
+     * had expired would be claiming a currency the app no longer checks.
+     * The words are the platform's ([DoorActivityWords]); this is the decision.
+     */
+    val doorActivity: StateFlow<DoorActivity?> = _doorActivity
+
     private var holdJob: Job? = null
     private var commitBeatJob: Job? = null
+
+    // Touched from the visibility callbacks (main) AND the activity collector
+    // (default): the restart below must see the loop the other side started.
+    @Volatile
     private var refreshJob: Job? = null
     private var signInErrorJob: Job? = null
     private var keepScreenOnJob: Job? = null
 
     /**
      * Whether a press sent by the voice surface is still waiting on the door —
-     * see [onVoicePressAwaitingDoor]. Plain state rather than a flow: the poll
-     * loop reads it once per iteration, and the one moment it must act on
-     * promptly is handled by restarting the loop.
+     * see [onVoicePressAwaitingDoor]. A flow because it is one of the three
+     * inputs to [DoorActivity.current]: a spoken press is a press, and the
+     * watch face should say so. The poll loop reads its value once per
+     * iteration; the one moment it must act on promptly is handled by
+     * restarting the loop.
      */
-    private var voicePressAwaitingDoor = false
+    private val voicePressAwaitingDoor = MutableStateFlow(false)
+
+    /** Whether the screen is showing, per [onVisible] / [onHidden]. */
+    private var visible = false
 
     init {
         viewModelScope.launch(dispatchers.default) {
-            combine(stateMachine.state, currentDoorEvent) { button, doorEvent ->
-                keepScreenOnTrigger(button, doorEvent?.doorPosition)
-            }.distinctUntilChanged().collect { trigger ->
-                if (trigger != null) restartKeepScreenOnWindow() else clearKeepScreenOnWindow()
+            combine(stateMachine.state, currentDoorEvent, voicePressAwaitingDoor) { button, doorEvent, voice ->
+                DoorActivity.current(button, doorEvent?.doorPosition, voice)
+            }.distinctUntilChanged().collect { activity ->
+                if (activity != null) restartActivityWindow(activity) else clearActivityWindow()
             }
         }
         // Outcome haptics. drop(1) skips the StateFlow's initial Ready replay,
@@ -402,9 +428,18 @@ class WearHomeViewModel(
      * below and this call agree without either having to check the other.
      */
     fun onVisible() {
+        visible = true
         appVisibilityState.setVisible(true)
         appSettleWindow.start()
         if (refreshJob?.isActive == true) return
+        startPolling()
+    }
+
+    /**
+     * The poll loop while somebody is looking at the watch — and, since
+     * [doorActivity], while the door is busy after they stopped.
+     */
+    private fun startPolling() {
         refreshJob = viewModelScope.launch(dispatchers.io) {
             while (true) {
                 // Read the clock BEFORE the fetch, not after. The fetch can
@@ -424,7 +459,7 @@ class WearHomeViewModel(
                 lastFetchFailed.value = fetchCurrentDoorEventUseCase() is AppResult.Error
                 val waitingOnDoor = buttonState.value is RemoteButtonState.SendingToServer ||
                     buttonState.value is RemoteButtonState.SendingToDoor ||
-                    voicePressAwaitingDoor
+                    voicePressAwaitingDoor.value
                 delay(if (waitingOnDoor) ACTIVE_POLL_MILLIS else IDLE_POLL_MILLIS)
             }
         }
@@ -442,11 +477,29 @@ class WearHomeViewModel(
      * off would leave the loop asleep at the one moment the user is
      * staring at the screen waiting for recovery. The phone backs off
      * because its foreground lifetime is unbounded; this one is not.
+     *
+     * The one exception is a [doorActivity] in progress: the loop then runs
+     * on until that window closes, because a press whose door moves after the
+     * wrist dropped is only ever noticed by a poll, and the watch face's chip
+     * exists to report exactly that. The window is the same bounded
+     * [KEEP_SCREEN_ON_MILLIS], so the loop still never outlives it.
      */
     fun onHidden() {
+        visible = false
         appVisibilityState.setVisible(false)
+        if (_doorActivity.value == null) stopPolling()
+    }
+
+    private fun stopPolling() {
         refreshJob?.cancel()
         refreshJob = null
+    }
+
+    /** Cancel the sleep in progress and poll again now; a no-op if nobody is polling. */
+    private fun restartPollingIfRunning() {
+        if (refreshJob?.isActive != true) return
+        refreshJob?.cancel()
+        startPolling()
     }
 
     /**
@@ -465,16 +518,13 @@ class WearHomeViewModel(
      *
      * Turning it ON restarts the loop rather than waiting for the current sleep
      * to end, because the sleep in progress is the idle one and the whole point
-     * is not to spend it.
+     * is not to spend it. That restart is no longer done here: a spoken press
+     * awaiting the door is a [DoorActivity.PressAwaitingDoor] like a held one,
+     * and [restartActivityWindow] restarts the loop for both. Doing it here as
+     * well restarted it twice (two immediate polls for one press).
      */
     fun onVoicePressAwaitingDoor(awaiting: Boolean) {
-        if (voicePressAwaitingDoor == awaiting) return
-        voicePressAwaitingDoor = awaiting
-        if (awaiting && refreshJob?.isActive == true) {
-            refreshJob?.cancel()
-            refreshJob = null
-            onVisible()
-        }
+        voicePressAwaitingDoor.value = awaiting
     }
 
     /** A sign-in attempt is starting: clear any stale failure message. */
@@ -514,37 +564,35 @@ class WearHomeViewModel(
     }
 
     /**
-     * The moments worth holding the screen awake for, as a distinct value per
-     * trigger so the window restarts on each new phase (server ack, door
-     * starts moving) but not on repeated identical emissions. Null = nothing
-     * happening; an in-progress hold is deliberately NOT a trigger (the
-     * user's finger is already on the screen, keeping it awake).
+     * A new [DoorActivity]: the screen stays awake and the watch face says so,
+     * both for at most [KEEP_SCREEN_ON_MILLIS]. Real transitions (server ack,
+     * door starts moving, door reverses) restart the window; identical
+     * emissions do not reach here (`distinctUntilChanged` upstream).
      */
-    private fun keepScreenOnTrigger(
-        buttonState: RemoteButtonState,
-        doorPosition: DoorPosition?,
-    ): String? =
-        when {
-            buttonState is RemoteButtonState.SendingToServer -> "sending-to-server"
-            buttonState is RemoteButtonState.SendingToDoor -> "sending-to-door"
-            doorPosition == DoorPosition.OPENING || doorPosition == DoorPosition.CLOSING ->
-                "door-moving-$doorPosition"
-            else -> null
-        }
-
-    private fun restartKeepScreenOnWindow() {
+    private fun restartActivityWindow(activity: DoorActivity) {
+        _doorActivity.value = activity
         _keepScreenOn.value = true
+        // The server took the press: the door is about to move, and the loop
+        // is most likely mid-way through its IDLE sleep. Restart it so the
+        // tightened cadence applies NOW rather than after that sleep — the
+        // same courtesy a spoken press already gets from
+        // onVoicePressAwaitingDoor, and what lets a 15 s chip window actually
+        // see the door move before it closes.
+        if (activity == DoorActivity.PressAwaitingDoor) restartPollingIfRunning()
         keepScreenOnJob?.cancel()
         keepScreenOnJob = viewModelScope.launch(dispatchers.default) {
             delay(KEEP_SCREEN_ON_MILLIS)
-            _keepScreenOn.value = false
+            clearActivityWindow()
         }
     }
 
-    private fun clearKeepScreenOnWindow() {
+    /** Nothing is happening (or the cap ran out): both consumers go quiet together. */
+    private fun clearActivityWindow() {
         keepScreenOnJob?.cancel()
         keepScreenOnJob = null
         _keepScreenOn.value = false
+        _doorActivity.value = null
+        if (!visible) stopPolling()
     }
 
     private fun submitButtonPress() {

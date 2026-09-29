@@ -694,6 +694,108 @@ class WearHomeViewModelTest {
         }
 
     @Test
+    fun theWatchFaceIsToldExactlyWhatKeepsTheScreenOn() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            runCurrent()
+            assertEquals(null, viewModel.doorActivity.value)
+            completeHold(viewModel)
+            assertEquals(RemoteButtonState.SendingToDoor, viewModel.buttonState.value)
+            assertEquals(DoorActivity.PressAwaitingDoor, viewModel.doorActivity.value)
+            assertTrue(viewModel.keepScreenOn.value)
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.OPENING, lastChangeTimeSeconds = 123L),
+            )
+            runCurrent()
+            assertEquals(DoorActivity.DoorMoving(DoorTravel.OPENING), viewModel.doorActivity.value)
+            // The door settles: chip and screen wake go quiet together.
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.OPEN, lastChangeTimeSeconds = 130L),
+            )
+            runCurrent()
+            assertEquals(null, viewModel.doorActivity.value)
+            assertFalse(viewModel.keepScreenOn.value)
+        }
+
+    @Test
+    fun theChipNeverOutlivesTheScreensWindow() =
+        runTest {
+            val viewModel = createViewModel()
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.CLOSING, lastChangeTimeSeconds = 123L),
+            )
+            runCurrent()
+            assertEquals(DoorActivity.DoorMoving(DoorTravel.CLOSING), viewModel.doorActivity.value)
+            advanceTimeBy(WearHomeViewModel.KEEP_SCREEN_ON_MILLIS + 1)
+            runCurrent()
+            assertEquals(null, viewModel.doorActivity.value)
+        }
+
+    @Test
+    fun pollingOutlivesTheScreenOnlyWhileTheDoorIsBusy() =
+        runTest {
+            // A wrist that drops mid-press: without this the loop stopped at
+            // ON_STOP and the door moving was never seen, so the chip would
+            // have said "Waiting for the door" until the cap and then lied
+            // by omission about a door that had opened.
+            val viewModel = createViewModel()
+            signIn()
+            viewModel.onVisible()
+            runCurrent()
+            completeHold(viewModel)
+            val fetchesBeforeHiding = doorRepository.fetchCurrentDoorEventCount
+            viewModel.onHidden()
+            try {
+                advanceTimeBy(WearHomeViewModel.ACTIVE_POLL_MILLIS + 1)
+                runCurrent()
+                assertTrue(
+                    "a press awaiting the door keeps polling after the screen hides",
+                    doorRepository.fetchCurrentDoorEventCount > fetchesBeforeHiding,
+                )
+                // The door answers: the activity clears and, hidden, the loop stops.
+                doorRepository.setCurrentDoorEvent(
+                    DoorEvent(doorPosition = DoorPosition.OPENING, lastChangeTimeSeconds = 123L),
+                )
+                runCurrent()
+                doorRepository.setCurrentDoorEvent(
+                    DoorEvent(doorPosition = DoorPosition.OPEN, lastChangeTimeSeconds = 130L),
+                )
+                runCurrent()
+                assertEquals(null, viewModel.doorActivity.value)
+                val fetchesAfterSettling = doorRepository.fetchCurrentDoorEventCount
+                advanceTimeBy(WearHomeViewModel.IDLE_POLL_MILLIS * 2)
+                runCurrent()
+                assertEquals(
+                    "nothing busy and nobody looking: no more polls",
+                    fetchesAfterSettling,
+                    doorRepository.fetchCurrentDoorEventCount,
+                )
+            } finally {
+                // If a regression leaves the loop running past the activity, the
+                // assertion above throws with the loop still alive — and runTest's
+                // cleanup then spins forever on a scheduler that is never idle
+                // (see aVoicePressTightensTheDoorPoll). A second onHidden with no
+                // activity stops it, so the failure reads as a failure.
+                viewModel.onHidden()
+            }
+        }
+
+    @Test
+    fun hidingWithNothingBusyStopsPollingAtOnce() =
+        runTest {
+            // Positive control for the test above.
+            val viewModel = createViewModel()
+            viewModel.onVisible()
+            runCurrent()
+            viewModel.onHidden()
+            val fetches = doorRepository.fetchCurrentDoorEventCount
+            advanceTimeBy(WearHomeViewModel.IDLE_POLL_MILLIS * 2)
+            runCurrent()
+            assertEquals(fetches, doorRepository.fetchCurrentDoorEventCount)
+        }
+
+    @Test
     fun keepScreenOnCapsAtWindow() =
         runTest {
             val viewModel = createViewModel()

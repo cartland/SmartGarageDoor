@@ -202,6 +202,9 @@ dependencies {
     // service base class; the complication answers from the same shared
     // GlanceStatus the tile uses.
     implementation(libs.androidx.wear.complications.datasource.ktx)
+    // The watch face's ongoing chip while a press is in flight or the door
+    // moves — an ongoing notification the system draws on the face.
+    implementation(libs.androidx.wear.ongoing)
     implementation(libs.androidx.wear.protolayout)
     implementation(libs.androidx.wear.protolayout.material3)
     implementation(libs.androidx.wear.protolayout.expression)

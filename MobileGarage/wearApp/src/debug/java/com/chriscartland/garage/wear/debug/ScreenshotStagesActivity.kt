@@ -35,7 +35,10 @@ import com.chriscartland.garage.presentation.SinceStatus
 import com.chriscartland.garage.usecase.VoiceCommandIgnoreReason
 import com.chriscartland.garage.usecase.VoiceCommandState
 import com.chriscartland.garage.usecase.VoiceDoorState
+import com.chriscartland.garage.wear.R
+import com.chriscartland.garage.wear.ongoing.DoorActivityService
 import com.chriscartland.garage.wear.ui.ConfirmRingState
+import com.chriscartland.garage.wear.ui.DoorProgressDisplay
 import com.chriscartland.garage.wear.ui.HeroScreenContent
 import com.chriscartland.garage.wear.ui.HeroScreenLayout
 import com.chriscartland.garage.wear.ui.VoiceContent
@@ -132,6 +135,17 @@ class ScreenshotStagesActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val stage = intent.getStringExtra(STAGE_EXTRA) ?: STAGE_CLOSED
+        if (stage == STAGE_ONGOING_WAITING) {
+            // Not a screen of ours at all: start the chip's service exactly
+            // as WearApp does for a press awaiting the door, then get out of
+            // the way so the script can photograph the WATCH FACE with the
+            // chip on it. That capture is the only proof the whole chain
+            // (permission, channel, foreground service, ongoing activity)
+            // actually reaches the wrist.
+            DoorActivityService.show(this, R.string.button_hint_waiting_for_door)
+            finish()
+            return
+        }
         val voiceFixture = voiceFixtureFor(stage)
         val fixture = fixtureFor(stage)
         setContent {
@@ -168,6 +182,15 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             },
                             onOpenStore = { true },
                             onSimulatedVoiceClick = {},
+                            // The row sits below the fold of the top-anchored
+                            // captures, so only settings_bottom can show it; it
+                            // shows the ASK state, the one that is a button.
+                            doorProgress = if (stage == STAGE_SETTINGS_BOTTOM) {
+                                DoorProgressDisplay.ASK
+                            } else {
+                                DoorProgressDisplay.ON
+                            },
+                            onDoorProgressClick = {},
                             // The end of the list, which a settle-then-capture
                             // fixture cannot otherwise reach: it always opens at
                             // scroll position 0, so the update button would never
@@ -434,6 +457,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
         const val STAGE_SETTINGS = "settings"
         const val STAGE_SETTINGS_LOCAL = "settings_local"
         const val STAGE_SETTINGS_BOTTOM = "settings_bottom"
+        const val STAGE_ONGOING_WAITING = "ongoing_waiting"
 
         /**
          * Last item of the RELEASED, signed-in settings list: header, account
@@ -446,7 +470,7 @@ class ScreenshotStagesActivity : ComponentActivity() {
          * that stops short of the bottom — visible in the very screenshot this
          * exists to produce, so it fails loudly rather than silently.
          */
-        const val SETTINGS_LAST_ITEM_INDEX = 7
+        const val SETTINGS_LAST_ITEM_INDEX = 9
         const val STAGE_MOVING = "moving"
         const val STAGE_OPEN = "open"
         const val STAGE_SIGNED_OUT = "signed_out"

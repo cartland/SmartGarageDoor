@@ -975,6 +975,70 @@ position 0, so the screen's one action sits below the fold and would appear in n
 screenshot at all. `WearSettingsScreen` takes an `initialAnchorItemIndex` that
 production never passes.
 
+## The watch face still says "Waiting for the door" (0.10.0)
+
+A press is not finished when the screen goes dark. Between the hold and the
+door answering there are seconds of network and mechanism, and a wrist that
+drops in that gap used to see the watch face with nothing on it about the press
+it had just made. Now it sees the platform's **ongoing activity** indicator at
+the bottom of the face, carrying a status — "Sending", "Waiting for the door",
+"Opening", "Closing" — and tappable back into the app (strategy 3.3).
+
+- **One decision, two consumers.** `DoorActivity.current` is the rule that
+  already kept the screen awake (a held press in flight, then a door in
+  motion; a hold is not an activity, a stuck door is not motion) with one
+  addition: a *spoken* press waiting on the door counts, because a press is a
+  press. `WearHomeViewModel` derives both `keepScreenOn` and `doorActivity`
+  from it on the **same bounded window** (`KEEP_SCREEN_ON_MILLIS`), so the chip
+  can never outlive the app's reason to keep watching. Pinned by
+  `theWatchFaceIsToldExactlyWhatKeepsTheScreenOn` and
+  `theChipNeverOutlivesTheScreensWindow`.
+- **Polling outlives the screen only while the door is busy.** `onHidden`
+  stopped the poll loop at `ON_STOP`, which meant a wrist that dropped mid-press
+  could never see the door move: the chip would have said "Waiting for the
+  door" until the cap and then gone quiet about a door that had in fact opened.
+  The loop now runs on while `doorActivity` is non-null and stops the moment it
+  clears while hidden. The window is the same 15 s, so the "no backoff" argument
+  in `onHidden`'s KDoc still holds. Pinned by
+  `pollingOutlivesTheScreenOnlyWhileTheDoorIsBusy`, with
+  `hidingWithNothingBusyStopsPollingAtOnce` as its positive control.
+- **The chip is a foreground service's ongoing notification**
+  (`DoorActivityService`, `shortService`, `IMPORTANCE_LOW`). Read-only like
+  every glance surface: tapping opens the app, it holds nothing that could press
+  the button, it is not exported and has no intent filter
+  (`DoorActivitySafetyTest`). `WearApp` shows and hides it from a plain
+  `LaunchedEffect`, deliberately not a lifecycle-aware collect: the collector
+  has to outlive `ON_STOP`, because that is exactly when the chip matters.
+- **Words are the hero screen's own** (`DoorActivityWords`), so the chip and the
+  screen it opens cannot disagree.
+- **What the face actually draws is the ICON.** Wear OS renders an ongoing
+  activity on the face as the app's monochrome icon (beside the charging bolt on
+  the emulator), and the status words travel with it rather than on it: the
+  launcher's ongoing row, the indicator's content description (set explicitly,
+  or a screen reader says only the app's name), and the screen a tap opens. The
+  notification itself is lifted out of the stream, which reads "No
+  notifications" while the chip is up. So the sentence in this section's title
+  is the chip's *status*, not a caption the face prints — the icon has to be
+  recognisable at indicator size, and the status has to make sense read aloud
+  on its own.
+- **Android 13+ needs `POST_NOTIFICATIONS`**, asked for from the new
+  **Door progress** row in Settings and never mid-press, where a system dialog
+  would land on top of the door being watched. Without it the service still
+  runs and the platform simply shows nothing; the row says "Tap to allow
+  notifications" until it is granted and "Shown while the door is busy" after.
+- **Photographed, not assumed.** `scripts/generate-wear-screenshots.sh` grants
+  the permission on the emulator and captures an `ongoing_waiting` stage: the
+  fixture starts the service exactly as `WearApp` would for a press awaiting
+  the door, finishes, and the script photographs the watch face. That PNG is the
+  proof the whole chain — permission, channel, foreground service, ongoing
+  activity — reaches the wrist. Two things had to be learned to make it honest:
+  the platform publishes the chip ~11 s after the service starts, so the script
+  waits for SysUI's own "Update ongoing activity icon" log line (a capture at
+  6 s showed a bare face and would have passed); and Wear's HOME key *toggles*
+  face and launcher, so the face is reached with the HOME-category intent plus
+  a focus wait on `SysUiActivity`, never a blind key press (a capture of the
+  Apps grid also passed the size check).
+
 ## Telling the phone which build is on the wrist (0.5.2 + phone 2.23.6)
 
 The phone's Settings → Watch row names the watch app's version ("Version 0.5.2

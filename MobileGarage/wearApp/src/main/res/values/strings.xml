@@ -266,6 +266,15 @@
          can be exercised at a desk without the garage moving. -->
     <string name="settings_simulated_voice">Simulated voice</string>
     <string name="settings_store_unavailable">No Play Store on this watch</string>
+    <!-- The watch face's ongoing chip while a press is in flight or the door
+         moves (strategy 3.3). Android 13+ needs the notification permission
+         for it, asked for here and never mid-press. -->
+    <string name="settings_watch_face">Watch face</string>
+    <string name="settings_door_progress">Door progress</string>
+    <string name="settings_door_progress_on">Shown while the door is busy</string>
+    <string name="settings_door_progress_ask">Tap to allow notifications</string>
+    <!-- The notification channel the chip is filed under. Silent by design. -->
+    <string name="door_activity_channel">Door progress</string>
 
     <!-- Content descriptions. -->
     <string name="cd_garage_door">Garage door</string>

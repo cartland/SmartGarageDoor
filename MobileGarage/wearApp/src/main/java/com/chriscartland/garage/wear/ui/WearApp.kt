@@ -17,8 +17,11 @@
 
 package com.chriscartland.garage.wear.ui
 
+import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -47,6 +50,7 @@ import co.touchlab.kermit.Logger
 import com.chriscartland.garage.wear.BuildConfig
 import com.chriscartland.garage.wear.di.WearComponent
 import com.chriscartland.garage.wear.di.WearSignInConfig
+import com.chriscartland.garage.wear.ongoing.DoorActivityService
 
 /** Where the app is: home (the door and its pages), or one of its leaves. */
 internal enum class WearDestination {
@@ -125,6 +129,23 @@ fun WearApp(component: WearComponent) {
     val swipeState = rememberSwipeToDismissBoxState()
     val openStore = rememberStoreLauncher()
 
+    // Whether the watch face may show the door-progress chip. Android 13+
+    // gates every notification behind a runtime permission; the row in
+    // Settings is where it is asked for, and the answer is re-read whenever
+    // the app comes to the front so a grant made in system settings shows.
+    val context = LocalContext.current
+    var doorProgress by remember {
+        mutableStateOf(
+            WearSettingsMappers.doorProgress(
+                permissionRequired = DoorActivityService.permissionRequired(),
+                granted = DoorActivityService.notificationsGranted(context),
+            ),
+        )
+    }
+    val requestNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        doorProgress = WearSettingsMappers.doorProgress(DoorActivityService.permissionRequired(), granted)
+    }
+
     // Leaving the app dismisses any leaf, so coming back lands on the door
     // rather than on a voice screen whose moment has passed. ON_STOP rather
     // than ON_PAUSE: a transient overlay (a notification, the shade) should not
@@ -134,6 +155,12 @@ fun WearApp(component: WearComponent) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_STOP && !destination.survivesBackgrounding) {
                 destination = WearDestination.Home
+            }
+            if (event == Lifecycle.Event.ON_START) {
+                doorProgress = WearSettingsMappers.doorProgress(
+                    permissionRequired = DoorActivityService.permissionRequired(),
+                    granted = DoorActivityService.notificationsGranted(context),
+                )
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -201,6 +228,10 @@ fun WearApp(component: WearComponent) {
                                 destination = WearDestination.SimulatedVoice
                             },
                             onOpenStore = openStore,
+                            doorProgress = doorProgress,
+                            onDoorProgressClick = {
+                                requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            },
                         )
 
                     WearDestination.Voice ->
@@ -243,6 +274,8 @@ private fun HomePages(
     onVoiceClick: () -> Unit,
     onSimulatedVoiceClick: () -> Unit,
     onOpenStore: () -> Boolean,
+    doorProgress: DoorProgressDisplay,
+    onDoorProgressClick: () -> Unit,
 ) {
     val pagerState = rememberPagerState(pageCount = { HOME_PAGE_COUNT })
     val authState by homeViewModel.authState.collectAsStateWithLifecycle()
@@ -269,6 +302,8 @@ private fun HomePages(
                             authState = authState,
                             onOpenStore = onOpenStore,
                             onSimulatedVoiceClick = onSimulatedVoiceClick,
+                            doorProgress = doorProgress,
+                            onDoorProgressClick = onDoorProgressClick,
                         )
                 }
             }
@@ -354,6 +389,21 @@ private fun KeepScreenOnWhile(active: Boolean) {
 @Composable
 private fun DoorSurfaceEffects(viewModel: WearHomeViewModel) {
     val view = LocalView.current
+
+    // The watch face's chip: the same activity that keeps the screen awake,
+    // handed to the platform for the wrist that has dropped. A plain
+    // LaunchedEffect, NOT a lifecycle-aware collect — the collector has to
+    // outlive ON_STOP, because that is exactly when the chip matters.
+    val context = LocalContext.current
+    LaunchedEffect(viewModel) {
+        viewModel.doorActivity.collect { activity ->
+            if (activity == null) {
+                DoorActivityService.hide(context)
+            } else {
+                DoorActivityService.show(context, DoorActivityWords.status(activity))
+            }
+        }
+    }
 
     // Haptics: the ViewModel decides WHEN and WHAT (testable); this performs
     // the platform write. View.performHapticFeedback needs no VIBRATE

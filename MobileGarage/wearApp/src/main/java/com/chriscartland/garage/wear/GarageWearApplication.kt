@@ -31,6 +31,7 @@ import com.chriscartland.garage.wear.data.WearStatusCache
 import com.chriscartland.garage.wear.di.WearComponent
 import com.chriscartland.garage.wear.di.WearSignInConfig
 import com.chriscartland.garage.wear.di.create
+import com.chriscartland.garage.wear.ongoing.DoorActivityService
 import com.chriscartland.garage.wear.tile.GarageDoorTileService
 import kotlinx.coroutines.launch
 
@@ -65,6 +66,9 @@ class GarageWearApplication : Application() {
         // (auth state, door cache) start with the process.
         component
         nudgeTheGlanceSurfacesWhenTheDoorChanges()
+        // The channel the watch face's door-progress chip is filed under, made
+        // before any press can need it. Idempotent.
+        DoorActivityService.ensureChannel(this)
 
         // Tell the phone which build is on the wrist. Fire-and-forget on an
         // application-lifetime scope: nothing on the watch waits for it, and it
