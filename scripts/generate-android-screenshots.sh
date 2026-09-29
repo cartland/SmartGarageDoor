@@ -3,24 +3,35 @@ set -e
 
 # Generate Android reference screenshots sequentially to avoid OOM.
 # Each test file runs in its own Gradle invocation.
+#
+# SKIP_RENDER=1 keeps whatever PNGs are already in the reference directory —
+# the ones downloaded from the dispatch-only "Android Screenshot References"
+# workflow (.github/workflows/android-screenshot-references.yml), which renders
+# on a macOS runner because this Mac renders blank (CLAUDE.md) — and runs only
+# the post-render steps: gallery, collections, framing, store, health check.
 
-echo "Cleaning reference screenshots..."
 REFERENCE_DIR="MobileGarage/android-screenshot-tests/src/screenshotTestDebug/reference"
-if [ -d "$REFERENCE_DIR" ]; then
-    rm -rf "$REFERENCE_DIR"
+
+if [ "${SKIP_RENDER:-0}" = "1" ]; then
+    echo "SKIP_RENDER=1: keeping the PNGs already in $REFERENCE_DIR; post-render steps only."
+else
+    echo "Cleaning reference screenshots..."
+    if [ -d "$REFERENCE_DIR" ]; then
+        rm -rf "$REFERENCE_DIR"
+    fi
+    mkdir -p "$REFERENCE_DIR"
+
+    for file in MobileGarage/android-screenshot-tests/src/screenshotTest/kotlin/com/chriscartland/garage/screenshottests/*.kt; do
+        filename=$(basename "$file" .kt)
+        classname="com.chriscartland.garage.screenshottests.${filename}Kt"
+
+        echo "----------------------------------------------------------------"
+        echo "Running screenshot generation for $classname"
+        echo "----------------------------------------------------------------"
+
+        MobileGarage/gradlew -p MobileGarage --no-configuration-cache :android-screenshot-tests:updateDebugScreenshotTest --tests "$classname" -PretainedReferenceScreenshots
+    done
 fi
-mkdir -p "$REFERENCE_DIR"
-
-for file in MobileGarage/android-screenshot-tests/src/screenshotTest/kotlin/com/chriscartland/garage/screenshottests/*.kt; do
-    filename=$(basename "$file" .kt)
-    classname="com.chriscartland.garage.screenshottests.${filename}Kt"
-
-    echo "----------------------------------------------------------------"
-    echo "Running screenshot generation for $classname"
-    echo "----------------------------------------------------------------"
-
-    MobileGarage/gradlew -p MobileGarage --no-configuration-cache :android-screenshot-tests:updateDebugScreenshotTest --tests "$classname" -PretainedReferenceScreenshots
-done
 
 echo "Generating screenshot gallery..."
 ./scripts/generate-android-screenshot-gallery.sh
