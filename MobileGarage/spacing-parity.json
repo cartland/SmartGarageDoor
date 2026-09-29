@@ -1,0 +1,11 @@
+[
+  {
+    "_comment": "Cross-platform spacing-token parity (docs/CROSS_SURFACE_UX_STRATEGY.md § 4.5). Each entry is one spacing ROLE and, per platform, the token that carries it: android / wear name `Object.Token` in Spacing.kt / WearSpacing.kt (`val Token = N.dp`, or `PaddingValues(N.dp)` for a uniform inset); ios names the `static let` in Core/Theme/GarageSpacing.swift. A platform without the role is left out; an entry must still name two. Checked by .github/scripts/spacing-parity.test.mjs on every PR (the required 'Script unit tests' check). Add an entry when a role gets a token on a second platform; a differing number or a missing token fails the check."
+  },
+  { "role": "Screen edge padding", "android": "Spacing.Screen", "ios": "screen" },
+  { "role": "Between list items", "android": "Spacing.BetweenItems", "ios": "betweenItems" },
+  { "role": "List vertical breathing room", "android": "Spacing.ListVertical", "ios": "listVertical" },
+  { "role": "Tight grouping inside one visual unit", "android": "Spacing.Tight", "wear": "WearSpacing.Tight", "ios": "tight" },
+  { "role": "Card inset", "android": "CardPadding.Standard", "ios": "card" },
+  { "role": "Readable content width", "android": "ContentWidth.Standard", "ios": "contentWidth" }
+]

@@ -79,6 +79,7 @@ import com.chriscartland.garage.wear.auth.WearGoogleSignIn
 import com.chriscartland.garage.wear.di.WearSignInConfig
 import com.chriscartland.garage.wear.ui.theme.WearDoorColors
 import com.chriscartland.garage.wear.ui.theme.WearFreshnessTint
+import com.chriscartland.garage.wear.ui.theme.WearSpacing
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -355,7 +356,7 @@ internal fun HeroScreenLayout(
                     } else {
                         Button(
                             onClick = onSignInClick,
-                            modifier = Modifier.padding(top = 4.dp),
+                            modifier = Modifier.padding(top = WearSpacing.Tight),
                         ) {
                             Text(text = stringResource(R.string.sign_in))
                         }

@@ -18,7 +18,11 @@
 import CoreGraphics
 
 /// Spacing tokens mirroring Android's `ui/theme/Spacing.kt`. Names describe
-/// role, not value — reach for a token before a raw literal.
+/// role, not value — reach for a token before a raw literal. "Mirroring" is
+/// checked, not assumed: `MobileGarage/spacing-parity.json` pairs each of
+/// these with its Android (and, for `tight`, Wear) token and
+/// `.github/scripts/spacing-parity.test.mjs` fails any PR where the numbers
+/// differ (strategy 4.5).
 enum GarageSpacing {
     /// Horizontal padding between screen content and the device edges.
     static let screen: CGFloat = 16
