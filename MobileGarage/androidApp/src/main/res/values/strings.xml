@@ -466,4 +466,12 @@
     <string name="widget_warning_stuck">stuck</string>
     <string name="widget_warning_misaligned">misaligned</string>
     <string name="widget_headline_with_warning">%1$s · %2$s</string>
+
+    <!-- Static app shortcuts (long-press the launcher icon). Places to look,
+         never the button: see LaunchTarget. The short label sits under the
+         icon once a shortcut is pinned; the long one is the menu row. -->
+    <string name="shortcut_history_short">History</string>
+    <string name="shortcut_history_long">Door history</string>
+    <string name="shortcut_snooze_short">Snooze</string>
+    <string name="shortcut_snooze_long">Snooze notifications</string>
 </resources>

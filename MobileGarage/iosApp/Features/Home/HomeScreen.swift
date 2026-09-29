@@ -216,36 +216,24 @@ struct HomeContentView: View {
                         value: freshness
                     )
                     VStack(spacing: GarageSpacing.tight) {
-                        // Written as if/else, not a ternary. `statusLabel` is a
-                        // String, so `cond ? statusLabel : "Connecting…"` unifies
-                        // the whole expression to String and the literal loses
-                        // its LocalizedStringKey treatment — it would never be
-                        // extracted for translation, silently. Same reason the
-                        // three branches below are separate `Text`s.
-                        //
                         // Which of the three applies is decided by the shared
                         // `StatusHeadlineMapper`, not here: "Connecting…" is
                         // honest only while the app has just started looking,
                         // and iOS used to say it forever on an empty cache —
                         // with no banner either, since `HomeAlertMapper` has no
                         // arm for "never heard anything". Only the watch
-                        // escalated. Now all three do, from one rule.
-                        switch onEnum(
-                            of: StatusHeadlineMapper.shared.forDoor(
+                        // escalated. Now all three do, from one rule. The words
+                        // are `StatusHeadline.label` (a LocalizedStringResource
+                        // end to end, so nothing here flattens to String), shared
+                        // with the door-status intent so Siri cannot name a door
+                        // differently from this screen.
+                        Text(
+                            StatusHeadlineMapper.shared.forDoor(
                                 doorPosition: hasDoorData ? doorPosition : nil,
                                 freshness: freshness
-                            )
-                        ) {
-                        case .door:
-                            Text(doorPosition.statusLabel)
-                                .font(.title2.weight(.semibold))
-                        case .connecting:
-                            Text("Connecting…")
-                                .font(.title2.weight(.semibold))
-                        case .noSignal:
-                            Text("No signal")
-                                .font(.title2.weight(.semibold))
-                        }
+                            ).label
+                        )
+                        .font(.title2.weight(.semibold))
                         if !hasDoorData {
                             Text("Waiting for the latest door status")
                                 .font(.subheadline)

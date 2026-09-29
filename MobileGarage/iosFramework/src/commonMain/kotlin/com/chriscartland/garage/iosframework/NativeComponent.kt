@@ -199,6 +199,10 @@ abstract class NativeComponent(
     abstract val doorHistoryViewModel: DefaultDoorHistoryViewModel
     abstract val profileViewModel: DefaultProfileViewModel
 
+    // The door for a caller with no screen (the App Intent). Not a singleton:
+    // each run keeps its own memory of its own refresh, like the widget.
+    abstract val intentGlanceStatus: IntentGlanceStatus
+
     // --- Entry points: @SharedSingleton state owners ---
     abstract val appStartup: AppStartup
     abstract val applicationScope: CoroutineScope
@@ -478,6 +482,13 @@ abstract class NativeComponent(
     @Provides
     fun provideFetchCurrentDoorEventUseCase(doorRepository: DoorRepository): FetchCurrentDoorEventUseCase =
         FetchCurrentDoorEventUseCase(doorRepository)
+
+    @Provides
+    fun provideIntentGlanceStatus(
+        localDoorDataSource: LocalDoorDataSource,
+        fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
+        appClock: AppClock,
+    ): IntentGlanceStatus = IntentGlanceStatus(localDoorDataSource, fetchCurrentDoorEvent, appClock)
 
     @Provides
     fun provideFetchRecentDoorEventsUseCase(doorRepository: DoorRepository): FetchRecentDoorEventsUseCase =

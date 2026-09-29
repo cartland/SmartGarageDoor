@@ -127,7 +127,11 @@ targets:
     type: bundle.unit-test
     platform: iOS
     sources:
-      # The single build input is the generated PreviewTests file. It is NOT
+      # Hand-written tests that need the app's symbols but no snapshot
+      # machinery. Run one with
+      #   xcodebuild test … -only-testing:GarageControlSnapshotTests/DoorStatusIntentTests
+      - path: SnapshotTests/DoorStatusIntentTests.swift
+      # The generated PreviewTests file is the snapshot build input. It is NOT
       # committed (gitignored) and may be absent on a fresh checkout, so it is
       # listed `optional: true` — XcodeGen still references it in Compile
       # Sources, and the pre-build script below regenerates it before compiling.

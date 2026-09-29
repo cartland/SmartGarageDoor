@@ -326,18 +326,8 @@ final class HistoryViewModelWrapper: ObservableObject {
     // MARK: - Clock formatting (mirrors HistoryFormatter.formatTime)
 
     private static func clockText(_ epochSeconds: Int64) -> String {
-        timeFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(epochSeconds)))
+        ClockWords.timeOnly(Date(timeIntervalSince1970: TimeInterval(epochSeconds)))
     }
-
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        // A localized template, not a fixed pattern: the device decides 12- vs
-        // 24-hour and field order. Pinning "h:mm a" + en_US shows AM/PM to a
-        // user whose phone is set to 24-hour time. Android uses
-        // `DateTimeFormatter.ofLocalizedTime` for the same reason.
-        formatter.setLocalizedDateFormatFromTemplate("jmm")
-        return formatter
-    }()
 
     private static let dateLabelFormatter: DateFormatter = {
         let formatter = DateFormatter()

@@ -23,6 +23,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.ui.util.trace
 import com.chriscartland.garage.ui.GarageApp
+import com.chriscartland.garage.ui.LaunchTarget
 
 class MainActivity : ComponentActivity() {
     private val component by lazy { (application as GarageApplication).component }
@@ -30,9 +31,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge() // Edge-to-edge required on Android 15+ (target SDK 35).
+        // A static app shortcut names where to land (LaunchTarget); a plain
+        // launch names nothing and lands on Home. Read once, here: the
+        // launcher starts a shortcut with CLEAR_TASK, so a shortcut tap always
+        // arrives through onCreate, never onNewIntent. On recreation the saved
+        // back stack outranks this seed, as it should.
+        val launchTarget = LaunchTarget.from(intent.getStringExtra(LaunchTarget.EXTRA))
         trace("MainActivity.setContent") {
             setContent {
-                GarageApp()
+                GarageApp(launchTarget = launchTarget)
             }
         }
         component.appStartup.run()

@@ -331,7 +331,7 @@ final class HomeViewModelWrapper: ObservableObject {
         }
         let date = Date(timeIntervalSince1970: TimeInterval(status.sinceEpochSeconds))
         let elapsed = String(localized: Self.durationText(for: status.elapsed))
-        sinceLine = "Since \(Self.clockText(for: date)) · \(elapsed)"
+        sinceLine = "Since \(ClockWords.clockText(for: date)) · \(elapsed)"
     }
 
     /// Words for the shared typed offline age. Mirrors Android's
@@ -359,36 +359,6 @@ final class HomeViewModelWrapper: ObservableObject {
         case .lastSeen: return "Last seen \(String(localized: age))"
         case .stateChanged: return age
         default: return age
-        }
-    }
-
-    private static let timeOnlyFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        // A localized template, not a fixed pattern: the device decides 12- vs
-        // 24-hour and field order. Pinning "h:mm a" + en_US shows AM/PM to a
-        // user whose phone is set to 24-hour time. Android uses
-        // `DateTimeFormatter.ofLocalizedTime` for the same reason.
-        formatter.setLocalizedDateFormatFromTemplate("jmm")
-        return formatter
-    }()
-
-    private static let dateTimeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.setLocalizedDateFormatFromTemplate("MMMdjmm")
-        return formatter
-    }()
-
-    private static func clockText(for date: Date) -> String {
-        // WHICH form is the shared decision (strategy 1.8), so Android cannot
-        // draw the day line differently; the FORMAT stays this platform's.
-        let clock = SinceStatusMapper.shared.clockFor(
-            sinceEpochSeconds: Int64(date.timeIntervalSince1970),
-            nowEpochSeconds: Int64(Date().timeIntervalSince1970),
-            timeZoneId: TimeZone.current.identifier
-        )
-        switch clock {
-        case .timeOnly: return timeOnlyFormatter.string(from: date)
-        case .dateAndTime: return dateTimeFormatter.string(from: date)
         }
     }
 

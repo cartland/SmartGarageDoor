@@ -68,6 +68,16 @@ class NativeComponentTest {
     }
 
     @Test
+    fun intentGlanceStatusResolvesFreshEachTime() {
+        // Each intent run keeps its own memory of its own refresh, so the
+        // graph must hand out a new reader per resolution — a cached one
+        // would let one failed refresh word every later answer.
+        val first = component.intentGlanceStatus
+        assertNotNull(first)
+        assertNotSame(first, component.intentGlanceStatus)
+    }
+
+    @Test
     fun doorHistoryViewModelResolves() {
         assertNotNull(component.doorHistoryViewModel)
     }
