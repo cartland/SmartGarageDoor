@@ -437,7 +437,7 @@ final class HomeViewModelWrapper: ObservableObject {
 
     /// Resolves the shared typed `ButtonHealthDisplay` to the view-ready pill.
     /// Labels + the offline-only error tint mirror Android's
-    /// `RemoteButtonHealthPillContents` verbatim ("Available" / "Unavailable · X"
+    /// `button_health_*` / `remote_offline_pill_*` strings verbatim ("Available" / "Unavailable · X"
     /// / "Unauthorized" / "Unknown") so both platforms read identically; the
     /// shared `Hidden` arm maps to nil — no pill while there is no verdict.
     /// `Offline` carries a typed age bucket, not a formatted string — the shared
@@ -542,6 +542,8 @@ final class HomeViewModelWrapper: ObservableObject {
             return RemoteButtonItem(kind: .succeeded, title: "Done", subtitle: nil, diagram: RemoteButtonDiagramMapper.shared.forState(state: state))
         case .serverFailed:
             return RemoteButtonItem(kind: .failed, title: "Server error", subtitle: nil, diagram: RemoteButtonDiagramMapper.shared.forState(state: state))
+        case .forbidden:
+            return RemoteButtonItem(kind: .failed, title: "Not allowed for this account", subtitle: nil, diagram: RemoteButtonDiagramMapper.shared.forState(state: state))
         case .doorFailed:
             return RemoteButtonItem(kind: .failed, title: "Door did not move", subtitle: nil, diagram: RemoteButtonDiagramMapper.shared.forState(state: state))
         }

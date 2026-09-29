@@ -31,7 +31,8 @@ import com.chriscartland.garage.domain.repository.RemoteButtonRepository
  * fetches a fresh token internally before calling its data source.
  *
  * Returns [AppResult] so callers can handle [ActionError.NotAuthenticated]
- * explicitly with exhaustive `when`.
+ * (the local gate), [ActionError.Forbidden] (the server's refusal, HTTP 403)
+ * and [ActionError.NetworkFailed] explicitly with exhaustive `when`.
  */
 class PushRemoteButtonUseCase(
     private val authRepository: AuthRepository,
@@ -41,11 +42,9 @@ class PushRemoteButtonUseCase(
         if (authRepository.authState.value !is AuthState.Authenticated) {
             return AppResult.Error(ActionError.NotAuthenticated)
         }
-        val success = remoteButtonRepository.pushButton(buttonAckToken = buttonAckToken)
-        return if (success) {
-            AppResult.Success(Unit)
-        } else {
-            AppResult.Error(ActionError.NetworkFailed)
-        }
+        // The repository's verdict is typed; passing it through unchanged is
+        // what lets a 403 reach the button as Forbidden rather than as the
+        // generic NetworkFailed.
+        return remoteButtonRepository.pushButton(buttonAckToken = buttonAckToken)
     }
 }

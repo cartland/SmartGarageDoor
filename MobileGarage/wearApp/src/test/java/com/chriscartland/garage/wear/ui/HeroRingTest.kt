@@ -68,6 +68,7 @@ class HeroRingTest {
             RemoteButtonState.Cancelled,
             RemoteButtonState.Succeeded,
             RemoteButtonState.ServerFailed,
+            RemoteButtonState.Forbidden,
             RemoteButtonState.DoorFailed,
         )
         neverCommits.forEach { state ->
@@ -109,6 +110,7 @@ class HeroRingTest {
         listOf(
             RemoteButtonState.Succeeded,
             RemoteButtonState.ServerFailed,
+            RemoteButtonState.Forbidden,
             RemoteButtonState.DoorFailed,
         ).forEach { state ->
             assertEquals(

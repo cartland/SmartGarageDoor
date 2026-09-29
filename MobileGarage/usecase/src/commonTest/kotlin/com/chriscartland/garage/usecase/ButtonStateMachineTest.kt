@@ -237,6 +237,47 @@ class ButtonStateMachineTest {
         }
 
     @Test
+    fun onForbiddenTransitionsToForbiddenThenReady() =
+        runTest {
+            val sm = prepareAndConfirm()
+            sm.onNetworkStarted()
+            testScheduler.runCurrent()
+
+            sm.onForbidden()
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Forbidden, sm.state.value)
+
+            advanceTimeBy(DISPLAY + 1)
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Ready, sm.state.value)
+        }
+
+    @Test
+    fun aDoorMovingAfterARefusalIsNotClaimedAsSuccess() =
+        runTest {
+            val sm = prepareAndConfirm()
+            sm.onNetworkStarted()
+            testScheduler.runCurrent()
+            sm.onForbidden()
+            testScheduler.runCurrent()
+
+            // The server did not press for us, so a door that moves now moved
+            // for someone else; "Done" would claim it.
+            doorPosition.value = DoorPosition.OPENING
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Forbidden, sm.state.value)
+        }
+
+    @Test
+    fun onForbiddenOutsideSendingToServerIsIgnored() =
+        runTest {
+            val sm = create()
+            sm.onForbidden()
+            testScheduler.runCurrent()
+            assertEquals(RemoteButtonState.Ready, sm.state.value)
+        }
+
+    @Test
     fun sendingToServerDoesNotTimeOutBeforeNetworkStarted() =
         runTest {
             val sm = prepareAndConfirm()

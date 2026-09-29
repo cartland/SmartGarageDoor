@@ -14,6 +14,7 @@ import com.chriscartland.garage.ui.ErrorCardPreview
 import com.chriscartland.garage.ui.GarageDoorButtonAwaitingConfirmationPreview
 import com.chriscartland.garage.ui.GarageDoorButtonCancelledPreview
 import com.chriscartland.garage.ui.GarageDoorButtonDoorFailedPreview
+import com.chriscartland.garage.ui.GarageDoorButtonForbiddenPreview
 import com.chriscartland.garage.ui.GarageDoorButtonPreparingPreview
 import com.chriscartland.garage.ui.GarageDoorButtonReadyPreview
 import com.chriscartland.garage.ui.GarageDoorButtonSendingToDoorPreview
@@ -21,6 +22,7 @@ import com.chriscartland.garage.ui.GarageDoorButtonSendingToServerPreview
 import com.chriscartland.garage.ui.GarageDoorButtonServerFailedPreview
 import com.chriscartland.garage.ui.GarageDoorButtonSucceededPreview
 import com.chriscartland.garage.ui.NetworkDiagramDoorFailedPreview
+import com.chriscartland.garage.ui.NetworkDiagramForbiddenPreview
 import com.chriscartland.garage.ui.NetworkDiagramIdlePreview
 import com.chriscartland.garage.ui.NetworkDiagramSendingToDoorPreview
 import com.chriscartland.garage.ui.NetworkDiagramSendingToServerPreview
@@ -29,6 +31,7 @@ import com.chriscartland.garage.ui.NetworkDiagramSucceededPreview
 import com.chriscartland.garage.ui.RemoteButtonContentAwaitingConfirmationPreview
 import com.chriscartland.garage.ui.RemoteButtonContentCancelledPreview
 import com.chriscartland.garage.ui.RemoteButtonContentDoorFailedPreview
+import com.chriscartland.garage.ui.RemoteButtonContentForbiddenPreview
 import com.chriscartland.garage.ui.RemoteButtonContentPreparingPreview
 import com.chriscartland.garage.ui.RemoteButtonContentPreview
 import com.chriscartland.garage.ui.RemoteButtonContentSendingToDoorPreview
@@ -165,6 +168,18 @@ fun RemoteButtonContentServerFailedPreviewTest() {
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
+fun RemoteButtonContentForbiddenPreviewTest() {
+    AppTheme { RemoteButtonContentForbiddenPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
 fun RemoteButtonContentDoorFailedPreviewTest() {
     AppTheme { RemoteButtonContentDoorFailedPreview() }
 }
@@ -241,6 +256,18 @@ fun NetworkDiagramSucceededPreviewTest() {
 @Composable
 fun NetworkDiagramServerFailedPreviewTest() {
     AppTheme { NetworkDiagramServerFailedPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun NetworkDiagramForbiddenPreviewTest() {
+    AppTheme { NetworkDiagramForbiddenPreview() }
 }
 
 @PreviewTest
@@ -349,6 +376,18 @@ fun GarageDoorButtonSucceededPreviewTest() {
 @Composable
 fun GarageDoorButtonServerFailedPreviewTest() {
     AppTheme { GarageDoorButtonServerFailedPreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun GarageDoorButtonForbiddenPreviewTest() {
+    AppTheme { GarageDoorButtonForbiddenPreview() }
 }
 
 @PreviewTest

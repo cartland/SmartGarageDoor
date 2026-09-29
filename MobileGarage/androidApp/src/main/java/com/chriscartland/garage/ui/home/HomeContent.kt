@@ -256,9 +256,8 @@ fun HomeContent(
                         HomeSection(
                             label = stringResource(R.string.home_section_remote_control),
                             trailing = {
-                                // TEMPORARY (debug): always-on pill for every ButtonHealthDisplay arm.
-                                // To revert to production-only "Remote offline" behavior, swap back
-                                // to `RemoteOfflinePill` (Offline-only) and delete RemoteButtonHealthPill.
+                                // One pill for every shared verdict (strategy 2.6); the
+                                // sheet it opens explains each label.
                                 RemoteButtonHealthPill(
                                     display = buttonHealthDisplay,
                                     onTap = { openInfoSheet = HomeInfoSheet.RemoteControl },

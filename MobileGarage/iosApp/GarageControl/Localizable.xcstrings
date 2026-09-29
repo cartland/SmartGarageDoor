@@ -1,6 +1,12 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "\"Unavailable\" means contact stopped, and shows when we last heard from it. Tapping the button may not work until it reconnects.": {
+      "extractionState": "manual"
+    },
+    "\"Unknown\" means the server has no record of this button yet. \"Unauthorized\" means the app can't confirm your sign-in. No label means we're still waiting for a verdict.": {
+      "extractionState": "manual"
+    },
     "%@ and counting": {
       "extractionState": "manual"
     },
@@ -253,6 +259,9 @@
     "If contact stops, this shows when we last heard from it. Tapping the button may not work until it reconnects.": {
       "extractionState": "manual"
     },
+    "If we don't hear from it on schedule, the check-in time turns red so you know the sensor may be offline. \"No signal\" means we haven't heard from it at all.": {
+      "extractionState": "manual"
+    },
     "If we don't hear from it on schedule, this shows \"no signal\" so you know the sensor may be offline.": {
       "extractionState": "manual"
     },
@@ -281,6 +290,9 @@
       "extractionState": "manual"
     },
     "No signal": {
+      "extractionState": "manual"
+    },
+    "Not allowed for this account": {
       "extractionState": "manual"
     },
     "Not receiving updates from server": {

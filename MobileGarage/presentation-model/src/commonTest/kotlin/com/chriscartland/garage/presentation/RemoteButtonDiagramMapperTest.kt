@@ -89,6 +89,17 @@ class RemoteButtonDiagramMapperTest {
     }
 
     @Test
+    fun aRefusalReachesTheServerAndStopsThere() {
+        // The verdict is the server's, so the first leg completed and the
+        // second was never tried — unlike ServerFailed, where nothing arrived.
+        val d = diagram(RemoteButtonState.Forbidden)
+        assertEquals(DiagramEdgeStatus.SUCCEEDED, d.toServer)
+        assertEquals(DiagramNodeStatus.FAILED, d.server)
+        assertEquals(DiagramEdgeStatus.NOT_STARTED, d.toDoor)
+        assertEquals(DiagramNodeStatus.IDLE, d.door)
+    }
+
+    @Test
     fun successIsTheOnlyStateWhereEverythingSucceeded() {
         for (state in allStates) {
             val d = diagram(state)
@@ -118,6 +129,7 @@ class RemoteButtonDiagramMapperTest {
         RemoteButtonState.SendingToDoor,
         RemoteButtonState.Succeeded,
         RemoteButtonState.ServerFailed,
+        RemoteButtonState.Forbidden,
         RemoteButtonState.DoorFailed,
     )
 }

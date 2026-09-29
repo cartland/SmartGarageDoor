@@ -1,17 +1,9 @@
 package com.chriscartland.garage.testcommon
 
+import com.chriscartland.garage.domain.model.ActionError
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.repository.RemoteButtonRepository
 
-/**
- * Fake [RemoteButtonRepository] for unit testing.
- *
- * Tracks each call via [pushCalls] (call-list pattern, ADR-017 Rule 5) so tests
- * can assert on the exact arguments passed, not just call counts. `pushCount` is
- * a convenience accessor backed by the call list.
- *
- * ADR-027: the production repo fetches the ID token internally; the fake
- * receives only the buttonAckToken from callers.
- */
 class FakeRemoteButtonRepository : RemoteButtonRepository {
     data class PushCall(
         val buttonAckToken: String,
@@ -21,15 +13,20 @@ class FakeRemoteButtonRepository : RemoteButtonRepository {
     val pushCalls: List<PushCall> get() = _pushCalls
     val pushCount: Int get() = _pushCalls.size
 
-    /** Set to false to simulate network failure. */
-    private var pushSucceeds = true
+    private var pushError: ActionError? = null
 
+    /** Set to false to simulate a network failure: every push fails with [ActionError.NetworkFailed]. */
     fun setPushSucceeds(value: Boolean) {
-        pushSucceeds = value
+        pushError = if (value) null else ActionError.NetworkFailed
     }
 
-    override suspend fun pushButton(buttonAckToken: String): Boolean {
+    /** Every push fails with [error] until cleared with null; a 403 is [ActionError.Forbidden]. */
+    fun setPushError(error: ActionError?) {
+        pushError = error
+    }
+
+    override suspend fun pushButton(buttonAckToken: String): AppResult<Unit, ActionError> {
         _pushCalls.add(PushCall(buttonAckToken = buttonAckToken))
-        return pushSucceeds
+        return pushError?.let { AppResult.Error(it) } ?: AppResult.Success(Unit)
     }
 }

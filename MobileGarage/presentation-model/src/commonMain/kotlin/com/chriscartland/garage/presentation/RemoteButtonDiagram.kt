@@ -119,6 +119,18 @@ object RemoteButtonDiagramMapper {
                 door = DiagramNodeStatus.IDLE,
             )
 
+            // The request arrived and the server refused it: the first leg
+            // completed, the verdict is the server's, and nothing was sent on
+            // to the door. Distinct from ServerFailed (nothing arrived) and
+            // DoorFailed (the server passed it on and the door was silent).
+            RemoteButtonState.Forbidden -> RemoteButtonDiagram(
+                phone = DiagramNodeStatus.SUCCEEDED,
+                toServer = DiagramEdgeStatus.SUCCEEDED,
+                server = DiagramNodeStatus.FAILED,
+                toDoor = DiagramEdgeStatus.NOT_STARTED,
+                door = DiagramNodeStatus.IDLE,
+            )
+
             // The server took it and the door did not answer: the first leg
             // succeeded, the second failed.
             RemoteButtonState.DoorFailed -> RemoteButtonDiagram(

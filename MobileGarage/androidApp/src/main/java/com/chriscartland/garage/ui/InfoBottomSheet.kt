@@ -112,6 +112,7 @@ fun RemoteControlInfoSheetContent(modifier: Modifier = Modifier) {
         paragraphs = listOf(
             stringResource(R.string.home_info_remote_control_body_para1),
             stringResource(R.string.home_info_remote_control_body_para2),
+            stringResource(R.string.home_info_remote_control_body_para3),
         ),
         modifier = modifier,
     )

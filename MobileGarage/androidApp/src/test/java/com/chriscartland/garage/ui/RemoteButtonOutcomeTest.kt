@@ -33,13 +33,16 @@ class RemoteButtonOutcomeTest {
             RemoteButtonState.SendingToDoor,
             RemoteButtonState.Succeeded,
             RemoteButtonState.ServerFailed,
+            RemoteButtonState.Forbidden,
             RemoteButtonState.DoorFailed,
         )
 
     @Test
-    fun doneIsSuccessAndBothFailuresAreFailure() {
+    fun doneIsSuccessAndEveryFailureIsFailure() {
         assertEquals(OutcomeTone.SUCCESS, RemoteButtonOutcome.toneFor(RemoteButtonState.Succeeded))
         assertEquals(OutcomeTone.FAILURE, RemoteButtonOutcome.toneFor(RemoteButtonState.ServerFailed))
+        // A refusal is a failed press too, just worded differently.
+        assertEquals(OutcomeTone.FAILURE, RemoteButtonOutcome.toneFor(RemoteButtonState.Forbidden))
         assertEquals(OutcomeTone.FAILURE, RemoteButtonOutcome.toneFor(RemoteButtonState.DoorFailed))
     }
 

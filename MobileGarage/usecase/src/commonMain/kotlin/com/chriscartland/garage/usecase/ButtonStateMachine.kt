@@ -63,6 +63,8 @@ import kotlinx.coroutines.launch
  *     --(cancelledDisplayMillis)--> Ready
  *   SendingToServer --(networkTimeoutMillis)--> ServerFailed
  *     --(displayMillis)--> Ready
+ *   SendingToServer --onForbidden()--> Forbidden
+ *     --(displayMillis)--> Ready
  *   SendingToDoor --(networkTimeoutMillis)--> DoorFailed
  *     --(displayMillis)--> Ready
  */
@@ -148,6 +150,17 @@ class ButtonStateMachine(
         events.trySend(Event.NetworkFailed)
     }
 
+    /**
+     * The server answered the request and refused it for this account
+     * (HTTP 403). Called by ViewModel when the UseCase returns
+     * [com.chriscartland.garage.domain.model.ActionError.Forbidden].
+     * Transitions to [RemoteButtonState.Forbidden], which every surface
+     * words as a verdict rather than a fault.
+     */
+    fun onForbidden() {
+        events.trySend(Event.Forbidden)
+    }
+
     private fun handleEvent(event: Event) {
         val current = _state.value
         when (event) {
@@ -167,6 +180,12 @@ class ButtonStateMachine(
             Event.NetworkFailed -> {
                 if (current == RemoteButtonState.SendingToServer) {
                     transitionTo(RemoteButtonState.ServerFailed)
+                    scheduleTimer(displayMillis, Event.DisplayTimedOut)
+                }
+            }
+            Event.Forbidden -> {
+                if (current == RemoteButtonState.SendingToServer) {
+                    transitionTo(RemoteButtonState.Forbidden)
                     scheduleTimer(displayMillis, Event.DisplayTimedOut)
                 }
             }
@@ -201,6 +220,7 @@ class ButtonStateMachine(
                 RemoteButtonState.Cancelled,
                 RemoteButtonState.Succeeded,
                 RemoteButtonState.ServerFailed,
+                RemoteButtonState.Forbidden,
                 RemoteButtonState.DoorFailed,
                 -> transitionTo(RemoteButtonState.Ready)
                 else -> {} // Stale timer, ignore
@@ -237,7 +257,10 @@ class ButtonStateMachine(
                 transitionTo(RemoteButtonState.Succeeded)
                 scheduleTimer(displayMillis, Event.DisplayTimedOut)
             }
-            // Door movement ignored if not in a request state
+            // Door movement ignored if not in a request state. Forbidden is
+            // deliberately not a request state here: the server did not press
+            // for us, so a door that moves now moved for someone else, and
+            // "Done" would claim it.
             else -> {}
         }
     }
@@ -275,6 +298,9 @@ class ButtonStateMachine(
 
         /** ViewModel: network request failed (server error, connection failure). */
         data object NetworkFailed : Event
+
+        /** ViewModel: the server refused the press for this account (HTTP 403). */
+        data object Forbidden : Event
 
         /** UI: user touched the controlling surface (extends the armed window). */
         data object UserInteraction : Event

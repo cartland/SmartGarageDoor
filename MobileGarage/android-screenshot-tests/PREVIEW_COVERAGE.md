@@ -3,7 +3,7 @@
 
 # Preview Screenshot Coverage
 
-**106 / 106 (100%)**
+**109 / 109 (100%)**
 
 ## Covered
 
@@ -32,6 +32,7 @@
 - `GarageDoorButtonAwaitingConfirmationPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/GarageDoorButton.kt`
 - `GarageDoorButtonCancelledPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/GarageDoorButton.kt`
 - `GarageDoorButtonDoorFailedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/GarageDoorButton.kt`
+- `GarageDoorButtonForbiddenPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/GarageDoorButton.kt`
 - `GarageDoorButtonPreparingPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/GarageDoorButton.kt`
 - `GarageDoorButtonReadyPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/GarageDoorButton.kt`
 - `GarageDoorButtonSendingToDoorPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/GarageDoorButton.kt`
@@ -67,6 +68,7 @@
 - `HomeTabStalePillPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/TabPreviews.kt`
 - `MidwayPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/AnimatableGarageDoor.kt`
 - `NetworkDiagramDoorFailedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/NetworkProgressDiagram.kt`
+- `NetworkDiagramForbiddenPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/NetworkProgressDiagram.kt`
 - `NetworkDiagramIdlePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/NetworkProgressDiagram.kt`
 - `NetworkDiagramSendingToDoorPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/NetworkProgressDiagram.kt`
 - `NetworkDiagramSendingToServerPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/NetworkProgressDiagram.kt`
@@ -79,6 +81,7 @@
 - `RemoteButtonContentAwaitingConfirmationPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonContent.kt`
 - `RemoteButtonContentCancelledPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonContent.kt`
 - `RemoteButtonContentDoorFailedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonContent.kt`
+- `RemoteButtonContentForbiddenPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonContent.kt`
 - `RemoteButtonContentPreparingPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonContent.kt`
 - `RemoteButtonContentPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonContent.kt`
 - `RemoteButtonContentSendingToDoorPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/RemoteButtonContent.kt`

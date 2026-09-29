@@ -56,22 +56,16 @@ import com.chriscartland.garage.usecase.ButtonOfflineAgeSource
  * renders NOTHING for [ButtonHealthDisplay.Hidden] (hidden-until-verdict,
  * STATUS_CACHE_PLAN.md D2: no "Checking…" UI while unresolved).
  *
- * Sister to [RemoteOfflinePill]: same pill grammar (rounded-50, label + icon),
- * but the production-only `Offline` filter is removed so every verdict is
- * visible. Intended as a temporary diagnostic surface — [RemoteOfflinePill]
- * is still the long-term home for the user-facing "something is wrong"
- * signal.
+ * This is the production pill on both phones (strategy 2.6): every label
+ * is a string resource, and the info sheet it opens explains each one.
+ * [RemoteOfflinePill] is its Offline-only ancestor, kept for its previews.
  *
- * To revert to the production-only behavior, swap the call site back to
- * [RemoteOfflinePill] (which only renders for [ButtonHealthDisplay.Offline])
- * and delete this file.
- *
- * Visual hierarchy preserved: `Offline` keeps the error palette so it still
- * screams; the four other arms use the neutral palette so they whisper. The
- * grammar matches [DeviceCheckInPill] (fresh = neutral, stale = error).
+ * Visual hierarchy: `Offline` keeps the error palette so it still screams;
+ * the three other rendered arms use the neutral palette so they whisper.
+ * The grammar matches [DeviceCheckInPill] (fresh = neutral, stale = error).
  *
  * Stateless: pass a pre-derived [ButtonHealthDisplay] (the live flow comes
- * from `RemoteButtonViewModel.buttonHealthDisplay`).
+ * from `HomeViewModel.buttonHealthDisplay`).
  *
  * Uses Material 24-viewport icons. Custom 960-viewport vectors inside
  * section header rows have been observed to silently drop the section from
@@ -102,7 +96,7 @@ fun RemoteButtonHealthPill(
         .background(color = backgroundColor, shape = pillShape)
     val tapModifier = if (onTap != null) {
         Modifier
-            .clickable(onClickLabel = "Show remote control info") { onTap() }
+            .clickable(onClickLabel = stringResource(R.string.button_health_pill_tap_label)) { onTap() }
     } else {
         Modifier
     }
@@ -146,20 +140,20 @@ private object RemoteButtonHealthPillContents {
     fun from(display: ButtonHealthDisplay): PillContents? =
         when (display) {
             is ButtonHealthDisplay.Unauthorized -> PillContents(
-                label = "Unauthorized",
+                label = stringResource(R.string.button_health_unauthorized),
                 icon = Icons.Outlined.Lock,
-                iconDescription = "Remote button unauthorized (signed out or not on allowlist)",
+                iconDescription = stringResource(R.string.button_health_unauthorized_description),
             )
             is ButtonHealthDisplay.Hidden -> null
             is ButtonHealthDisplay.Unknown -> PillContents(
-                label = "Unknown",
+                label = stringResource(R.string.button_health_unknown),
                 icon = Icons.Outlined.HelpOutline,
-                iconDescription = "Remote button status unknown",
+                iconDescription = stringResource(R.string.button_health_unknown_description),
             )
             is ButtonHealthDisplay.Online -> PillContents(
-                label = "Available",
+                label = stringResource(R.string.button_health_available),
                 icon = Icons.Outlined.Sensors,
-                iconDescription = "Remote button available",
+                iconDescription = stringResource(R.string.button_health_available_description),
             )
             is ButtonHealthDisplay.Offline -> {
                 val ageText = RemoteOfflineText.label(display)

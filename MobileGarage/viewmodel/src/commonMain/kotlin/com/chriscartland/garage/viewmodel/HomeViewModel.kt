@@ -420,6 +420,10 @@ class DefaultHomeViewModel(
                         Logger.w { "Push failed — network error" }
                         stateMachine.onNetworkFailed()
                     }
+                    ActionError.Forbidden -> {
+                        Logger.w { "Push refused — not allowed for this account" }
+                        stateMachine.onForbidden()
+                    }
                     // SnoozeEventChanged is snooze-specific; the push
                     // repository never returns it. Defensive branch only —
                     // logs the unexpected case and resets the state machine

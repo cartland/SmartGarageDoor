@@ -90,4 +90,16 @@ class PushRemoteButtonUseCaseTest {
             assertEquals(1, fakePush.pushCount)
             assertEquals("ack-unique-789", fakePush.pushCalls.last().buttonAckToken)
         }
+
+    @Test
+    fun aServerRefusalReachesTheCallerAsForbidden() =
+        runTest {
+            authenticateUser()
+            fakePush.setPushError(ActionError.Forbidden)
+            assertEquals(AppResult.Error(ActionError.Forbidden), useCase("ack-403"))
+            // Positive control: a plain failure is still NetworkFailed, so the
+            // pass-through is not collapsing every error into one.
+            fakePush.setPushSucceeds(false)
+            assertEquals(AppResult.Error(ActionError.NetworkFailed), useCase("ack-500"))
+        }
 }

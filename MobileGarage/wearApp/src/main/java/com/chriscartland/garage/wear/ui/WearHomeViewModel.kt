@@ -285,6 +285,7 @@ class WearHomeViewModel(
                 when (state) {
                     RemoteButtonState.Succeeded -> _hapticCues.tryEmit(HapticCue.PressSucceeded)
                     RemoteButtonState.ServerFailed,
+                    RemoteButtonState.Forbidden,
                     RemoteButtonState.DoorFailed,
                     -> _hapticCues.tryEmit(HapticCue.PressFailed)
                     else -> Unit
@@ -555,9 +556,15 @@ class WearHomeViewModel(
             )
             when (val result = pushRemoteButtonUseCase(buttonAckToken)) {
                 is AppResult.Success -> stateMachine.onNetworkCompleted()
+                // Exhaustive, no `else` (ADR-010/011): a new error must decide
+                // what the door screen says rather than fall into a reset.
                 is AppResult.Error -> when (result.error) {
                     ActionError.NetworkFailed -> stateMachine.onNetworkFailed()
-                    else -> stateMachine.reset()
+                    ActionError.Forbidden -> stateMachine.onForbidden()
+                    ActionError.NotAuthenticated,
+                    ActionError.MissingData,
+                    ActionError.SnoozeEventChanged,
+                    -> stateMachine.reset()
                 }
             }
         }

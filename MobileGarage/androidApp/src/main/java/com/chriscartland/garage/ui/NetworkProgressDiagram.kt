@@ -307,6 +307,20 @@ fun NetworkDiagramServerFailedPreview() {
 
 @Preview
 @Composable
+fun NetworkDiagramForbiddenPreview() {
+    PreviewComponentSurface {
+        NetworkProgressDiagram(
+            state = NetworkDiagramState(
+                nodes = listOf(DiagramNodeStatus.SUCCEEDED, DiagramNodeStatus.FAILED, DiagramNodeStatus.IDLE),
+                edges = listOf(DiagramEdgeStatus.SUCCEEDED, DiagramEdgeStatus.NOT_STARTED),
+            ),
+            icons = DIAGRAM_ICONS,
+        )
+    }
+}
+
+@Preview
+@Composable
 fun NetworkDiagramDoorFailedPreview() {
     PreviewComponentSurface {
         NetworkProgressDiagram(

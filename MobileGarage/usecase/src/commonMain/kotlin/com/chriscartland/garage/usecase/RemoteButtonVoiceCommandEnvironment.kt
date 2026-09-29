@@ -102,6 +102,12 @@ class RemoteButtonVoiceCommandEnvironment(
                 // next step is that gate. Pinned by
                 // HomeViewModelTest.voiceCommandCommitWhileSignedOutFailsWithoutPressing.
                 ActionError.NotAuthenticated -> null
+                // A server that will not answer this account has, for this
+                // gate, not answered: no verdict was obtained, so the command
+                // is refused the same way. The door-command repository does
+                // not produce it today (every HTTP status there is
+                // NetworkFailed); the arm records the decision, not a path.
+                ActionError.Forbidden,
                 ActionError.NetworkFailed,
                 ActionError.MissingData,
                 ActionError.SnoozeEventChanged,

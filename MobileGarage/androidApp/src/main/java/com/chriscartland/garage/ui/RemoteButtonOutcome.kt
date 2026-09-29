@@ -45,6 +45,7 @@ object RemoteButtonOutcome {
         when (state) {
             RemoteButtonState.Succeeded -> OutcomeTone.SUCCESS
             RemoteButtonState.ServerFailed,
+            RemoteButtonState.Forbidden,
             RemoteButtonState.DoorFailed,
             -> OutcomeTone.FAILURE
             RemoteButtonState.Ready,

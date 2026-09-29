@@ -1,6 +1,8 @@
 package com.chriscartland.garage.data.repository
 
 import com.chriscartland.garage.data.NetworkResult
+import com.chriscartland.garage.domain.model.ActionError
+import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.FirebaseIdToken
 import com.chriscartland.garage.domain.model.ServerConfig
 import com.chriscartland.garage.testcommon.FakeAuthRepository
@@ -52,17 +54,17 @@ class RemoteButtonRepositoryTest {
     }
 
     @Test
-    fun pushReturnsFalseWhenServerConfigFetchFails() =
+    fun pushFailsWhenServerConfigFetchFails() =
         runTest {
             networkConfigDataSource.setServerConfigResult(NetworkResult.ConnectionFailed)
             val repo = buildRepo()
             val result = repo.pushButton("ack-token")
-            assertEquals(false, result)
+            assertEquals(AppResult.Error(ActionError.NetworkFailed), result)
             assertEquals(0, networkButtonDataSource.pushCount)
         }
 
     @Test
-    fun pushReturnsTrueWhenServerConfigAvailable() =
+    fun pushSucceedsWhenServerConfigAvailable() =
         runTest {
             networkConfigDataSource.setServerConfigResult(
                 NetworkResult.Success(
@@ -71,12 +73,12 @@ class RemoteButtonRepositoryTest {
             )
             val repo = buildRepo()
             val result = repo.pushButton("ack-token")
-            assertEquals(true, result)
+            assertEquals(AppResult.Success(Unit), result)
             assertEquals(1, networkButtonDataSource.pushCount)
         }
 
     @Test
-    fun pushReturnsFalseAfterHttpError() =
+    fun pushFailsAfterHttpError() =
         runTest {
             networkConfigDataSource.setServerConfigResult(
                 NetworkResult.Success(
@@ -86,12 +88,29 @@ class RemoteButtonRepositoryTest {
             networkButtonDataSource.setPushResult(NetworkResult.HttpError(500))
             val repo = buildRepo()
             val result = repo.pushButton("ack-token")
-            assertEquals(false, result)
+            assertEquals(AppResult.Error(ActionError.NetworkFailed), result)
             assertEquals(1, networkButtonDataSource.pushCount)
         }
 
     @Test
-    fun pushReturnsFalseAfterConnectionFailure() =
+    fun aForbiddenAnswerIsReportedAsForbiddenNotAsNetworkFailure() =
+        runTest {
+            networkConfigDataSource.setServerConfigResult(
+                NetworkResult.Success(
+                    ServerConfig(buildTimestamp = "test", remoteButtonBuildTimestamp = "test", remoteButtonPushKey = "key"),
+                ),
+            )
+            networkButtonDataSource.setPushResult(NetworkResult.HttpError(NetworkRemoteButtonRepository.HTTP_FORBIDDEN))
+            val repo = buildRepo()
+            assertEquals(AppResult.Error(ActionError.Forbidden), repo.pushButton("ack-token"))
+            // Positive control: the status one off is still a plain failure,
+            // so the verdict cannot come from a mapper that refuses everything.
+            networkButtonDataSource.setPushResult(NetworkResult.HttpError(404))
+            assertEquals(AppResult.Error(ActionError.NetworkFailed), repo.pushButton("ack-token"))
+        }
+
+    @Test
+    fun pushFailsAfterConnectionFailure() =
         runTest {
             networkConfigDataSource.setServerConfigResult(
                 NetworkResult.Success(
@@ -101,11 +120,11 @@ class RemoteButtonRepositoryTest {
             networkButtonDataSource.setPushResult(NetworkResult.ConnectionFailed)
             val repo = buildRepo()
             val result = repo.pushButton("ack-token")
-            assertEquals(false, result)
+            assertEquals(AppResult.Error(ActionError.NetworkFailed), result)
         }
 
     @Test
-    fun pushReturnsFalseWhenFeatureDisabled() =
+    fun pushFailsWhenFeatureDisabled() =
         runTest {
             networkConfigDataSource.setServerConfigResult(
                 NetworkResult.Success(
@@ -114,7 +133,7 @@ class RemoteButtonRepositoryTest {
             )
             val disabledRepo = buildRepo(enabled = false)
             val result = disabledRepo.pushButton("ack-token")
-            assertEquals(false, result)
+            assertEquals(AppResult.Error(ActionError.NetworkFailed), result)
             assertEquals(0, networkButtonDataSource.pushCount)
         }
 
@@ -143,7 +162,7 @@ class RemoteButtonRepositoryTest {
         }
 
     @Test
-    fun pushReturnsFalseWhenIdTokenNull() =
+    fun pushFailsWhenIdTokenNull() =
         runTest {
             // ADR-027: the repo handles the case where AuthRepository
             // returns no token (sign-in race or sign-out mid-call).
@@ -160,7 +179,7 @@ class RemoteButtonRepositoryTest {
                 remoteButtonPushEnabled = true,
             )
             val result = repo.pushButton("ack-token")
-            assertEquals(false, result)
+            assertEquals(AppResult.Error(ActionError.NetworkFailed), result)
             assertEquals(0, networkButtonDataSource.pushCount, "Should NOT call data source when token is null")
         }
 }

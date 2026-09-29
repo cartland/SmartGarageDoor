@@ -38,6 +38,10 @@
     <string name="remote_button_succeeded">Done</string>
     <string name="remote_button_server_failed">Server error</string>
     <string name="remote_button_door_failed">Door did not move</string>
+    <!-- HTTP 403: the server answered and said no for this account. Not
+         "Server error", which reads as something that will pass. The watch
+         (button_hint_forbidden) and iOS use the same words. -->
+    <string name="remote_button_forbidden">Not allowed for this account</string>
 
     <!-- Home — spoken description of the phone/server/door progress diagram.
          The icons are decorative individually; the group announces the phase. -->
@@ -47,6 +51,7 @@
     <string name="remote_diagram_succeeded">Door responded</string>
     <string name="remote_diagram_server_failed">Server did not accept the request</string>
     <string name="remote_diagram_door_failed">Door did not respond</string>
+    <string name="remote_diagram_forbidden">Server refused the request for this account</string>
 
     <!-- Home — remote button offline age. The shared layer hands over a typed
          bucket; these supply the words. Counts use plurals so each locale can
@@ -56,6 +61,16 @@
     <string name="remote_offline_age_just_now">just now</string>
     <string name="remote_offline_pill_label">Unavailable · %1$s</string>
     <string name="remote_offline_pill_description">Remote button unavailable, %1$s</string>
+    <!-- Home — remote button health pill: one label per shared
+         ButtonHealthDisplay arm (Hidden renders nothing). Tapping the pill
+         opens the sheet below, which explains each label. -->
+    <string name="button_health_available">Available</string>
+    <string name="button_health_available_description">Remote button available</string>
+    <string name="button_health_unknown">Unknown</string>
+    <string name="button_health_unknown_description">Remote button status unknown</string>
+    <string name="button_health_unauthorized">Unauthorized</string>
+    <string name="button_health_unauthorized_description">Remote button unauthorized, sign-in not confirmed</string>
+    <string name="button_health_pill_tap_label">Show remote control info</string>
 
     <!-- Settings — Account section rows. -->
     <string name="settings_account_sign_in">Sign in with Google</string>
@@ -274,12 +289,13 @@
     <!-- Home → Door status info bottom sheet. -->
     <string name="home_info_door_status_title">Door status</string>
     <string name="home_info_door_status_body_para1">The door sensor checks in every 10 minutes, or whenever the door moves.</string>
-    <string name="home_info_door_status_body_para2">If we don\'t hear from it on schedule, this shows \"no signal\" so you know the sensor may be offline.</string>
+    <string name="home_info_door_status_body_para2">If we don\'t hear from it on schedule, the check-in time turns red so you know the sensor may be offline. \"No signal\" means we haven\'t heard from it at all.</string>
 
     <!-- Home → Remote control info bottom sheet. -->
     <string name="home_info_remote_control_title">Remote control</string>
     <string name="home_info_remote_control_body_para1">The remote button checks in frequently. \"Available\" means it just told us it\'s ready to open or close the door.</string>
-    <string name="home_info_remote_control_body_para2">If contact stops, this shows when we last heard from it. Tapping the button may not work until it reconnects.</string>
+    <string name="home_info_remote_control_body_para2">\"Unavailable\" means contact stopped, and shows when we last heard from it. Tapping the button may not work until it reconnects.</string>
+    <string name="home_info_remote_control_body_para3">\"Unknown\" means the server has no record of this button yet. \"Unauthorized\" means the app can\'t confirm your sign-in. No label means we\'re still waiting for a verdict.</string>
 
     <!-- Home → Door state labels (headline text on the Status card). -->
     <!-- Several DoorPosition values share a label: OPENING_TOO_LONG and -->
