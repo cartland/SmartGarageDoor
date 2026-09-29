@@ -28,6 +28,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.gms)
     alias(libs.plugins.baselineprofile)
+    alias(libs.plugins.screenshot)
 }
 
 val localPropertiesExplanation =
@@ -52,6 +53,12 @@ val localProperties = Properties().apply {
 
 android {
     namespace = "com.chriscartland.garage"
+    // Screenshot tests live HERE, not in a separate module: the Preview
+    // Screenshot Test Engine builds its resource table from the module under
+    // test, and a library depending on this app never received its resources,
+    // so every render was blank (strategy 4.8, 2026-09-29; CLAUDE.md).
+    @Suppress("UnstableApiUsage")
+    experimentalProperties["android.experimental.enableScreenshotTest"] = true
     compileSdk = 36
 
     defaultConfig {
@@ -325,6 +332,9 @@ dependencies {
     // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    screenshotTestImplementation(libs.screenshot.validation.api)
+    screenshotTestImplementation(libs.androidx.ui.test.junit4)
+    screenshotTestImplementation(libs.androidx.ui.test.manifest)
     // kotlinx.serialization (Ktor HTTP client is in :data module)
     implementation(libs.kotlinx.serialization.json)
     // kotlin-inject (replaced Hilt — see docs/archive/DI-MIGRATION.md)
@@ -338,4 +348,57 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleId)
+}
+
+// ---- Screenshot tests (src/screenshotTest/) ---------------------------------
+// Layoutlib needs room; scoped to the screenshot test tasks so the unit tests
+// keep their default heap.
+tasks.withType<Test>().matching { it.name.contains("ScreenshotTest") }.configureEach {
+    maxHeapSize = "4g"
+    jvmArgs("-XX:MaxMetaspaceSize=1g")
+}
+
+// Running every screenshot class in ONE Gradle invocation exhausts Layoutlib's
+// memory; scripts/generate-android-screenshots.sh runs one class per
+// invocation (-PretainedReferenceScreenshots) and a targeted --tests run is
+// fine. Anything else is refused up front with the recipe.
+tasks.whenTaskAdded {
+    val taskName = name
+    if (taskName in listOf("updateDebugScreenshotTest", "validateDebugScreenshotTest")) {
+        val isSequentialScript = project.hasProperty("retainedReferenceScreenshots")
+        val isForced = project.hasProperty("forceAllScreenshots")
+        val passedTestsArg = gradle.startParameter.taskRequests
+            .flatMap { it.args }
+            .contains("--tests")
+        val refDirCapture = file("src/screenshotTestDebug/reference")
+        doFirst("Screenshot OOM gate") {
+            if (!isSequentialScript && !isForced && !passedTestsArg) {
+                error(
+                    """
+                    ===========================================================
+                    BLOCKED: Running all screenshot tests in a single Gradle
+                    invocation may cause OutOfMemoryError.
+                    ===========================================================
+                    Use the sequential script for the full suite:
+                      ./scripts/generate-android-screenshots.sh
+                    Or target one class with --tests (no property needed):
+                      ./gradlew :androidApp:$taskName \
+                        --tests com.chriscartland.garage.screenshottests.HomeRedesignScreenshotTestKt
+                    To force the full single-invocation run, add:
+                      -PforceAllScreenshots
+                    ===========================================================
+                    """.trimIndent(),
+                )
+            }
+            if (taskName == "updateDebugScreenshotTest" &&
+                !isSequentialScript &&
+                !passedTestsArg
+            ) {
+                if (refDirCapture.exists()) {
+                    refDirCapture.deleteRecursively()
+                    println("Deleted reference screenshots: $refDirCapture")
+                }
+            }
+        }
+    }
 }

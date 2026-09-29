@@ -10,7 +10,7 @@ set -e
 # on a macOS runner because this Mac renders blank (CLAUDE.md) — and runs only
 # the post-render steps: gallery, collections, framing, store, health check.
 
-REFERENCE_DIR="MobileGarage/android-screenshot-tests/src/screenshotTestDebug/reference"
+REFERENCE_DIR="MobileGarage/androidApp/src/screenshotTestDebug/reference"
 
 if [ "${SKIP_RENDER:-0}" = "1" ]; then
     echo "SKIP_RENDER=1: keeping the PNGs already in $REFERENCE_DIR; post-render steps only."
@@ -21,7 +21,7 @@ else
     fi
     mkdir -p "$REFERENCE_DIR"
 
-    for file in MobileGarage/android-screenshot-tests/src/screenshotTest/kotlin/com/chriscartland/garage/screenshottests/*.kt; do
+    for file in MobileGarage/androidApp/src/screenshotTest/kotlin/com/chriscartland/garage/screenshottests/*.kt; do
         filename=$(basename "$file" .kt)
         classname="com.chriscartland.garage.screenshottests.${filename}Kt"
 
@@ -29,7 +29,7 @@ else
         echo "Running screenshot generation for $classname"
         echo "----------------------------------------------------------------"
 
-        MobileGarage/gradlew -p MobileGarage --no-configuration-cache :android-screenshot-tests:updateDebugScreenshotTest --tests "$classname" -PretainedReferenceScreenshots
+        MobileGarage/gradlew -p MobileGarage --no-configuration-cache :androidApp:updateDebugScreenshotTest --tests "$classname" -PretainedReferenceScreenshots
     done
 fi
 

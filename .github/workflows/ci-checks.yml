@@ -43,7 +43,7 @@ jobs:
         run: ./gradlew :androidApp:lint
       - name: Compile Screenshot Tests
         working-directory: MobileGarage
-        run: ./gradlew :android-screenshot-tests:compileDebugScreenshotTestKotlin
+        run: ./gradlew :androidApp:compileDebugScreenshotTestKotlin
       - name: Clean secrets
         if: always()
         working-directory: MobileGarage

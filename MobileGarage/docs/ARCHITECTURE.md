@@ -56,7 +56,7 @@ Gradle modules (declared in `settings.gradle.kts`):
 | `presentation-model/` | `commonMain` | KMP | Shared display decisions (`DoorHeadline`, `DataFreshness`, `GlanceStatus`, the mappers) + demo data |
 | `androidApp/` | `main/java` | Android | Compose UI, Firebase bridge implementations, DI wiring, Activity/Application/Service |
 | `test-common/` | `commonMain` | KMP | Shared fakes (14+ fakes across repositories, data sources, bridges) |
-| `android-screenshot-tests/` | `screenshotTest` | Android | Preview-based screenshot tests |
+| `androidApp/src/screenshotTest/` | `screenshotTest` | Android | Preview-based screenshot tests. In the app module on purpose: the Preview Screenshot Test Engine builds its resource table from the module under test, and a separate library never held the app's resources (strategy 4.8) |
 | `macrobenchmark/` | `main` | Android | Baseline profile generator, startup benchmark |
 
 ### Domain module (`domain/`)

@@ -8,7 +8,7 @@ last_verified: 2026-06-27
 
 A browsable visual reference of every SwiftUI `#Preview` in the iOS app, captured
 to committed reference PNGs. This is the iOS analog of Android's screenshot
-gallery (`android-screenshot-tests/SCREENSHOT_GALLERY.md`).
+gallery (`screenshots/SCREENSHOT_GALLERY.md`).
 
 **Posture: regenerate, don't assert.** The PNGs are a *visual reference*, not
 pixel-perfect gating tests. They are regenerated on demand and committed; CI does

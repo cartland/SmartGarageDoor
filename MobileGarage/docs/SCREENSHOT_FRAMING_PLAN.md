@@ -7,7 +7,7 @@ status: shipped
 
 ## TL;DR
 
-`scripts/frame-screenshot.py` wraps Compose `@Preview` screenshots in a programmatic Pixel-style bezel for README / docs use. Six framed shots ship today (Home / History / Settings × Light / Dark) — full primary-tab coverage. Sub-screen previews are intentionally NOT framed; the Pixel bezel signals "phone view of the app" and only true full-screen tab views (top app bar + content + bottom nav) qualify. Both READMEs reference the framed set, and `MobileGarage/android-screenshot-tests/collections/framed.md` is auto-generated as an index from `framed.yaml` via the same generator that produces `app-overview.md` and `button-flow.md`. **All goals met as of 2026-04-26.** Future maintenance: adding a new framed shot is a one-line append to `scripts/framed-screenshots.txt` plus a matching entry in `framed.yaml`.
+`scripts/frame-screenshot.py` wraps Compose `@Preview` screenshots in a programmatic Pixel-style bezel for README / docs use. Six framed shots ship today (Home / History / Settings × Light / Dark) — full primary-tab coverage. Sub-screen previews are intentionally NOT framed; the Pixel bezel signals "phone view of the app" and only true full-screen tab views (top app bar + content + bottom nav) qualify. Both READMEs reference the framed set, and `MobileGarage/screenshots/collections/framed.md` is auto-generated as an index from `framed.yaml` via the same generator that produces `app-overview.md` and `button-flow.md`. **All goals met as of 2026-04-26.** Future maintenance: adding a new framed shot is a one-line append to `scripts/framed-screenshots.txt` plus a matching entry in `framed.yaml`.
 
 This doc covers the **README** framed set only. The separate **Play Store** screenshot flow (phone + tablet, with a programmatic tablet frame) reuses the same framing ideas but lives in `scripts/generate-store-screenshots.py` and outputs to `MobileGarage/screenshots/store/`; see the `play-store-assets` skill.
 
@@ -32,7 +32,7 @@ Allowlist: `scripts/framed-screenshots.txt`. Six entries:
 | `settings_tab_light.png` | `SettingsTabPreviewTest_Light` |
 | `settings_tab_dark.png` | `SettingsTabPreviewTest_Dark` |
 
-Both READMEs reference framed shots from this set; `home_tab_light.png` + `history_tab_light.png` is the published pair (root README + MobileGarage/README.md). `MobileGarage/android-screenshot-tests/collections/framed.md` is auto-generated from `framed.yaml` and indexes all six framed shots.
+Both READMEs reference framed shots from this set; `home_tab_light.png` + `history_tab_light.png` is the published pair (root README + MobileGarage/README.md). `MobileGarage/screenshots/collections/framed.md` is auto-generated from `framed.yaml` and indexes all six framed shots.
 
 ## Goal state
 

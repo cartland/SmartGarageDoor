@@ -87,7 +87,7 @@ skill).
 
 The icon art is a **hand port** of `GarageDoorCanvas.kt`, so a change to the
 Canvas drawing won't auto-update the icon. The screenshot fixture
-`AppIconClosedDoorPreviewTest` (in `android-screenshot-tests/`) renders the real
+`AppIconClosedDoorPreviewTest` (in `androidApp/src/screenshotTest/`) renders the real
 `GarageDoorCanvas` closed door at the icon framing — diff it against `icon-512.png`
 to catch drift, and re-port + re-run `generate.sh` if the Canvas changes.
 

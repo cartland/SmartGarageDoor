@@ -389,8 +389,8 @@ tasks.register<architecture.NoImplSuffixTask>("checkNoImplSuffix") {
 
 tasks.register<architecture.PreviewCoverageCheckTask>("checkPreviewCoverage") {
     sourceRoot = "$rootDir/androidApp/src/main/java"
-    testRoot = "$rootDir/android-screenshot-tests/src/screenshotTest"
-    reportFile = "$rootDir/android-screenshot-tests/PREVIEW_COVERAGE.md"
+    testRoot = "$rootDir/androidApp/src/screenshotTest"
+    reportFile = "$rootDir/screenshots/PREVIEW_COVERAGE.md"
     projectRoot = "$rootDir"
 }
 

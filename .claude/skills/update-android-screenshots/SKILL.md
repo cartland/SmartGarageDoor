@@ -27,13 +27,13 @@ This runs each test file in its own Gradle invocation, then auto-generates the g
 
 ### 2. Review the gallery
 
-Open `MobileGarage/android-screenshot-tests/SCREENSHOT_GALLERY.md` to see all screenshots.
+Open `MobileGarage/screenshots/SCREENSHOT_GALLERY.md` to see all screenshots.
 
 ### 3. Commit the references
 
 ```bash
-git add MobileGarage/android-screenshot-tests/src/screenshotTestDebug/reference/
-git add MobileGarage/android-screenshot-tests/SCREENSHOT_GALLERY.md
+git add MobileGarage/androidApp/src/screenshotTestDebug/reference/
+git add MobileGarage/screenshots/SCREENSHOT_GALLERY.md
 git add MobileGarage/screenshots/framed/
 git add MobileGarage/screenshots/store/
 ```
@@ -49,7 +49,7 @@ Framing requires Pillow (`pip install Pillow`). If Pillow is missing, the framin
 ## Adding New Screenshots
 
 1. Create or find a `@Preview` composable in the app code
-2. Add a screenshot test in `android-screenshot-tests/src/screenshotTest/kotlin/.../`:
+2. Add a screenshot test in `androidApp/src/screenshotTest/kotlin/.../`:
 
 ```kotlin
 @PreviewTest
@@ -75,13 +75,13 @@ The script automatically cleans old reference PNGs before generating new ones �
 Screenshots render differently across platforms (macOS vs Linux CI). To avoid thrashing:
 - Only regenerate screenshots deliberately via this skill or the script
 - CI compiles screenshot tests but never generates or validates PNGs
-- The one render path off this machine is the dispatch-only `Android Screenshot References` workflow (macOS runner, artifact only, fails on a blank render); download its artifact into the reference dir and run `SKIP_RENDER=1 ./scripts/generate-android-screenshots.sh` for the post-render steps. See CLAUDE.md § "Local screenshot regen produces blank / degraded PNGs".
+- The dispatch-only `Android Screenshot References` workflow (Linux, JDK 21, artifact only, fails on a blank render) is a clean-room cross-check, not the only render path: local regen works again since the tests moved into the app module (CLAUDE.md § "Screenshot tests live in the app module"). Download its artifact into the reference dir and run `SKIP_RENDER=1 ./scripts/generate-android-screenshots.sh` for the post-render steps.
 - Commit screenshots from a single platform consistently
 
 ## Notes
 
 - `updateDebugScreenshotTest` and `validateDebugScreenshotTest` can't run in the same Gradle invocation
-- To force single-invocation: `./gradlew :android-screenshot-tests:updateDebugScreenshotTest -PforceAllScreenshots`
+- To force single-invocation: `./gradlew :androidApp:updateDebugScreenshotTest -PforceAllScreenshots`
 - Preview composables must be deterministic — use fixed `Instant.parse(...)` for timestamps, never `Clock.System.now()` or `Random`
 - Animated composables (`rememberInfiniteTransition`, `Animatable`, `animateFloatAsState`) render at an arbitrary frame in screenshot tests. Wrap previews of animated UI in a static-mode rendering path — e.g. `GarageIcon(static = true)` — so the screenshot is deterministic. Caught when `OpeningPreview` was rendering at the start frame (offset 0.0) and looked identical to `Closed`; PR #543 fixed it by routing previews through `static = true` so they share the recent events list's `staticPositionFor` mapping.
 - Reference PNGs are committed to git but are NOT validated in CI

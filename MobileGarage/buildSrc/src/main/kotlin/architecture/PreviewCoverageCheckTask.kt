@@ -30,7 +30,7 @@ import java.io.File
  * Coverage = production preview names that appear in the test imports.
  *
  * Side-effect: writes a Markdown report to [reportFile] (typical:
- * `MobileGarage/android-screenshot-tests/PREVIEW_COVERAGE.md`) so reviewers
+ * `MobileGarage/screenshots/PREVIEW_COVERAGE.md`) so reviewers
  * can see covered/uncovered counts without running the task.
  *
  * Suppression: there is intentionally no `@PreviewCoverageExempt` marker.
@@ -46,7 +46,7 @@ abstract class PreviewCoverageCheckTask : DefaultTask() {
     @get:Input
     var sourceRoot: String = ""
 
-    /** Source root containing screenshot test files (typically `android-screenshot-tests/src/screenshotTest`). */
+    /** Source root containing screenshot test files (typically `androidApp/src/screenshotTest`). */
     @get:Input
     var testRoot: String = ""
 
@@ -135,7 +135,7 @@ abstract class PreviewCoverageCheckTask : DefaultTask() {
                 "Preview coverage gap: ${uncovered.size} preview(s) missing screenshot tests:\n" +
                     "$msg\n\n" +
                     "Fix: add `import com.chriscartland.garage.<pkg>.<Name>Preview` and a corresponding\n" +
-                    "@PreviewTest wrapper in a file under android-screenshot-tests/src/screenshotTest/.\n" +
+                    "@PreviewTest wrapper in a file under androidApp/src/screenshotTest/.\n" +
                     "If a preview genuinely doesn't need a screenshot test, mark it `private` — the\n" +
                     "import-based detection then naturally excludes it.",
             )

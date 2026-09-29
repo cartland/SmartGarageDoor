@@ -42,12 +42,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentClosedSignedInPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentClosedSignedInPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentClosedSignedInPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentClosedSignedInPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -72,12 +72,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOpenSignedInPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOpenSignedInPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOpenSignedInPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOpenSignedInPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -102,12 +102,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentAwaitingConfirmationPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentAwaitingConfirmationPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentAwaitingConfirmationPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentAwaitingConfirmationPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -131,12 +131,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSendingToDoorPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSendingToDoorPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSendingToDoorPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSendingToDoorPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         }
@@ -151,12 +151,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOpeningTooLongPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOpeningTooLongPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOpeningTooLongPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOpeningTooLongPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -180,12 +180,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentStaleBannerPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentStaleBannerPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentStaleBannerPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentStaleBannerPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         }
@@ -200,12 +200,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentPermissionMissingPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentPermissionMissingPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentPermissionMissingPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentPermissionMissingPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -230,12 +230,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSignedOutPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSignedOutPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSignedOutPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSignedOutPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -275,12 +275,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillOnlinePreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillOnlinePreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillOnlinePreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillOnlinePreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         }
@@ -294,12 +294,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillOfflinePreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillOfflinePreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillOfflinePreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillOfflinePreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         }
@@ -313,12 +313,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnauthorizedPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnauthorizedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnauthorizedPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnauthorizedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         }
@@ -332,12 +332,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnknownPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnknownPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnknownPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillUnknownPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         }
@@ -368,12 +368,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -398,12 +398,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayClosedPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayClosedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayClosedPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayClosedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -428,12 +428,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentEmptyPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentEmptyPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentEmptyPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentEmptyPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -531,12 +531,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedInAllowlistedPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedInAllowlistedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedInAllowlistedPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedInAllowlistedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -560,12 +560,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedInBasicPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedInBasicPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedInBasicPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedInBasicPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         }
@@ -580,12 +580,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedOutPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedOutPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedOutPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSignedOutPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -610,12 +610,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentPermissionDeniedPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentPermissionDeniedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentPermissionDeniedPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentPermissionDeniedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -640,12 +640,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSnoozeInFlightPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSnoozeInFlightPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSnoozeInFlightPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSnoozeInFlightPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -686,12 +686,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -716,12 +716,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentDeniedPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentDeniedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentDeniedPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/FunctionListContentDeniedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -781,12 +781,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/DiagnosticsContentPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/DiagnosticsContentPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/DiagnosticsContentPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/DiagnosticsContentPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         },
@@ -810,12 +810,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/DiagnosticsContentClearInFlightPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/DiagnosticsContentClearInFlightPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 2400
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/DiagnosticsContentClearInFlightPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/DiagnosticsContentClearInFlightPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 2400
         }
@@ -851,12 +851,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentOffPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentOffPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 1519
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentOffPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentOffPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 1519
         },
@@ -881,12 +881,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentActivePreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentActivePreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 1519
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentActivePreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentActivePreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 1519
         },
@@ -927,12 +927,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/AccountSheetContentSignedInPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/AccountSheetContentSignedInPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 736
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/AccountSheetContentSignedInPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/AccountSheetContentSignedInPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 736
         },
@@ -956,12 +956,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/VersionSheetContentPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/VersionSheetContentPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 1255
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/VersionSheetContentPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/VersionSheetContentPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 1255
         }
@@ -992,12 +992,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/DoorStatusInfoSheetContentPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/DoorStatusInfoSheetContentPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 634
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/DoorStatusInfoSheetContentPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/DoorStatusInfoSheetContentPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 634
         },
@@ -1022,12 +1022,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/RemoteControlInfoSheetContentPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/RemoteControlInfoSheetContentPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 634
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/RemoteControlInfoSheetContentPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/RemoteControlInfoSheetContentPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 634
         },
@@ -1067,12 +1067,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/ClearDiagnosticsDialogPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/ClearDiagnosticsDialogPreviewTest_Light_fc5b723e_0.png",
          "w": 840,
          "h": 758
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/ClearDiagnosticsDialogPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/ClearDiagnosticsDialogPreviewTest_Dark_77106447_0.png",
          "w": 840,
          "h": 758
         }
@@ -1107,12 +1107,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOnTabletPreviewTest_Tablet Light_948f5cf6_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOnTabletPreviewTest_Tablet Light_948f5cf6_0.png",
          "w": 2363,
          "h": 2888
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOnTabletPreviewTest_Tablet Dark_e3fcbfbf_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOnTabletPreviewTest_Tablet Dark_e3fcbfbf_0.png",
          "w": 2363,
          "h": 2888
         }
@@ -1126,12 +1126,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview600dpTest_Light_1446eff4_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview600dpTest_Light_1446eff4_0.png",
          "w": 1575,
          "h": 2100
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview600dpTest_Dark_0cb0e3cd_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview600dpTest_Dark_0cb0e3cd_0.png",
          "w": 1575,
          "h": 2100
         }
@@ -1145,12 +1145,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview840dpTest_Light_a433c26f_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview840dpTest_Light_a433c26f_0.png",
          "w": 2205,
          "h": 2100
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview840dpTest_Dark_85b5ce5b_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview840dpTest_Dark_85b5ce5b_0.png",
          "w": 2205,
          "h": 2100
         }
@@ -1164,12 +1164,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview1024dpTest_Light_35b0f031_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview1024dpTest_Light_35b0f031_0.png",
          "w": 2688,
          "h": 2100
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview1024dpTest_Dark_884c341e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview1024dpTest_Dark_884c341e_0.png",
          "w": 2688,
          "h": 2100
         }
@@ -1183,12 +1183,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview1280dpTest_Light_6d0a28d0_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview1280dpTest_Light_6d0a28d0_0.png",
          "w": 3360,
          "h": 2100
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview1280dpTest_Dark_a134fc9d_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardPreview1280dpTest_Dark_a134fc9d_0.png",
          "w": 3360,
          "h": 2100
         }
@@ -1218,12 +1218,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeRailPreview700dpTest_Light_47d9098a_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeRailPreview700dpTest_Light_47d9098a_0.png",
          "w": 1838,
          "h": 2100
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeRailPreview700dpTest_Dark_aacdb9c5_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeRailPreview700dpTest_Dark_aacdb9c5_0.png",
          "w": 1838,
          "h": 2100
         }
@@ -1237,12 +1237,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardRailPreview700dpTest_Light_47d9098a_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardRailPreview700dpTest_Light_47d9098a_0.png",
          "w": 1838,
          "h": 2100
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardRailPreview700dpTest_Dark_aacdb9c5_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardRailPreview700dpTest_Dark_aacdb9c5_0.png",
          "w": 1838,
          "h": 2100
         }
@@ -1256,12 +1256,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardRailPreview916dpTest_Light_9d6edbd9_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardRailPreview916dpTest_Light_9d6edbd9_0.png",
          "w": 2405,
          "h": 1079
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardRailPreview916dpTest_Dark_98d1e6d2_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/HomeDashboardRailPreview916dpTest_Dark_98d1e6d2_0.png",
          "w": 2405,
          "h": 1079
         }
@@ -1291,12 +1291,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardPhoneLandscapePreviewTest_Light_9d6edbd9_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardPhoneLandscapePreviewTest_Light_9d6edbd9_0.png",
          "w": 2405,
          "h": 1079
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardPhoneLandscapePreviewTest_Dark_98d1e6d2_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardPhoneLandscapePreviewTest_Dark_98d1e6d2_0.png",
          "w": 2405,
          "h": 1079
         }
@@ -1310,12 +1310,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardTabletNarrowPreviewTest_Light_070fb0c3_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardTabletNarrowPreviewTest_Light_070fb0c3_0.png",
          "w": 2688,
          "h": 2016
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardTabletNarrowPreviewTest_Dark_ad262b53_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardTabletNarrowPreviewTest_Dark_ad262b53_0.png",
          "w": 2688,
          "h": 2016
         }
@@ -1329,12 +1329,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardLargeTabletPreviewTest_Light_6d0a28d0_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardLargeTabletPreviewTest_Light_6d0a28d0_0.png",
          "w": 3360,
          "h": 2100
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardLargeTabletPreviewTest_Dark_a134fc9d_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardLargeTabletPreviewTest_Dark_a134fc9d_0.png",
          "w": 3360,
          "h": 2100
         }
@@ -1348,12 +1348,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardWithDiagnosticsOverlayPreviewTest_Light_6d0a28d0_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardWithDiagnosticsOverlayPreviewTest_Light_6d0a28d0_0.png",
          "w": 3360,
          "h": 2100
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardWithDiagnosticsOverlayPreviewTest_Dark_a134fc9d_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ScreensScreenshotTestKt/ThreePaneDashboardWithDiagnosticsOverlayPreviewTest_Dark_a134fc9d_0.png",
          "w": 3360,
          "h": 2100
         }
@@ -1389,12 +1389,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosedPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosedPreviewTest_Light_fc5b723e_0.png",
          "w": 1050,
          "h": 1050
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosedPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosedPreviewTest_Dark_77106447_0.png",
          "w": 1050,
          "h": 1050
         },
@@ -1419,12 +1419,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpeningPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpeningPreviewTest_Light_fc5b723e_0.png",
          "w": 1050,
          "h": 1050
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpeningPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpeningPreviewTest_Dark_77106447_0.png",
          "w": 1050,
          "h": 1050
         },
@@ -1448,12 +1448,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorMidwayPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorMidwayPreviewTest_Light_fc5b723e_0.png",
          "w": 1050,
          "h": 1050
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorMidwayPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorMidwayPreviewTest_Dark_77106447_0.png",
          "w": 1050,
          "h": 1050
         }
@@ -1467,12 +1467,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpenPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpenPreviewTest_Light_fc5b723e_0.png",
          "w": 1050,
          "h": 1050
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpenPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpenPreviewTest_Dark_77106447_0.png",
          "w": 1050,
          "h": 1050
         }
@@ -1486,12 +1486,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosingPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosingPreviewTest_Light_fc5b723e_0.png",
          "w": 1050,
          "h": 1050
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosingPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosingPreviewTest_Dark_77106447_0.png",
          "w": 1050,
          "h": 1050
         }
@@ -1505,12 +1505,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpeningTooLongPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpeningTooLongPreviewTest_Light_fc5b723e_0.png",
          "w": 1050,
          "h": 1050
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpeningTooLongPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpeningTooLongPreviewTest_Dark_77106447_0.png",
          "w": 1050,
          "h": 1050
         }
@@ -1524,12 +1524,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosingTooLongPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosingTooLongPreviewTest_Light_fc5b723e_0.png",
          "w": 1050,
          "h": 1050
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosingTooLongPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosingTooLongPreviewTest_Dark_77106447_0.png",
          "w": 1050,
          "h": 1050
         }
@@ -1543,12 +1543,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorErrorSensorConflictPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorErrorSensorConflictPreviewTest_Light_fc5b723e_0.png",
          "w": 1050,
          "h": 1050
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorErrorSensorConflictPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorErrorSensorConflictPreviewTest_Dark_77106447_0.png",
          "w": 1050,
          "h": 1050
         }
@@ -1562,12 +1562,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpenMisalignedPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpenMisalignedPreviewTest_Light_fc5b723e_0.png",
          "w": 1050,
          "h": 1050
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpenMisalignedPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorOpenMisalignedPreviewTest_Dark_77106447_0.png",
          "w": 1050,
          "h": 1050
         }
@@ -1632,12 +1632,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageIconPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageIconPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 1080
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageIconPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageIconPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 1080
         }
@@ -1672,12 +1672,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonReadyPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonReadyPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 168
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonReadyPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonReadyPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 168
         }
@@ -1691,12 +1691,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonPreparingPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonPreparingPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 168
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonPreparingPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonPreparingPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 168
         }
@@ -1710,12 +1710,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonAwaitingConfirmationPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonAwaitingConfirmationPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 168
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonAwaitingConfirmationPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonAwaitingConfirmationPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 168
         }
@@ -1729,12 +1729,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSendingToServerPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSendingToServerPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 168
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSendingToServerPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSendingToServerPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 168
         }
@@ -1748,12 +1748,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSendingToDoorPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSendingToDoorPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 168
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSendingToDoorPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSendingToDoorPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 168
         }
@@ -1767,12 +1767,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSucceededPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSucceededPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 168
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSucceededPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonSucceededPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 168
         }
@@ -1786,12 +1786,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonCancelledPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonCancelledPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 168
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonCancelledPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonCancelledPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 168
         }
@@ -1805,12 +1805,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonServerFailedPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonServerFailedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 168
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonServerFailedPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonServerFailedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 168
         }
@@ -1824,12 +1824,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonDoorFailedPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonDoorFailedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 168
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonDoorFailedPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonDoorFailedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 168
         }
@@ -1894,12 +1894,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
         }
@@ -1913,12 +1913,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreparingPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreparingPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreparingPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreparingPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
         }
@@ -1932,12 +1932,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentAwaitingConfirmationPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentAwaitingConfirmationPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentAwaitingConfirmationPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentAwaitingConfirmationPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
         }
@@ -1951,12 +1951,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToServerPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToServerPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToServerPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToServerPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
         }
@@ -1970,12 +1970,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToDoorPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToDoorPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToDoorPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSendingToDoorPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
         }
@@ -1989,12 +1989,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSucceededPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSucceededPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSucceededPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentSucceededPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
         }
@@ -2008,12 +2008,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentCancelledPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentCancelledPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentCancelledPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentCancelledPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
         }
@@ -2027,12 +2027,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentServerFailedPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentServerFailedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentServerFailedPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentServerFailedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
         }
@@ -2046,12 +2046,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentDoorFailedPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentDoorFailedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 295
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentDoorFailedPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentDoorFailedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 295
         }
@@ -2081,12 +2081,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramIdlePreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramIdlePreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 95
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramIdlePreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramIdlePreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 95
         }
@@ -2100,12 +2100,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSendingToServerPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSendingToServerPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 95
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSendingToServerPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSendingToServerPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 95
         }
@@ -2119,12 +2119,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSendingToDoorPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSendingToDoorPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 95
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSendingToDoorPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSendingToDoorPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 95
         }
@@ -2138,12 +2138,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSucceededPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSucceededPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 95
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSucceededPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramSucceededPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 95
         }
@@ -2157,12 +2157,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramServerFailedPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramServerFailedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 95
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramServerFailedPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramServerFailedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 95
         }
@@ -2176,12 +2176,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramDoorFailedPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramDoorFailedPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 95
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramDoorFailedPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramDoorFailedPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 95
         }
@@ -2216,12 +2216,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillFreshPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillFreshPreviewTest_Light_fc5b723e_0.png",
          "w": 238,
          "h": 45
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillFreshPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillFreshPreviewTest_Dark_77106447_0.png",
          "w": 238,
          "h": 45
         }
@@ -2235,12 +2235,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillAgingPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillAgingPreviewTest_Light_fc5b723e_0.png",
          "w": 323,
          "h": 45
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillAgingPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillAgingPreviewTest_Dark_77106447_0.png",
          "w": 323,
          "h": 45
         }
@@ -2254,12 +2254,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillStalePreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillStalePreviewTest_Light_fc5b723e_0.png",
          "w": 241,
          "h": 45
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillStalePreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillStalePreviewTest_Dark_77106447_0.png",
          "w": 241,
          "h": 45
         }
@@ -2273,12 +2273,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillNoDataPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillNoDataPreviewTest_Light_fc5b723e_0.png",
          "w": 77,
          "h": 45
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillNoDataPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillNoDataPreviewTest_Dark_77106447_0.png",
          "w": 77,
          "h": 45
         }
@@ -2308,12 +2308,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillAvailablePreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillAvailablePreviewTest_Light_fc5b723e_0.png",
          "w": 214,
          "h": 45
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillAvailablePreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillAvailablePreviewTest_Dark_77106447_0.png",
          "w": 214,
          "h": 45
         }
@@ -2327,12 +2327,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnauthorizedPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnauthorizedPreviewTest_Light_fc5b723e_0.png",
          "w": 271,
          "h": 45
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnauthorizedPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnauthorizedPreviewTest_Dark_77106447_0.png",
          "w": 271,
          "h": 45
         }
@@ -2346,12 +2346,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnavailablePreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnavailablePreviewTest_Light_fc5b723e_0.png",
          "w": 425,
          "h": 45
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnavailablePreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnavailablePreviewTest_Dark_77106447_0.png",
          "w": 425,
          "h": 45
         }
@@ -2365,12 +2365,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnknownPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnknownPreviewTest_Light_fc5b723e_0.png",
          "w": 215,
          "h": 45
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnknownPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonHealthPillUnknownPreviewTest_Dark_77106447_0.png",
          "w": 215,
          "h": 45
         }
@@ -2400,12 +2400,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillFreshPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillFreshPreviewTest_Light_fc5b723e_0.png",
          "w": 408,
          "h": 45
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillFreshPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillFreshPreviewTest_Dark_77106447_0.png",
          "w": 408,
          "h": 45
         }
@@ -2419,12 +2419,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillAgingPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillAgingPreviewTest_Light_fc5b723e_0.png",
          "w": 425,
          "h": 45
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillAgingPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillAgingPreviewTest_Dark_77106447_0.png",
          "w": 425,
          "h": 45
         }
@@ -2438,12 +2438,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillStalePreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillStalePreviewTest_Light_fc5b723e_0.png",
          "w": 386,
          "h": 45
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillStalePreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillStalePreviewTest_Dark_77106447_0.png",
          "w": 386,
          "h": 45
         }
@@ -2457,12 +2457,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillVeryStalePreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillVeryStalePreviewTest_Light_fc5b723e_0.png",
          "w": 421,
          "h": 45
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillVeryStalePreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteOfflinePillVeryStalePreviewTest_Dark_77106447_0.png",
          "w": 421,
          "h": 45
         }
@@ -2492,12 +2492,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/ErrorCardPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/ErrorCardPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 210
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/ErrorCardPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/ErrorCardPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 210
         }
@@ -2511,12 +2511,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/ErrorCardLongButtonWordPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/ErrorCardLongButtonWordPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 651
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/ErrorCardLongButtonWordPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/ErrorCardLongButtonWordPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 651
         }
@@ -2530,12 +2530,12 @@ window.UI_GALLERY = {
        ],
        "images": {
         "default|android|light": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/ErrorCardManyButtonWordsPreviewTest_Light_fc5b723e_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/ErrorCardManyButtonWordsPreviewTest_Light_fc5b723e_0.png",
          "w": 1080,
          "h": 550
         },
         "default|android|dark": {
-         "src": "../android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/ErrorCardManyButtonWordsPreviewTest_Dark_77106447_0.png",
+         "src": "../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/ErrorCardManyButtonWordsPreviewTest_Dark_77106447_0.png",
          "w": 1080,
          "h": 550
         }

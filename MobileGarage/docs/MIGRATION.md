@@ -150,7 +150,7 @@ Not needed for Android-only. When adding a second platform target:
 **Goal:** Automated app screenshot generation for Play Store and documentation.
 
 ### 6.1 Set Up Compose Screenshot Testing — `56e742a` (#107)
-- Separate `android-screenshot-tests` module with AGP Screenshot Plugin 0.0.1-alpha12
+- ~~Separate `android-screenshot-tests` module~~ with AGP Screenshot Plugin 0.0.1-alpha12 — folded into `androidApp/src/screenshotTest/` in strategy 4.8: the separate module's resource table never held the app's resources, so every render from June to September was blank
 - `screenshotTest` source set with `@PreviewTest` + `@Preview` pattern
 - OOM prevention: blocks single-invocation runs, sequential script required
 - Screenshot compilation in CI and `validate.sh` (not generation)

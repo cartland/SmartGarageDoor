@@ -90,7 +90,7 @@ platformLabels: {android: Android, ios: iOS, wear: Wear OS}
 themes: [light, dark]
 themeTokens: {light: Light, dark: Dark}   # {theme} placeholder expansion
 pathAliases:
-  ref: MobileGarage/android-screenshot-tests/src/...   # ${ref} in paths
+  ref: MobileGarage/androidApp/src/screenshotTestDebug/...   # ${ref} in paths
 
 sections:
   - title: Screens
@@ -135,7 +135,7 @@ The viewer only references captures produced by the existing pipelines:
 
 | Platform | Source | Refreshed by |
 | --- | --- | --- |
-| Android | `android-screenshot-tests/**/reference/` (CI-rendered; local regen is blank on this Mac — see root `CLAUDE.md`) | `./scripts/generate-android-screenshots.sh` |
+| Android | `androidApp/src/screenshotTestDebug/reference/` (Layoutlib via the AGP screenshot plugin; rendered locally, or by the dispatch-only `Android Screenshot References` workflow as a clean-room cross-check) | `./scripts/generate-android-screenshots.sh` |
 | iOS | `iosApp/SnapshotTests/__Snapshots__/` (swift-snapshot-testing via Prefire, regenerate-don't-assert — a visual record, not a pixel gate) | `./scripts/generate-ios-screenshots.sh` |
 | Wear OS | `screenshots/store/wear/` (emulator captures, clock pinned) | `./scripts/generate-wear-screenshots.sh` |
 
