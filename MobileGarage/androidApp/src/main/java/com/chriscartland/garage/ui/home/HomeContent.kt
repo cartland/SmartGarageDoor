@@ -85,13 +85,12 @@ import com.chriscartland.garage.ui.RemoteControlInfoBottomSheet
 import com.chriscartland.garage.ui.RouteContent
 import com.chriscartland.garage.ui.theme.ButtonSpacing
 import com.chriscartland.garage.ui.theme.CardPadding
-import com.chriscartland.garage.ui.theme.DoorColorState
+import com.chriscartland.garage.ui.theme.DoorMuting
 import com.chriscartland.garage.ui.theme.FreshnessTint
 import com.chriscartland.garage.ui.theme.LocalDoorStatusColorScheme
 import com.chriscartland.garage.ui.theme.ParagraphSpacing
 import com.chriscartland.garage.ui.theme.PreviewScreenSurface
 import com.chriscartland.garage.ui.theme.Spacing
-import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorColorState
 import com.chriscartland.garage.ui.theme.safeListContentPadding
 import com.chriscartland.garage.usecase.ButtonHealthDisplay
@@ -346,19 +345,14 @@ private fun HomeStatusCardBody(
     status: HomeStatusDisplay,
     sinceLine: String,
 ) {
-    val colorSet = LocalDoorStatusColorScheme.current.doorColorSet(isStale = status.isStale)
-    val doorColor = when (DoorEvent(doorPosition = status.doorPosition).doorColorState()) {
-        DoorColorState.OPEN -> colorSet.open
-        DoorColorState.CLOSED -> colorSet.closed
-        DoorColorState.UNKNOWN -> colorSet.unknown
-    }
-    // The whole card goes grey and dim the moment the app is unsure this is
-    // current — including during the settle window, when it is still saying
-    // exactly the same words. That ordering is the point: the colour arrives
-    // first and costs the reader nothing, and only if the doubt outlives the
-    // window does the screen spend a sentence on it. Animated so a return
-    // fetch landing mid-window resolves the card rather than snapping it.
-    val mutedColor = FreshnessTint.tint(doorColor, status.freshness)
+    // One grey, from one base: see DoorMuting. (The card used to pick the
+    // palette's _STALE_ variant on a stale check-in and drain THAT, which made
+    // the more worrying state the lighter grey.)
+    val mutedColor = DoorMuting.doorColor(
+        scheme = LocalDoorStatusColorScheme.current,
+        colorState = DoorEvent(doorPosition = status.doorPosition).doorColorState(),
+        freshness = status.freshness,
+    )
     val heroColor by animateColorAsState(
         targetValue = mutedColor,
         animationSpec = FreshnessTint.animationSpec(),

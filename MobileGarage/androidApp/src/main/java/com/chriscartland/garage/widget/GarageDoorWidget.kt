@@ -43,6 +43,7 @@ import com.chriscartland.garage.GarageApplication
 import com.chriscartland.garage.MainActivity
 import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.DoorColorState
+import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.GlanceStatus
 import com.chriscartland.garage.ui.home.HomeStatusFormatter
 import kotlinx.coroutines.coroutineScope
@@ -147,7 +148,7 @@ internal fun GarageDoorWidgetContent(status: GlanceStatus) {
             subline = sublineText(status),
         ),
         colorState = status.colorState,
-        isMuted = status.freshness.isMuted,
+        freshness = status.freshness,
     )
 }
 
@@ -159,13 +160,13 @@ internal fun GarageDoorWidgetContent(status: GlanceStatus) {
 internal fun GarageDoorWidgetBody(
     text: GarageWidgetText,
     colorState: DoorColorState,
-    isMuted: Boolean,
+    freshness: DataFreshness,
 ) {
-    val textColor = GarageWidgetColors.onBackground(colorState, isMuted)
+    val textColor = GarageWidgetColors.onBackground(colorState, freshness)
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(GarageWidgetColors.background(colorState, isMuted))
+            .background(GarageWidgetColors.background(colorState, freshness))
             .cornerRadius(WIDGET_CORNER_RADIUS)
             .padding(WIDGET_PADDING)
             .clickable(actionStartActivity<MainActivity>()),

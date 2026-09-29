@@ -17,9 +17,14 @@
 
 package com.chriscartland.garage.widget
 
+import androidx.compose.ui.graphics.Color
 import androidx.glance.unit.ColorProvider
 import com.chriscartland.garage.domain.model.DoorColorState
+import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.ui.theme.DoorColorSet
+import com.chriscartland.garage.ui.theme.DoorMuting
+import com.chriscartland.garage.ui.theme.DoorStatusColorScheme
+import com.chriscartland.garage.ui.theme.FreshnessTint
 import com.chriscartland.garage.ui.theme.doorColorSet
 import com.chriscartland.garage.ui.theme.doorStatusDarkScheme
 import com.chriscartland.garage.ui.theme.doorStatusLightScheme
@@ -44,36 +49,48 @@ import androidx.glance.color.ColorProvider as dayNightColorProvider
  * knows the launcher's configuration.
  */
 object GarageWidgetColors {
-    /** The card fill for this door state. */
+    /**
+     * The card fill: the SAME rule as the Home card and the tile — the fresh
+     * family colour drained by luma and dimmed by the shared alpha when the
+     * verdict is muted ([DoorMuting]). Until strategy 1.2 this read the
+     * palette's partial `_STALE_` variant instead, so a stale open door stayed
+     * brick-red here while the tile went grey.
+     */
     fun background(
         state: DoorColorState,
-        isMuted: Boolean,
+        freshness: DataFreshness,
     ): ColorProvider =
         dayNightColorProvider(
-            day = lightSet(isMuted).fillFor(state),
-            night = darkSet(isMuted).fillFor(state),
+            day = fill(doorStatusLightScheme, state, freshness),
+            night = fill(doorStatusDarkScheme, state, freshness),
         )
 
-    /** The text colour that belongs on [background]. */
+    /**
+     * One theme's fill. Exposed (internal) so the widget's use of the shared
+     * rule is pinned on the JVM — a [ColorProvider] needs a Context to resolve,
+     * which a plain unit test does not have.
+     */
+    internal fun fill(
+        scheme: DoorStatusColorScheme,
+        state: DoorColorState,
+        freshness: DataFreshness,
+    ): Color = DoorMuting.doorColor(scheme, state, freshness).withMutedAlpha(freshness)
+
+    /** The text colour that belongs on [background], dimmed with it — the tile's `onDoorFill` rule. */
     fun onBackground(
         state: DoorColorState,
-        isMuted: Boolean,
+        freshness: DataFreshness,
     ): ColorProvider =
         dayNightColorProvider(
-            day = lightSet(isMuted).textFor(state),
-            night = darkSet(isMuted).textFor(state),
+            day = lightSet.textFor(state).withMutedAlpha(freshness),
+            night = darkSet.textFor(state).withMutedAlpha(freshness),
         )
 
-    private fun lightSet(isMuted: Boolean): DoorColorSet = doorStatusLightScheme.doorColorSet(isStale = isMuted)
+    private val lightSet: DoorColorSet get() = doorStatusLightScheme.doorColorSet(isStale = false)
 
-    private fun darkSet(isMuted: Boolean): DoorColorSet = doorStatusDarkScheme.doorColorSet(isStale = isMuted)
+    private val darkSet: DoorColorSet get() = doorStatusDarkScheme.doorColorSet(isStale = false)
 
-    private fun DoorColorSet.fillFor(state: DoorColorState) =
-        when (state) {
-            DoorColorState.CLOSED -> closed
-            DoorColorState.OPEN -> open
-            DoorColorState.UNKNOWN -> unknown
-        }
+    private fun Color.withMutedAlpha(freshness: DataFreshness): Color = copy(alpha = FreshnessTint.alphaFor(freshness))
 
     private fun DoorColorSet.textFor(state: DoorColorState) =
         when (state) {
