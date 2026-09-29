@@ -16,6 +16,7 @@
  */
 
 import SwiftUI
+import UIKit
 
 /// Semantic colors for the app. Light/dark follow the system appearance.
 ///
@@ -27,13 +28,34 @@ enum GarageColors {
     static let statusOk = Color.green
     /// Surface that reads "door is open / in motion".
     static let statusOpen = Color.orange
-    /// Surface that reads "warning / unknown / error".
-    static let statusWarning = Color.red
+    /// The alarm tint: the THEME's error red — the same `#BA1A1A` / `#FFB4AB`
+    /// Android's Material scheme paints its banners, pills and alarm chips with,
+    /// so both phones raise an alarm in one colour. Until strategy 1.6 this was
+    /// system `.red` (#FF3B30), a third red beside the brand door red on the
+    /// same screen. Dynamic: follows the interface style. (The door's OWN red
+    /// stays the door's — its dark-mode fill is too dark to serve as text.)
+    static let statusWarning = dynamicRGB(light: 0xBA1A1A, dark: 0xFFB4AB)
     /// Advisory tone for informational annotations — a history row noting that a
     /// past event took longer than usual, not a fault needing attention. Red is
     /// reserved for things the user should act on; Android draws the same tags
-    /// in `colorScheme.tertiary` for exactly this distinction.
-    static let statusCaution = Color.orange
+    /// in its `caution` colour for exactly this distinction — and this IS that
+    /// colour (`#7A5200` light, `#E0A33A` dark, both WCAG AA on their grounds),
+    /// so the two phones draw one advisory amber rather than blue on one and
+    /// orange on the other (audit finding 3.1, strategy 1.5/1.6).
+    static let statusCaution = dynamicRGB(light: 0x7A5200, dark: 0xE0A33A)
+
+    /// A colour that follows the interface style, from two packed RGB ints.
+    private static func dynamicRGB(light: Int, dark: Int) -> Color {
+        Color(uiColor: UIColor { traits in
+            let rgb = traits.userInterfaceStyle == .dark ? dark : light
+            return UIColor(
+                red: CGFloat((rgb >> 16) & 0xFF) / 255,
+                green: CGFloat((rgb >> 8) & 0xFF) / 255,
+                blue: CGFloat(rgb & 0xFF) / 255,
+                alpha: 1
+            )
+        })
+    }
     /// Neutral container background for cards.
     static let cardBackground = Color(uiColor: .secondarySystemBackground)
 }
