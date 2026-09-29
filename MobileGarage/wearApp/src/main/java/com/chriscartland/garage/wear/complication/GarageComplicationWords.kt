@@ -20,8 +20,8 @@ package com.chriscartland.garage.wear.complication
 import androidx.annotation.StringRes
 import com.chriscartland.garage.presentation.DoorHeadline
 import com.chriscartland.garage.presentation.GlanceStatus
+import com.chriscartland.garage.presentation.GlanceSubline
 import com.chriscartland.garage.presentation.GlanceWarning
-import com.chriscartland.garage.presentation.Liveness
 import com.chriscartland.garage.presentation.StatusHeadline
 import com.chriscartland.garage.wear.R
 
@@ -93,7 +93,10 @@ object GarageComplicationWords {
      * contact with may have moved twice since. So the word takes its place at
      * the front, where a text-only face will see it.
      */
-    fun staleLeads(status: GlanceStatus): Boolean = status.liveness == Liveness.STALE
+    fun staleLeads(status: GlanceStatus): Boolean = status.subline is GlanceSubline.NotConfirmed
+
+    /** The long-slot word for "nothing heard": the same word every other surface uses. The short slot keeps [NO_DATA] (budget). */
+    val LONG_NO_SIGNAL: Int = R.string.complication_long_no_signal
 
     /**
      * The word that LEADS when the shared decision says the door must be

@@ -104,13 +104,13 @@ class GarageDoorWidgetBodyTest {
             // Stale, this one proves the choice reaches the screen.
             provideComposable {
                 GarageDoorWidgetBody(
-                    text = GarageWidgetText(headline = "Closed", subline = "Stale"),
+                    text = GarageWidgetText(headline = "Closed", subline = "Not confirmed"),
                     colorState = DoorColorState.CLOSED,
                     freshness = DataFreshness.STALE,
                 )
             }
 
-            onNode(hasText("Stale")).assertExists()
+            onNode(hasText("Not confirmed")).assertExists()
             onNode(hasText("since")).assertDoesNotExist()
         }
 }

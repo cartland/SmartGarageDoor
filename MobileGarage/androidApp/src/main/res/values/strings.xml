@@ -421,8 +421,11 @@
     <string name="widget_since_format">since %1$s</string>
     <!-- Shown in place of the "since" line when the reading cannot be vouched
          for. A span would claim the door has been that way continuously, which
-         is exactly what we have lost the ability to say. -->
-    <string name="widget_liveness_stale">Stale</string>
+         is exactly what we have lost the ability to say. One word family for
+         this across every glance surface (strategy 1.1): the tile says the
+         same; the complication says "Stale" only where seven characters force
+         it. -->
+    <string name="widget_not_confirmed">Not confirmed</string>
     <!-- Shown in the launcher's widget picker. -->
     <string name="widget_description">Garage door status. Tap to open the app.</string>
     <!-- Qualifiers appended to the door word when the shared GlanceWarning

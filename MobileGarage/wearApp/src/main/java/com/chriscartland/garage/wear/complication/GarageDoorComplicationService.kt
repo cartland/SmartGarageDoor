@@ -171,7 +171,7 @@ class GarageDoorComplicationService : SuspendingComplicationDataSourceService() 
     ): ComplicationData {
         if (door == null) {
             return longText(
-                plain(getString(GarageComplicationWords.NO_DATA)),
+                plain(getString(GarageComplicationWords.LONG_NO_SIGNAL)),
                 plain(getString(R.string.tile_title)),
                 description,
             )

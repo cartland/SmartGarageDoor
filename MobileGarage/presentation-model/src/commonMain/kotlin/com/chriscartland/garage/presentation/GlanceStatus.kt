@@ -73,6 +73,50 @@ enum class GlanceWarning {
 }
 
 /**
+ * The second line of a glance: when the door entered its state, or why we
+ * cannot say. Decided HERE (strategy 1.3) — it used to be written three
+ * times, in the widget, the tile and the complication, and they agreed only
+ * because the mapper happened to withhold the instant whenever muted.
+ */
+sealed interface GlanceSubline {
+    /**
+     * The door has been this way since this instant. A surface renders it
+     * as a self-updating duration if its renderer can count, and as an
+     * absolute clock time if it cannot — never as a number it computed.
+     */
+    data class Duration(
+        val sinceEpochSeconds: Long,
+    ) : GlanceSubline
+
+    /** We cannot vouch for the reading, so there is no span to claim. One word, everywhere: "Not confirmed". */
+    data object NotConfirmed : GlanceSubline
+
+    /** Nothing to add: no door known at all, so the headline already says it. */
+    data object Nothing : GlanceSubline
+
+    companion object {
+        /** The rule, in one place. Public so a fixture can derive it the way the mapper does. */
+        fun of(
+            headline: StatusHeadline,
+            stateSinceEpochSeconds: Long?,
+            liveness: Liveness,
+        ): GlanceSubline =
+            when {
+                // No door at all: the headline already says "No signal", and an
+                // empty cache is STALE by definition, so without this arm every
+                // glance would print "Not confirmed" under a line that means
+                // the same thing.
+                headline !is StatusHeadline.Door -> Nothing
+                // Trust the mapper's withholding: a non-null instant has already
+                // been judged presentable.
+                stateSinceEpochSeconds != null -> Duration(stateSinceEpochSeconds)
+                liveness == Liveness.STALE -> NotConfirmed
+                else -> Nothing
+            }
+    }
+}
+
+/**
  * Everything a GLANCE surface needs to say about the door, decided once.
  *
  * A glance surface is one the SYSTEM renders while the app is not running and
@@ -117,6 +161,8 @@ data class GlanceStatus(
      * mapper always sets it.
      */
     val warning: GlanceWarning? = null,
+    /** The second line. Defaulted from the other fields so a fixture cannot construct a status whose subline disagrees with its parts. */
+    val subline: GlanceSubline = GlanceSubline.of(headline, stateSinceEpochSeconds, liveness),
 )
 
 /**

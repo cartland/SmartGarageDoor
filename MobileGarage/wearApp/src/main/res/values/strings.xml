@@ -89,7 +89,6 @@
     <!-- Liveness, as a word rather than a measurement: two states cannot
          drift the way a figure can. Shown only when we CANNOT vouch for the
          reading — when we can, the running duration is itself the proof. -->
-    <string name="tile_not_confirmed">Not confirmed</string>
     <!-- Qualifier appended to the door word when the shared GlanceWarning
          applies: "Opening · stuck". The duration line is untouched, so a
          stuck door reads "Opening · stuck" over "22 min". -->
@@ -146,6 +145,10 @@
     <!-- Long-text when the reading cannot be vouched for: no duration, since
          a door we have lost contact with may have moved twice since. -->
     <string name="complication_long_stale">%1$s, not confirmed</string>
+    <!-- Long-text slots have room for the same word every other surface uses
+         when nothing has ever been heard. The SHORT slot keeps "No data": "No
+         signal" is nine characters against a budget of seven. -->
+    <string name="complication_long_no_signal">No signal</string>
     <!-- Editor preview only, so a fixed string rather than a running one:
          preview data is cached by the system and meant to be constant. -->
     <string name="complication_preview_duration">8 mins</string>

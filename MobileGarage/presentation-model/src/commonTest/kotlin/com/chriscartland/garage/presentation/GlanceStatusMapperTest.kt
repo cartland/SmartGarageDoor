@@ -20,6 +20,7 @@ package com.chriscartland.garage.presentation
 import com.chriscartland.garage.domain.model.DoorPosition
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -180,5 +181,42 @@ class GlanceStatusMapperTest {
         val stale = glanceOf(DoorPosition.OPENING_TOO_LONG, checkInAgeSeconds = 4_000)
         assertEquals(Liveness.STALE, stale.liveness)
         assertNull(stale.warning)
+    }
+
+    // ---------------------------------------------------------------- subline
+
+    @Test
+    fun aConfirmedDoorsSecondLineIsTheInstantItChanged() {
+        val status = glanceOf(DoorPosition.CLOSED, checkInAgeSeconds = 10)
+        assertEquals(GlanceSubline.Duration(status.stateSinceEpochSeconds!!), status.subline)
+    }
+
+    @Test
+    fun aDoorWeCannotVouchForSaysNotConfirmedInsteadOfASpan() {
+        assertEquals(GlanceSubline.NotConfirmed, glanceOf(DoorPosition.CLOSED, checkInAgeSeconds = 4_000).subline)
+    }
+
+    @Test
+    fun nothingKnownAddsNoSecondLine() {
+        val status = GlanceStatusMapper.forGlance(
+            doorPosition = null,
+            lastCheckInEpochSeconds = null,
+            lastChangeEpochSeconds = null,
+            nowEpochSeconds = 1_000_000L,
+            isFetchError = false,
+        )
+        // No signal is the headline; a second line would repeat it.
+        assertEquals(GlanceSubline.Nothing, status.subline)
+    }
+
+    @Test
+    fun theThreeSublinesAreActuallyDifferent() {
+        // Positive control: a rule collapsing two cases into one would pass
+        // any single assertion above.
+        val live = glanceOf(DoorPosition.CLOSED, checkInAgeSeconds = 10).subline
+        val stale = glanceOf(DoorPosition.CLOSED, checkInAgeSeconds = 4_000).subline
+        assertNotEquals(live, stale)
+        assertNotEquals(stale, GlanceSubline.Nothing)
+        assertNotEquals(live, GlanceSubline.Nothing)
     }
 }

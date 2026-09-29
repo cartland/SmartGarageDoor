@@ -45,6 +45,7 @@ import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.DoorColorState
 import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.GlanceStatus
+import com.chriscartland.garage.presentation.GlanceSubline
 import com.chriscartland.garage.ui.home.HomeStatusFormatter
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -194,8 +195,8 @@ internal fun GarageDoorWidgetBody(
 /**
  * The second line, resolved to words.
  *
- * The CHOICE of line is [GarageWidgetSubline]'s (JVM-tested); this only renders
- * it. `formatTimeOrDate` is the Home screen's own formatter, reused so that
+ * The CHOICE of line is the shared [GlanceSubline]'s, decided in the mapper
+ * and tested there; this only renders it. `formatTimeOrDate` is the Home screen's own formatter, reused so that
  * "3:42 PM" on the widget and "3:42 PM" on the door screen cannot come out
  * differently — and so a door older than today picks up the same "Apr 28, 9:47
  * PM" qualifier rather than a second, vaguer convention.
@@ -203,19 +204,22 @@ internal fun GarageDoorWidgetBody(
 @Composable
 private fun sublineText(status: GlanceStatus): String? {
     val context = LocalContext.current
-    return when (val subline = GarageWidgetSubline.forStatus(status)) {
-        is WidgetSubline.Since ->
+    return when (val subline = status.subline) {
+        // A widget cannot self-update a duration (30-minute floor; the only
+        // live primitive is a stopwatch), so the instant is shown as an
+        // absolute clock time, which no update schedule can make wrong.
+        is GlanceSubline.Duration ->
             context.getString(
                 R.string.widget_since_format,
                 HomeStatusFormatter.formatTimeOrDate(
-                    instant = Instant.ofEpochSecond(subline.epochSeconds),
+                    instant = Instant.ofEpochSecond(subline.sinceEpochSeconds),
                     now = Instant.now(),
                     zone = ZoneId.systemDefault(),
                 ),
             )
 
-        WidgetSubline.Stale -> context.getString(R.string.widget_liveness_stale)
-        WidgetSubline.Silent -> null
+        GlanceSubline.NotConfirmed -> context.getString(R.string.widget_not_confirmed)
+        GlanceSubline.Nothing -> null
     }
 }
 
