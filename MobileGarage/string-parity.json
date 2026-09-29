@@ -1,0 +1,24 @@
+[
+  {
+    "_comment": "Cross-platform string parity (docs/CROSS_SURFACE_UX_STRATEGY.md § 4.1, ADR-035). Each entry is one shared decision whose WORDS must agree wherever the surface exists: android / wear name a <string name> in that app's strings.xml; ios names the Localizable.xcstrings key, which is the English text. A platform without the surface is left out; an entry must still name two. Checked by .github/scripts/string-parity.test.mjs on every PR (the required 'Script unit tests' check). Add an entry when a shared decision's words land on a second platform; a differing word or a missing key fails the check."
+  },
+  { "concept": "DoorHeadline.OPEN", "android": "home_door_state_open", "wear": "door_state_open", "ios": "Open" },
+  { "concept": "DoorHeadline.CLOSED", "android": "home_door_state_closed", "wear": "door_state_closed", "ios": "Closed" },
+  { "concept": "DoorHeadline.OPENING", "android": "home_door_state_opening", "wear": "door_state_opening", "ios": "Opening" },
+  { "concept": "DoorHeadline.CLOSING", "android": "home_door_state_closing", "wear": "door_state_closing", "ios": "Closing" },
+  { "concept": "DoorHeadline.UNKNOWN", "android": "home_door_state_unknown", "wear": "door_state_unknown", "ios": "Unknown" },
+  { "concept": "DoorHeadline.SENSOR_CONFLICT", "android": "home_door_state_sensor_conflict", "wear": "door_state_sensor_conflict", "ios": "Sensor conflict" },
+  { "concept": "StatusHeadline.Connecting", "android": "home_door_state_connecting", "wear": "door_state_connecting", "ios": "Connecting…" },
+  { "concept": "StatusHeadline.NoSignal", "android": "home_door_state_no_signal", "wear": "door_state_no_signal", "ios": "No signal" },
+  { "concept": "GlanceSubline.NotConfirmed", "android": "widget_not_confirmed", "wear": "door_state_not_confirmed" },
+  { "concept": "Snooze sheet title", "android": "settings_snooze_title", "ios": "Snooze notifications" },
+  { "concept": "SnoozeDurationUIOption.None", "android": "settings_snooze_option_none", "ios": "Don't snooze" },
+  { "concept": "SnoozeDurationUIOption.OneHour", "android": "settings_snooze_option_one_hour", "ios": "1 hour" },
+  { "concept": "SnoozeDurationUIOption.FourHours", "android": "settings_snooze_option_four_hours", "ios": "4 hours" },
+  { "concept": "SnoozeDurationUIOption.EightHours", "android": "settings_snooze_option_eight_hours", "ios": "8 hours" },
+  { "concept": "SnoozeDurationUIOption.TwelveHours", "android": "settings_snooze_option_twelve_hours", "ios": "12 hours" },
+  { "concept": "SnoozeAction.Failed.EventChanged", "android": "snooze_failed_event_changed", "ios": "Door state changed before snooze could apply." },
+  { "concept": "SnoozeAction.Failed.NetworkError", "android": "snooze_failed_network", "ios": "Snooze did not apply. Check your connection and try again." },
+  { "concept": "SnoozeAction.Failed.NotAuthenticated", "android": "snooze_failed_not_authenticated", "ios": "Sign in to snooze notifications." },
+  { "concept": "SnoozeAction.Failed.MissingData", "android": "snooze_failed_missing_data", "ios": "No recent door event available. Try again in a moment." }
+]
