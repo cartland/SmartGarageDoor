@@ -141,6 +141,8 @@ targets:
       # __Snapshots__).
       - path: SnapshotTests/PreviewTests.generated.swift
         optional: true
+      # Hand-written, no snapshot machinery: the warning's notification action.
+      - path: SnapshotTests/NotificationActionTests.swift
     dependencies:
       - target: GarageControl
       - package: SnapshotTesting

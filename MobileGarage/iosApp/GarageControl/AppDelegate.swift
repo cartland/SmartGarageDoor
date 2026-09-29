@@ -52,6 +52,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNU
 
         Messaging.messaging().delegate = self
         UNUserNotificationCenter.current().delegate = self
+        // The open-door warning's "Snooze 1 hour" action (strategy 3.5),
+        // shown on any notification the server stamps with the category.
+        DoorWarningCategory.register()
         Task { @MainActor in
             _ = try? await UNUserNotificationCenter.current()
                 .requestAuthorization(options: [.alert, .badge, .sound])
@@ -123,6 +126,18 @@ final class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNU
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
+        // The warning's Snooze action (strategy 3.5): no screen opens. Snooze
+        // the door on disk for an hour and say how it went where the warning
+        // was. Everything else below is a tap that opens the app.
+        if response.actionIdentifier == DoorWarningCategory.snoozeOneHour {
+            let action = await SnoozeFromNotification.perform(component: component)
+            await SnoozeFromNotification.present(
+                action,
+                replacing: response.notification.request.identifier,
+                center: center
+            )
+            return
+        }
         // Tapping a notification opens the app; if it carries door-event data,
         // apply it too. (The live data-message path is didReceiveRemoteNotification.)
         if let event = doorEvent(from: response.notification.request.content.userInfo) {

@@ -183,14 +183,17 @@ export interface ApnsConfig {
 export interface ApnsHeaders {
   'apns-push-type': ApnsPushType,
   // A background push MUST be priority 5 — APNs rejects priority 10
-  // (immediate) for a payload with no visible alert/sound/badge.
-  'apns-priority': '5',
+  // (immediate) for a payload with no visible alert/sound/badge. A visible
+  // alert (the open-door warning) is sent at 10, immediate.
+  'apns-priority': '5' | '10',
   [key: string]: string,
 }
 
 // https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages#apnspushtype
 export enum ApnsPushType {
   BACKGROUND = 'background',
+  // A user-visible notification. APNs requires it on any payload with an alert.
+  ALERT = 'alert',
 }
 
 // https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages#apnspayload
@@ -199,10 +202,25 @@ export interface ApnsPayload {
 }
 
 // https://developer.apple.com/documentation/usernotifications/generating-a-remote-notification
+//
+// Two senders, two shapes, each setting exactly one key: the data
+// (state-sync) message sets `content-available`, the open-door warning sets
+// `category`. One interface rather than a union because tests index the
+// payload by key. NO `alert` here, deliberately: FCM derives `aps.alert`
+// from the message's `notification` block, and an explicit one would
+// override the title/body every old app already renders.
 export interface Aps {
   // Wakes the app in the background with no visible UI. Value must be the
   // literal integer 1 (not `true`) — that is Apple's wire format, and
   // firebase-admin's own validation converts a boolean to it, so the
   // literal keeps this file honest about what actually goes over the wire.
-  'content-available': 1,
+  'content-available'?: 1,
+  // Names the client-registered notification category whose actions the
+  // alert shows — the warning's "Snooze 1 hour" on iOS (strategy 3.5).
+  category?: string,
 }
+
+// `aps.category` on the open-door warning. The iOS client registers the
+// matching UNNotificationCategory; both ends are pinned to
+// wire-contracts/fcmDoorWarning/apns_category.json.
+export const DOOR_WARNING_APNS_CATEGORY = 'DOOR_WARNING';

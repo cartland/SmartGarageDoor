@@ -226,6 +226,10 @@ abstract class AppComponent(
     abstract val liveClock: LiveClock
     abstract val appSettleWindow: AppSettleWindow
     abstract val receiveFcmDoorEventUseCase: ReceiveFcmDoorEventUseCase
+
+    // UI-less caller (ADR-033 a): the warning's Snooze action runs in
+    // SnoozeActionReceiver with no screen and no ViewModel.
+    abstract val snoozeNotificationsUseCase: SnoozeNotificationsUseCase
     abstract val appClock: AppClock
     abstract val dispatcherProvider: DispatcherProvider
     abstract val networkButtonDataSource: NetworkButtonDataSource
