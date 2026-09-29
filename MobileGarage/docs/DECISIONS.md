@@ -1811,7 +1811,7 @@ Principles:
 
 - ADR-029 — the parity principle this implements.
 - [`PRESENTATION_MODEL_REALIZATION.md`](./PRESENTATION_MODEL_REALIZATION.md) — the phased plan, slice checklist, and parity-gap inventory.
-- Dormant scaffolding: `presentation-model/.../{HomeScreenState,DoorHistoryScreenState,ProfileScreenState}.kt`.
+- Dormant scaffolding: `presentation-model/.../{HomeScreenState,DoorHistoryScreenState,ProfileScreenState}.kt` — never wired; removed in strategy 4.7 (2026-09-29). The realized layer is the decision types listed in `ARCHITECTURE.md`, not enriched screen-state classes.
 - Mappers still to relocate: `androidApp/.../ui/home/{HomeMapper,HomeStatusFormatter}.kt`. `DoorWarning` and `HistoryMapper` moved to `presentation-model` (Phases 1 and 3).
 
 ---

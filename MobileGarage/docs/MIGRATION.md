@@ -421,7 +421,7 @@ Original scope (all done):
 | DI wiring | `AppComponent.kt`, `ActivityViewModels.kt`, `ComponentProvider.kt`, `Singleton.kt` | Partial | `Singleton` can move; `AppComponent` stays per-platform |
 | Settings impl | ~~`AppSettings.kt`, `SettingManager.kt`~~ | **Done** | Replaced with reactive DataStore (#199) |
 | Platform | `MainActivity.kt`, `GarageApplication.kt`, permissions, version | No | Android framework entry points |
-| Time formatting | `TimeFormats.kt` | **Yes** | Replace `java.time` with `kotlinx-datetime` (Phase 36) |
+| Time formatting | ~~`TimeFormats.kt`~~ | **Done** | Deleted with its only consumer, the unrouted `DoorStatusCard` (strategy 4.7); the since-clock decision is `SinceStatusMapper` in `presentation-model` |
 | Config values | `LocalConfig.kt` | Partial | Types shared; `BuildConfig` values stay per-platform |
 | HTTP engine | `KtorHttpClientProvider.kt` | expect/actual | Engine selection via KMP expect/actual (Phase 37) |
 

@@ -53,7 +53,7 @@ Gradle modules (declared in `settings.gradle.kts`):
 | `data/` | `commonMain` | KMP | Data source interfaces, Ktor HTTP implementations, platform bridges, repository implementations |
 | `data-local/` | `commonMain` | KMP | Room database + DAOs + entity mapping, DataStore settings |
 | `usecase/` | `commonMain` | KMP | UseCases, ViewModels (via KMP `androidx.lifecycle.viewmodel`), app-scoped Managers, `ButtonStateMachine` |
-| `presentation-model/` | `commonMain` | KMP | Screen-state data classes (`HomeScreenState`, `DoorHistoryScreenState`, etc.) + demo data |
+| `presentation-model/` | `commonMain` | KMP | Shared display decisions (`DoorHeadline`, `DataFreshness`, `GlanceStatus`, the mappers) + demo data |
 | `androidApp/` | `main/java` | Android | Compose UI, Firebase bridge implementations, DI wiring, Activity/Application/Service |
 | `test-common/` | `commonMain` | KMP | Shared fakes (14+ fakes across repositories, data sources, bridges) |
 | `android-screenshot-tests/` | `screenshotTest` | Android | Preview-based screenshot tests |
@@ -104,7 +104,7 @@ Phase 43 (#240-#252) enforces ViewModel → UseCase only — a lint rule blocks 
 
 ### Presentation-model module (`presentation-model/`)
 
-`HomeScreenState`, `DoorHistoryScreenState`, `ProfileScreenState`, demo data.
+The shared display-decision types (`DoorHeadline`, `StatusHeadline`, `DataFreshness`, `GlanceStatus`, `DoorWarning`, `HistoryRow`, …), their mappers, and demo data. (The skeletal `HomeScreenState` / `DoorHistoryScreenState` / `ProfileScreenState` classes the module was scaffolded with were never wired to anything and were removed in strategy 4.7.)
 
 ### Android app module (`androidApp/`)
 
@@ -119,7 +119,7 @@ Packages under `androidApp/src/main/java/com/chriscartland/garage/`:
 | `di/` | kotlin-inject wiring | `AppComponent.kt`, `ActivityViewModels.kt`, `ComponentProvider.kt`, `Singleton.kt` |
 | `fcm/` | Firebase Messaging bridge + Android service | `FCMService.kt`, `FcmMessageHandler.kt`, `FirebaseMessagingBridge.kt` |
 | `permissions/` | Notification permission (API 33+) | Accompanist request flow |
-| `ui/` | Compose screens, cards, theme, navigation | `Main.kt` (Nav3 NavDisplay + entryProvider), `HomeContent.kt`, `DoorHistoryContent.kt`, `ProfileContent.kt`, `RemoteButtonContent.kt`, `SnoozeNotificationCard.kt`, `DoorStatusCard.kt`, `AnimatableGarageDoor.kt`, `GarageDoorCanvas.kt`, `theme/` |
+| `ui/` | Compose screens, cards, theme, navigation | `Main.kt` (Nav3 NavDisplay + entryProvider), `HomeContent.kt`, `DoorHistoryContent.kt`, `ProfileContent.kt`, `RemoteButtonContent.kt`, `SnoozeNotificationCard.kt`, `AnimatableGarageDoor.kt`, `GarageDoorCanvas.kt`, `theme/` |
 | `version/` | Android `AppVersion` via `PackageManager` | — |
 
 `GarageApplication.kt` uses kotlin-inject (`AppComponent`). Hilt was fully removed (#133 era, see `docs/archive/DI-MIGRATION.md`). No `@HiltAndroidApp` in the tree.

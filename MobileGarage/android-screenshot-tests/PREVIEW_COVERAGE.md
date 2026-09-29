@@ -3,7 +3,7 @@
 
 # Preview Screenshot Coverage
 
-**109 / 109 (100%)**
+**108 / 108 (100%)**
 
 ## Covered
 
@@ -19,7 +19,6 @@
 - `DiagnosticsContentClearInFlightPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/DiagnosticsContent.kt`
 - `DiagnosticsContentPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/settings/DiagnosticsContent.kt`
 - `DoorHistoryContentPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/DoorHistoryContent.kt`
-- `DoorStatusCardPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/DoorStatusCard.kt`
 - `DoorStatusInfoSheetContentPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/InfoBottomSheet.kt`
 - `ErrorCardLongButtonWordPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/ErrorCard.kt`
 - `ErrorCardManyButtonWordsPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/ErrorCard.kt`

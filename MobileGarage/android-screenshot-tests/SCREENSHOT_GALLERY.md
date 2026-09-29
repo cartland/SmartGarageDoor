@@ -40,12 +40,6 @@ Generated on Sun May 10 16:06:35 PDT 2026
 ### DeviceCheckInPillStalePreviewTest_Light_fc5b723e_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DeviceCheckInPillStalePreviewTest_Light_fc5b723e_0.png" width="300" />
 
-### DoorStatusCardPreviewTest_Dark_77106447_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DoorStatusCardPreviewTest_Dark_77106447_0.png" width="300" />
-
-### DoorStatusCardPreviewTest_Light_fc5b723e_0
-<img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/DoorStatusCardPreviewTest_Light_fc5b723e_0.png" width="300" />
-
 ### ErrorCardLongButtonWordPreviewTest_Dark_77106447_0
 <img src="src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/ErrorCardLongButtonWordPreviewTest_Dark_77106447_0.png" width="300" />
 

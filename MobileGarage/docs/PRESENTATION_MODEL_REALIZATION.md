@@ -30,6 +30,8 @@ day grouping) is in `androidApp/` today, unreachable from iOS. Re-implementing i
 in Swift = a second source of truth that drifts. A shared `presentation-model`
 module already exists (`HomeScreenState`, `DoorHistoryScreenState`,
 `ProfileScreenState`) but is skeletal and unused. Wire it up.
+(Those three skeletal classes stayed unused as the slices below shipped their
+own decision types instead, and were removed in strategy 4.7.)
 
 ## Architectural rules (from ADR-031)
 

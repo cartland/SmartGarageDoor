@@ -118,7 +118,7 @@ val doorStatusDarkScheme =
 /**
  * The door's color family. Now the shared `:domain` [DomainDoorColorState]; this
  * `typealias` keeps the theme-package import path stable (zero churn) for the UI
- * consumers (`DoorStatusCard` / `HomeContent` / `HistoryContent`).
+ * consumers (`HomeContent` / `HistoryContent`).
  */
 typealias DoorColorState = DomainDoorColorState
 
