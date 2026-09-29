@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Tue Sep 29 10:17:20 PDT 2026
+Generated on Tue Sep 29 10:23:34 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -76,6 +76,12 @@ Generated on Tue Sep 29 10:17:20 PDT 2026
 ### GarageDoorButtonDoorFailedPreviewTest_Light_fc5b723e_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonDoorFailedPreviewTest_Light_fc5b723e_0.png" width="300" />
 
+### GarageDoorButtonForbiddenPreviewTest_Dark_77106447_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonForbiddenPreviewTest_Dark_77106447_0.png" width="300" />
+
+### GarageDoorButtonForbiddenPreviewTest_Light_fc5b723e_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonForbiddenPreviewTest_Light_fc5b723e_0.png" width="300" />
+
 ### GarageDoorButtonPreparingPreviewTest_Dark_77106447_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/GarageDoorButtonPreparingPreviewTest_Dark_77106447_0.png" width="300" />
 
@@ -117,6 +123,12 @@ Generated on Tue Sep 29 10:17:20 PDT 2026
 
 ### NetworkDiagramDoorFailedPreviewTest_Light_fc5b723e_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramDoorFailedPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### NetworkDiagramForbiddenPreviewTest_Dark_77106447_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramForbiddenPreviewTest_Dark_77106447_0.png" width="300" />
+
+### NetworkDiagramForbiddenPreviewTest_Light_fc5b723e_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramForbiddenPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### NetworkDiagramIdlePreviewTest_Dark_77106447_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/NetworkDiagramIdlePreviewTest_Dark_77106447_0.png" width="300" />
@@ -165,6 +177,12 @@ Generated on Tue Sep 29 10:17:20 PDT 2026
 
 ### RemoteButtonContentDoorFailedPreviewTest_Light_fc5b723e_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentDoorFailedPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### RemoteButtonContentForbiddenPreviewTest_Dark_77106447_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentForbiddenPreviewTest_Dark_77106447_0.png" width="300" />
+
+### RemoteButtonContentForbiddenPreviewTest_Light_fc5b723e_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentForbiddenPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### RemoteButtonContentPreparingPreviewTest_Dark_77106447_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/ComponentsScreenshotTestKt/RemoteButtonContentPreparingPreviewTest_Dark_77106447_0.png" width="300" />
@@ -252,6 +270,9 @@ Generated on Tue Sep 29 10:17:20 PDT 2026
 
 ## GarageDoorScreenshotTestKt
 
+### AppIconClosedDoorPreviewTest_App icon - closed door_dc74db62_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/AppIconClosedDoorPreviewTest_App icon - closed door_dc74db62_0.png" width="300" />
+
 ### GarageDoorClosedPreviewTest_Dark_77106447_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/GarageDoorScreenshotTestKt/GarageDoorClosedPreviewTest_Dark_77106447_0.png" width="300" />
 
@@ -320,6 +341,12 @@ Generated on Tue Sep 29 10:17:20 PDT 2026
 ### HistoryContentEmptyPreviewTest_Light_fc5b723e_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentEmptyPreviewTest_Light_fc5b723e_0.png" width="300" />
 
+### HistoryContentLoadingMoreFooterPreviewTest_Dark_77106447_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentLoadingMoreFooterPreviewTest_Dark_77106447_0.png" width="300" />
+
+### HistoryContentLoadingMoreFooterPreviewTest_Light_fc5b723e_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentLoadingMoreFooterPreviewTest_Light_fc5b723e_0.png" width="300" />
+
 ### HistoryContentMultiDayClosedPreviewTest_Dark_77106447_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayClosedPreviewTest_Dark_77106447_0.png" width="300" />
 
@@ -331,6 +358,12 @@ Generated on Tue Sep 29 10:17:20 PDT 2026
 
 ### HistoryContentMultiDayPreviewTest_Light_fc5b723e_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### HistoryContentReachedBeginningPreviewTest_Dark_77106447_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentReachedBeginningPreviewTest_Dark_77106447_0.png" width="300" />
+
+### HistoryContentReachedBeginningPreviewTest_Light_fc5b723e_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HistoryRedesignScreenshotTestKt/HistoryContentReachedBeginningPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ## HomeRedesignScreenshotTestKt
 
@@ -351,6 +384,18 @@ Generated on Tue Sep 29 10:17:20 PDT 2026
 
 ### HomeContentClosedSignedInPreviewTest_Light_fc5b723e_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentClosedSignedInPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### HomeContentConnectingPreviewTest_Dark_77106447_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentConnectingPreviewTest_Dark_77106447_0.png" width="300" />
+
+### HomeContentConnectingPreviewTest_Light_fc5b723e_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentConnectingPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### HomeContentNoSignalPreviewTest_Dark_77106447_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentNoSignalPreviewTest_Dark_77106447_0.png" width="300" />
+
+### HomeContentNoSignalPreviewTest_Light_fc5b723e_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentNoSignalPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### HomeContentOnTabletPreviewTest_Tablet Dark_e3fcbfbf_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentOnTabletPreviewTest_Tablet Dark_e3fcbfbf_0.png" width="300" />
@@ -375,6 +420,12 @@ Generated on Tue Sep 29 10:17:20 PDT 2026
 
 ### HomeContentPermissionMissingPreviewTest_Light_fc5b723e_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentPermissionMissingPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### HomeContentRemotePillHiddenPreviewTest_Dark_77106447_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillHiddenPreviewTest_Dark_77106447_0.png" width="300" />
+
+### HomeContentRemotePillHiddenPreviewTest_Light_fc5b723e_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillHiddenPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### HomeContentRemotePillOfflinePreviewTest_Dark_77106447_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentRemotePillOfflinePreviewTest_Dark_77106447_0.png" width="300" />
@@ -405,6 +456,18 @@ Generated on Tue Sep 29 10:17:20 PDT 2026
 
 ### HomeContentSendingToDoorPreviewTest_Light_fc5b723e_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSendingToDoorPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### HomeContentSettledStalePreviewTest_Dark_77106447_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSettledStalePreviewTest_Dark_77106447_0.png" width="300" />
+
+### HomeContentSettledStalePreviewTest_Light_fc5b723e_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSettledStalePreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### HomeContentSettlingPreviewTest_Dark_77106447_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSettlingPreviewTest_Dark_77106447_0.png" width="300" />
+
+### HomeContentSettlingPreviewTest_Light_fc5b723e_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSettlingPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### HomeContentSignedOutPreviewTest_Dark_77106447_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSignedOutPreviewTest_Dark_77106447_0.png" width="300" />
@@ -584,6 +647,12 @@ Generated on Tue Sep 29 10:17:20 PDT 2026
 ### DiagnosticsContentPreviewTest_Light_fc5b723e_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/DiagnosticsContentPreviewTest_Light_fc5b723e_0.png" width="300" />
 
+### SettingsContentCheckingPreviewTest_Dark_77106447_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentCheckingPreviewTest_Dark_77106447_0.png" width="300" />
+
+### SettingsContentCheckingPreviewTest_Light_fc5b723e_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentCheckingPreviewTest_Light_fc5b723e_0.png" width="300" />
+
 ### SettingsContentPermissionDeniedPreviewTest_Dark_77106447_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentPermissionDeniedPreviewTest_Dark_77106447_0.png" width="300" />
 
@@ -613,6 +682,24 @@ Generated on Tue Sep 29 10:17:20 PDT 2026
 
 ### SettingsContentSnoozeInFlightPreviewTest_Light_fc5b723e_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentSnoozeInFlightPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### SettingsContentWatchInstalledPreviewTest_Dark_77106447_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentWatchInstalledPreviewTest_Dark_77106447_0.png" width="300" />
+
+### SettingsContentWatchInstalledPreviewTest_Light_fc5b723e_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentWatchInstalledPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### SettingsContentWatchInstalledUnknownVersionPreviewTest_Dark_77106447_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentWatchInstalledUnknownVersionPreviewTest_Dark_77106447_0.png" width="300" />
+
+### SettingsContentWatchInstalledUnknownVersionPreviewTest_Light_fc5b723e_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentWatchInstalledUnknownVersionPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### SettingsContentWatchInstallPreviewTest_Dark_77106447_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentWatchInstallPreviewTest_Dark_77106447_0.png" width="300" />
+
+### SettingsContentWatchInstallPreviewTest_Light_fc5b723e_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SettingsContentWatchInstallPreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### SnoozeSheetContentActivePreviewTest_Dark_77106447_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/SettingsRedesignScreenshotTestKt/SnoozeSheetContentActivePreviewTest_Dark_77106447_0.png" width="300" />
