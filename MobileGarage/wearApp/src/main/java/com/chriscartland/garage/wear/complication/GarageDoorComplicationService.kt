@@ -110,7 +110,7 @@ class GarageDoorComplicationService : SuspendingComplicationDataSourceService() 
                 shortText(
                     text = plain(getString(R.string.complication_door_closed)),
                     title = plain(getString(R.string.complication_preview_duration)),
-                    description = getString(R.string.complication_preview_description),
+                    description = plain(getString(R.string.complication_preview_description)),
                 )
             ComplicationType.LONG_TEXT ->
                 longText(
@@ -122,7 +122,7 @@ class GarageDoorComplicationService : SuspendingComplicationDataSourceService() 
                         ),
                     ),
                     title = plain(getString(R.string.tile_title)),
-                    description = getString(R.string.complication_preview_description),
+                    description = plain(getString(R.string.complication_preview_description)),
                 )
             else -> null
         }
@@ -132,10 +132,14 @@ class GarageDoorComplicationService : SuspendingComplicationDataSourceService() 
         status: GlanceStatus,
     ): ComplicationData? {
         val door = GarageComplicationWords.doorWord(status.headline)?.let(::getString)
-        val description = door ?: getString(GarageComplicationWords.NO_DATA)
+        // What a screen reader hears, whichever slot the face uses: the long
+        // form, qualified — the running duration when live, "not confirmed"
+        // when stale — never the bare door word (strategy 2.3). The long text
+        // IS this, so the two cannot drift.
+        val spoken = spokenText(GarageComplicationWords.spoken(status, door))
         return when (type) {
-            ComplicationType.SHORT_TEXT -> shortTextFor(status, door, description)
-            ComplicationType.LONG_TEXT -> longTextFor(status, door, description)
+            ComplicationType.SHORT_TEXT -> shortTextFor(status, door, spoken)
+            ComplicationType.LONG_TEXT -> longTextFor(spoken)
             // Every other slot would have to show the door with no room to
             // qualify it. See the class KDoc: that is the one thing this must
             // never do.
@@ -146,7 +150,7 @@ class GarageDoorComplicationService : SuspendingComplicationDataSourceService() 
     private fun shortTextFor(
         status: GlanceStatus,
         door: String?,
-        description: String,
+        description: ComplicationText,
     ): ComplicationData {
         if (door == null) {
             return shortText(plain(getString(GarageComplicationWords.NO_DATA)), null, description)
@@ -164,34 +168,8 @@ class GarageDoorComplicationService : SuspendingComplicationDataSourceService() 
         return shortText(plain(door), runningDuration(status), description)
     }
 
-    private fun longTextFor(
-        status: GlanceStatus,
-        door: String?,
-        description: String,
-    ): ComplicationData {
-        if (door == null) {
-            return longText(
-                plain(getString(GarageComplicationWords.LONG_NO_SIGNAL)),
-                plain(getString(R.string.tile_title)),
-                description,
-            )
-        }
-        if (GarageComplicationWords.staleLeads(status)) {
-            return longText(
-                plain(getString(R.string.complication_long_stale, door)),
-                plain(getString(R.string.tile_title)),
-                description,
-            )
-        }
-        // Long text has room for the door and its running duration together.
-        // `^1` is where the face substitutes the duration it renders.
-        val body = runningDuration(
-            status,
-            style = TimeDifferenceStyle.WORDS_SINGLE_UNIT,
-            template = getString(R.string.complication_long_text, door, "^1"),
-        ) ?: plain(door)
-        return longText(body, plain(getString(R.string.tile_title)), description)
-    }
+    /** The long slot shows exactly what is spoken — one qualified statement. */
+    private fun longTextFor(spoken: ComplicationText): ComplicationData = longText(spoken, plain(getString(R.string.tile_title)), spoken)
 
     /**
      * How long the door has been in its state, as text the WATCH FACE renders.
@@ -223,25 +201,43 @@ class GarageDoorComplicationService : SuspendingComplicationDataSourceService() 
         status: GlanceStatus,
         style: TimeDifferenceStyle = TimeDifferenceStyle.SHORT_WORDS_SINGLE_UNIT,
         template: String? = null,
-    ): ComplicationText? {
-        val since = status.stateSinceEpochSeconds ?: return null
-        return TimeDifferenceComplicationText
+    ): ComplicationText? = status.stateSinceEpochSeconds?.let { runningDuration(it, style, template) }
+
+    private fun runningDuration(
+        sinceEpochSeconds: Long,
+        style: TimeDifferenceStyle,
+        template: String?,
+    ): ComplicationText =
+        TimeDifferenceComplicationText
             .Builder(
                 style = style,
-                countUpTimeReference = CountUpTimeReference(Instant.ofEpochSecond(since)),
+                countUpTimeReference = CountUpTimeReference(Instant.ofEpochSecond(sinceEpochSeconds)),
             ).apply { template?.let { setText(it) } }
             .build()
-    }
+
+    /** The words a screen reader hears, from the shared [GarageComplicationWords.spoken] decision. */
+    private fun spokenText(spoken: GarageComplicationWords.Spoken): ComplicationText =
+        when (spoken) {
+            GarageComplicationWords.Spoken.NoSignal -> plain(getString(GarageComplicationWords.LONG_NO_SIGNAL))
+            is GarageComplicationWords.Spoken.NotConfirmed -> plain(getString(R.string.complication_long_stale, spoken.door))
+            is GarageComplicationWords.Spoken.Undated -> plain(spoken.door)
+            is GarageComplicationWords.Spoken.Live ->
+                runningDuration(
+                    spoken.sinceEpochSeconds,
+                    style = TimeDifferenceStyle.WORDS_SINGLE_UNIT,
+                    template = getString(R.string.complication_long_text, spoken.door, "^1"),
+                )
+        }
 
     private fun plain(text: String): ComplicationText = PlainComplicationText.Builder(text).build()
 
     private fun shortText(
         text: ComplicationText,
         title: ComplicationText?,
-        description: String,
+        description: ComplicationText,
     ): ComplicationData =
         ShortTextComplicationData
-            .Builder(text = text, contentDescription = plain(description))
+            .Builder(text = text, contentDescription = description)
             .apply {
                 title?.let { setTitle(it) }
                 setTapAction(openTheApp())
@@ -250,10 +246,10 @@ class GarageDoorComplicationService : SuspendingComplicationDataSourceService() 
     private fun longText(
         text: ComplicationText,
         title: ComplicationText?,
-        description: String,
+        description: ComplicationText,
     ): ComplicationData =
         LongTextComplicationData
-            .Builder(text = text, contentDescription = plain(description))
+            .Builder(text = text, contentDescription = description)
             .apply {
                 title?.let { setTitle(it) }
                 setTapAction(openTheApp())

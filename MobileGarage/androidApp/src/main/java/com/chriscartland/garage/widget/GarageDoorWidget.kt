@@ -36,6 +36,8 @@ import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -133,7 +135,15 @@ class GarageDoorWidget : GlanceAppWidget() {
 internal data class GarageWidgetText(
     val headline: String,
     val subline: String?,
-)
+) {
+    /**
+     * What a screen reader hears: both lines as ONE statement ("Closed, since
+     * 3:42 PM"), or the headline alone. Without it TalkBack read two texts with
+     * no relationship between them (strategy 2.3).
+     */
+    val spoken: String
+        get() = if (subline == null) headline else "$headline, $subline"
+}
 
 /**
  * Resolves a [GlanceStatus] into words, then draws it.
@@ -170,10 +180,13 @@ internal fun GarageDoorWidgetBody(
             .background(GarageWidgetColors.background(colorState, freshness))
             .cornerRadius(WIDGET_CORNER_RADIUS)
             .padding(WIDGET_PADDING)
-            .clickable(actionStartActivity<MainActivity>()),
+            .clickable(actionStartActivity<MainActivity>())
+            .semantics { contentDescription = text.spoken },
         verticalAlignment = Alignment.Vertical.CenterVertically,
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
     ) {
+        // One line each: a widget cell has no room to wrap, and a wrapped
+        // headline would push the subline out of the frame unread.
         Text(
             text = text.headline,
             style = TextStyle(
@@ -181,12 +194,14 @@ internal fun GarageDoorWidgetBody(
                 fontSize = HEADLINE_SIZE,
                 fontWeight = FontWeight.Medium,
             ),
+            maxLines = 1,
         )
         val subline = text.subline
         if (subline != null) {
             Text(
                 text = subline,
                 style = TextStyle(color = textColor, fontSize = SUBLINE_SIZE),
+                maxLines = 1,
             )
         }
     }
