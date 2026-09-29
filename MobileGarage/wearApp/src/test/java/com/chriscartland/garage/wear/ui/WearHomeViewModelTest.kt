@@ -140,6 +140,58 @@ class WearHomeViewModelTest {
             viewModel.onHidden()
         }
 
+    // --- The hold, for people who cannot hold ---
+
+    @Test
+    fun accessibilityArmThenConfirmSubmitsPress() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            authRepository.setIdTokenResult(null)
+            viewModel.onAccessibilityArm()
+            advanceTimeBy(PREPARING_DELAY_MILLIS + 1)
+            runCurrent()
+            assertEquals(RemoteButtonState.AwaitingConfirmation, viewModel.buttonState.value)
+            assertEquals("arming alone must not press", 0, remoteButtonRepository.pushCount)
+            viewModel.onAccessibilityConfirm()
+            runCurrent()
+            assertEquals(1, remoteButtonRepository.pushCount)
+        }
+
+    @Test
+    fun accessibilityConfirmWithoutArmDoesNothing() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            viewModel.onAccessibilityConfirm()
+            runCurrent()
+            assertEquals(0, remoteButtonRepository.pushCount)
+            assertEquals(RemoteButtonState.Ready, viewModel.buttonState.value)
+        }
+
+    @Test
+    fun accessibilityArmTimesOutLikeAnyArmedTap() =
+        runTest {
+            // The guard is the state machine's window, not the gesture's.
+            val viewModel = createViewModel()
+            signIn()
+            viewModel.onAccessibilityArm()
+            advanceTimeBy(PREPARING_DELAY_MILLIS + ButtonStateMachine.DEFAULT_CONFIRMATION_TIMEOUT + 1)
+            runCurrent()
+            viewModel.onAccessibilityConfirm()
+            runCurrent()
+            assertEquals(0, remoteButtonRepository.pushCount)
+        }
+
+    @Test
+    fun accessibilityArmWhileSignedOutDoesNothing() =
+        runTest {
+            val viewModel = createViewModel()
+            viewModel.onAccessibilityArm()
+            runCurrent()
+            assertEquals(RemoteButtonState.Ready, viewModel.buttonState.value)
+        }
+
     private fun signIn() {
         authRepository.setAuthState(
             AuthState.Authenticated(

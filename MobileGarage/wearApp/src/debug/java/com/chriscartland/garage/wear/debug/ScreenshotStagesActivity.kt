@@ -207,6 +207,8 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             ring = fixture.ring,
                             onHoldStart = {},
                             onHoldEnd = {},
+                            onAccessibilityArm = {},
+                            onAccessibilityConfirm = {},
                             onVoiceClick = {},
                             onSignInClick = {},
                         )
@@ -223,6 +225,8 @@ class ScreenshotStagesActivity : ComponentActivity() {
                             signInError = fixture.signInError,
                             onHoldStart = {},
                             onHoldEnd = {},
+                            onAccessibilityArm = {},
+                            onAccessibilityConfirm = {},
                             onVoiceClick = {},
                             onSignInClick = {},
                         )
