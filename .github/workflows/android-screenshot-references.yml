@@ -36,6 +36,19 @@ jobs:
         with:
           encrypt-key: ${{ secrets.ENCRYPT_KEY }}
 
+      # setup-android pins JDK 17 (the Android CI baseline, where the
+      # screenshot tests are only COMPILED). The Preview Screenshot Test
+      # Engine (com.android.compose.screenshot 0.0.1-alpha12) is built for
+      # JDK 21 and fails its initialization on 17 with
+      # UnsupportedClassVersionError (first dispatch, run 36599489071). The
+      # maintainer's Mac — where the committed references were recorded —
+      # runs Gradle on 21, so this also matches the references' provenance.
+      - name: Use JDK 21 for the render (the engine's class version)
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
       # One Gradle run per test class, exactly as scripts/generate-android-screenshots.sh
       # does locally (sequential to avoid Layoutlib OOM). Starts from an empty
       # reference dir so a deleted preview's PNG does not linger in the artifact.
