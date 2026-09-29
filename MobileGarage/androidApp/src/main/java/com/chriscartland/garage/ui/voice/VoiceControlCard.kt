@@ -51,9 +51,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.chriscartland.garage.R
-import com.chriscartland.garage.domain.model.VoiceIntent
 import com.chriscartland.garage.ui.VoiceCommandUi
-import com.chriscartland.garage.ui.displayText
+import com.chriscartland.garage.ui.VoiceSurfaceMode
+import com.chriscartland.garage.ui.VoiceWords
 import com.chriscartland.garage.ui.micContentDescription
 import com.chriscartland.garage.ui.micIcon
 import com.chriscartland.garage.ui.theme.CardPadding
@@ -77,6 +77,8 @@ import com.chriscartland.garage.usecase.VoiceCommandState
 fun VoiceControlCard(
     state: VoiceCommandState,
     onMicTap: () -> Unit,
+    onCancel: () -> Unit,
+    mode: VoiceSurfaceMode,
     modifier: Modifier = Modifier,
 ) {
     // One shared progress drives the ring AND the countdown text so the
@@ -118,7 +120,9 @@ fun VoiceControlCard(
                 else -> Unit
             }
             FilledTonalIconButton(
-                onClick = onMicTap,
+                // Which verb the tap is — cancel while armed, the mic otherwise —
+                // is VoiceCommandUi.cancelsOnTap's decision (strategy 2.5).
+                onClick = if (VoiceCommandUi.cancelsOnTap(state)) onCancel else onMicTap,
                 enabled = state !is VoiceCommandState.Sending,
                 modifier = Modifier.size(56.dp),
             ) {
@@ -131,6 +135,7 @@ fun VoiceControlCard(
         }
         VoiceStatusColumn(
             state = state,
+            mode = mode,
             armedSecondsLeft = armed?.let {
                 VoiceCommandUi.secondsLeft(it.windowMs, armedProgress.value)
             },
@@ -208,39 +213,28 @@ fun VoiceRecognizerEffects(
 private fun VoiceStatusColumn(
     state: VoiceCommandState,
     armedSecondsLeft: Int?,
+    mode: VoiceSurfaceMode,
     modifier: Modifier = Modifier,
 ) {
-    val hint = stringResource(R.string.home_voice_hint)
-    val (primary, secondary) = when (state) {
-        VoiceCommandState.Ready ->
-            stringResource(R.string.home_voice_ready_title) to hint
-        is VoiceCommandState.Listening ->
-            stringResource(R.string.voice_control_listening) to hint
-        is VoiceCommandState.Armed ->
-            stringResource(
-                if (state.intent == VoiceIntent.CLOSE) {
-                    R.string.voice_control_armed_closing
-                } else {
-                    R.string.voice_control_armed_opening
-                },
-                armedSecondsLeft ?: VoiceCommandUi.secondsLeft(state.windowMs, 0f),
-            ) to stringResource(R.string.voice_control_transcript_quote, state.transcript)
-        is VoiceCommandState.Sending ->
-            stringResource(R.string.voice_control_sending) to
-                stringResource(R.string.home_voice_sending_subtitle)
-        is VoiceCommandState.Sent ->
-            stringResource(R.string.voice_control_sent) to
-                stringResource(R.string.home_voice_sent_subtitle)
-        is VoiceCommandState.Failed ->
-            stringResource(R.string.voice_control_failed) to
-                stringResource(R.string.home_voice_failed_subtitle)
-        is VoiceCommandState.Ignored ->
-            state.reason.displayText() to (
-                state.transcript?.let {
-                    stringResource(R.string.voice_control_transcript_quote, it)
-                } ?: hint
-            )
-    }
+    // WHICH words is VoiceWords' decision, per surface; this only formats.
+    val primary =
+        when (state) {
+            is VoiceCommandState.Armed ->
+                stringResource(
+                    VoiceWords.primaryLine(state, mode),
+                    armedSecondsLeft ?: VoiceCommandUi.secondsLeft(state.windowMs, 0f),
+                )
+            else -> stringResource(VoiceWords.primaryLine(state, mode))
+        }
+    val transcript =
+        when (state) {
+            is VoiceCommandState.Armed -> state.transcript
+            is VoiceCommandState.Ignored -> state.transcript
+            else -> null
+        }
+    val secondary =
+        transcript?.let { stringResource(R.string.voice_control_transcript_quote, it) }
+            ?: stringResource(VoiceWords.secondaryLine(state, mode))
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(2.dp),

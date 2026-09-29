@@ -40,6 +40,7 @@ import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.VoiceIntent
 import com.chriscartland.garage.domain.model.VoiceIntentClassification
 import com.chriscartland.garage.domain.model.VoiceIntentConfidence
+import com.chriscartland.garage.ui.VoiceSurfaceMode
 import com.chriscartland.garage.ui.voice.VoiceControlCard
 import com.chriscartland.garage.ui.voice.VoiceRecognizerEffects
 import com.chriscartland.garage.usecase.VoiceCommandIgnoreReason
@@ -76,6 +77,7 @@ fun SimulatedVoiceBottomSheet(
     doorState: VoiceDoorState,
     lastVerdict: VoiceVerdict?,
     onMicTap: () -> Unit,
+    onCancel: () -> Unit,
     onTranscript: (String?) -> Unit,
     onCaptureUnavailable: () -> Unit,
     onBackgrounded: () -> Unit,
@@ -105,6 +107,7 @@ fun SimulatedVoiceBottomSheet(
             doorState = doorState,
             lastVerdict = lastVerdict,
             onMicTap = onMicTap,
+            onCancel = onCancel,
             onCopy = onCopy,
         )
     }
@@ -123,6 +126,7 @@ fun SimulatedVoiceSheetContent(
     onMicTap: () -> Unit,
     onCopy: (label: String, value: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
+    onCancel: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -159,7 +163,9 @@ fun SimulatedVoiceSheetContent(
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.large),
         ) {
-            VoiceControlCard(state = state, onMicTap = onMicTap)
+            // The same loop as Home's card against a pretend door — so the
+            // words must never claim a real one moved (strategy 2.5).
+            VoiceControlCard(state = state, onMicTap = onMicTap, onCancel = onCancel, mode = VoiceSurfaceMode.Simulated)
         }
         // Developer tool, deliberately BELOW the rehearsal and outside
         // the card: it is not part of the feature being rehearsed, and
