@@ -17,6 +17,8 @@
 
 package com.chriscartland.garage.presentation
 
+import com.chriscartland.garage.domain.model.CheckInStaleness
+
 /**
  * Typed bucket for "how long since the device last checked in" — the data behind
  * the Home "Status" header pill (ADR-031 shared presentation model).
@@ -86,7 +88,7 @@ object CheckInStatusMapper {
      * `CheckInStalenessManager.CHECK_IN_STALE_THRESHOLD_SECONDS` (11 min) — the
      * two live in different modules and are kept in sync by hand.
      */
-    const val STALE_THRESHOLD_SECONDS = 11L * 60
+    const val STALE_THRESHOLD_SECONDS = CheckInStaleness.THRESHOLD_SECONDS
 
     /**
      * Maps using the default [STALE_THRESHOLD_SECONDS]. This is a separate
