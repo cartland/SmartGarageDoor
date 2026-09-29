@@ -178,6 +178,7 @@ targets:
           "$PREFIRE" tests "$SRCROOT/Features" "$SRCROOT/Core" \
             --target GarageControl --test-target GarageControlSnapshotTests \
             --config "$SRCROOT/.prefire.yml" --output "$SRCROOT/SnapshotTests" \
+            --template "$SRCROOT/SnapshotTests/PreviewTests.stencil" \
             --cache-base-path "$DERIVED_FILE_DIR"
     settings:
       base:

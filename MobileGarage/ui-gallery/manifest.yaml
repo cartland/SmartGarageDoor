@@ -22,7 +22,7 @@
 # Image value idioms (one per platform, by design):
 #   android: ${ref}/...Foo_{theme}_*.png   # {theme} -> Light/Dark; * absorbs the
 #                                          # AGP content hash that changes on regen
-#   ios:     {light: "${ios}/Bar.1.png"}   # explicit: iOS snapshots are light-only
+#   ios:     {light: "${ios}/Bar.1.png", dark: "${ios}/Bar-dark.1.png"}   # explicit (Prefire records a "-dark" twin)
 #   wear:    ${wear}/wear-baz.png          # plain string = all themes (the wear UI
 #                                          # has a single theme; same capture both)
 # Quote YAML boolean-like ids ("off", "on", "yes", "no") — YAML 1.1 parses
@@ -61,17 +61,17 @@ sections:
             label: Closed
             images:
               android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentClosedSignedInPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Home-closed-signed-out.1.png"}
+              ios: {light: "${ios}/Home-closed-signed-out.1.png", dark: "${ios}/Home-closed-signed-out-dark.1.png"}
           - id: open
             label: Open
             images:
               android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentOpenSignedInPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Home-open-signed-in.1.png"}
+              ios: {light: "${ios}/Home-open-signed-in.1.png", dark: "${ios}/Home-open-signed-in-dark.1.png"}
           - id: confirming
             label: Confirming
             images:
               android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentAwaitingConfirmationPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Home-confirm-state.1.png"}
+              ios: {light: "${ios}/Home-confirm-state.1.png", dark: "${ios}/Home-confirm-state-dark.1.png"}
           - id: sending
             label: Sending
             images:
@@ -80,7 +80,7 @@ sections:
             label: Open too long
             images:
               android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentOpeningTooLongPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Home-opening-too-long-warning.1.png"}
+              ios: {light: "${ios}/Home-opening-too-long-warning.1.png", dark: "${ios}/Home-opening-too-long-warning-dark.1.png"}
           - id: stale
             label: Stale data
             images:
@@ -89,12 +89,12 @@ sections:
             label: Alerts
             images:
               android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentPermissionMissingPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Home-with-alerts.1.png"}
+              ios: {light: "${ios}/Home-with-alerts.1.png", dark: "${ios}/Home-with-alerts-dark.1.png"}
           - id: signed-out
             label: Signed out
             images:
               android: ${ref}/HomeRedesignScreenshotTestKt/HomeContentSignedOutPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Home-sign-in-row.1.png"}
+              ios: {light: "${ios}/Home-sign-in-row.1.png", dark: "${ios}/Home-sign-in-row-dark.1.png"}
 
       - id: home-remote-pill
         title: Home, remote pill states
@@ -126,29 +126,29 @@ sections:
             label: Recent events
             images:
               android: ${ref}/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/History-recent-events.1.png"}
+              ios: {light: "${ios}/History-recent-events.1.png", dark: "${ios}/History-recent-events-dark.1.png"}
           - id: closed-days
             label: Closed days
             images:
               android: ${ref}/HistoryRedesignScreenshotTestKt/HistoryContentMultiDayClosedPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/History-closed-states.1.png"}
+              ios: {light: "${ios}/History-closed-states.1.png", dark: "${ios}/History-closed-states-dark.1.png"}
           - id: empty
             label: Empty
             images:
               android: ${ref}/HistoryRedesignScreenshotTestKt/HistoryContentEmptyPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/History-empty.1.png"}
+              ios: {light: "${ios}/History-empty.1.png", dark: "${ios}/History-empty-dark.1.png"}
           - id: loading-older
             label: Loading older
             images:
-              ios: {light: "${ios}/History-loading-older-page.1.png"}
+              ios: {light: "${ios}/History-loading-older-page.1.png", dark: "${ios}/History-loading-older-page-dark.1.png"}
           - id: reached-beginning
             label: Reached beginning
             images:
-              ios: {light: "${ios}/History-reached-beginning.1.png"}
+              ios: {light: "${ios}/History-reached-beginning.1.png", dark: "${ios}/History-reached-beginning-dark.1.png"}
           - id: stale
             label: Stale banner
             images:
-              ios: {light: "${ios}/History-stale-banner.1.png"}
+              ios: {light: "${ios}/History-stale-banner.1.png", dark: "${ios}/History-stale-banner-dark.1.png"}
 
       - id: settings
         title: Settings
@@ -158,7 +158,7 @@ sections:
             label: Signed in (allowlisted)
             images:
               android: ${ref}/SettingsRedesignScreenshotTestKt/SettingsContentSignedInAllowlistedPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Settings-signed-in-developer.1.png"}
+              ios: {light: "${ios}/Settings-signed-in-developer.1.png", dark: "${ios}/Settings-signed-in-developer-dark.1.png"}
           - id: signed-in-basic
             label: Signed in (basic)
             images:
@@ -167,17 +167,17 @@ sections:
             label: Signed out
             images:
               android: ${ref}/SettingsRedesignScreenshotTestKt/SettingsContentSignedOutPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Settings-signed-out.1.png"}
+              ios: {light: "${ios}/Settings-signed-out.1.png", dark: "${ios}/Settings-signed-out-dark.1.png"}
           - id: permission-denied
             label: Notifications off
             images:
               android: ${ref}/SettingsRedesignScreenshotTestKt/SettingsContentPermissionDeniedPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Settings-notifications-disabled.1.png"}
+              ios: {light: "${ios}/Settings-notifications-disabled.1.png", dark: "${ios}/Settings-notifications-disabled-dark.1.png"}
           - id: snooze-sending
             label: Snooze sending
             images:
               android: ${ref}/SettingsRedesignScreenshotTestKt/SettingsContentSnoozeInFlightPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Settings-snooze-sending.1.png"}
+              ios: {light: "${ios}/Settings-snooze-sending.1.png", dark: "${ios}/Settings-snooze-sending-dark.1.png"}
 
       - id: functions
         title: Function list
@@ -187,16 +187,16 @@ sections:
             label: Granted
             images:
               android: ${ref}/ScreensScreenshotTestKt/FunctionListContentPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Functions-granted.1.png"}
+              ios: {light: "${ios}/Functions-granted.1.png", dark: "${ios}/Functions-granted-dark.1.png"}
           - id: denied
             label: Denied
             images:
               android: ${ref}/ScreensScreenshotTestKt/FunctionListContentDeniedPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Functions-locked.1.png"}
+              ios: {light: "${ios}/Functions-locked.1.png", dark: "${ios}/Functions-locked-dark.1.png"}
           - id: test-notifications
             label: Test notifications
             images:
-              ios: {light: "${ios}/Functions-test-notifications.1.png"}
+              ios: {light: "${ios}/Functions-test-notifications.1.png", dark: "${ios}/Functions-test-notifications-dark.1.png"}
 
       - id: diagnostics
         title: Diagnostics
@@ -206,7 +206,7 @@ sections:
             label: Counters
             images:
               android: ${ref}/SettingsRedesignScreenshotTestKt/DiagnosticsContentPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Diagnostics-counters.1.png"}
+              ios: {light: "${ios}/Diagnostics-counters.1.png", dark: "${ios}/Diagnostics-counters-dark.1.png"}
           - id: clearing
             label: Clear in flight
             images:
@@ -223,12 +223,12 @@ sections:
             label: Nothing selected
             images:
               android: ${ref}/SettingsRedesignScreenshotTestKt/SnoozeSheetContentOffPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Snooze-sheet-nothing-selected.1.png"}
+              ios: {light: "${ios}/Snooze-sheet-nothing-selected.1.png", dark: "${ios}/Snooze-sheet-nothing-selected-dark.1.png"}
           - id: active
             label: Option selected
             images:
               android: ${ref}/SettingsRedesignScreenshotTestKt/SnoozeSheetContentActivePreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Snooze-sheet-option-selected.1.png"}
+              ios: {light: "${ios}/Snooze-sheet-option-selected.1.png", dark: "${ios}/Snooze-sheet-option-selected-dark.1.png"}
 
       - id: sheet-account
         title: Account & version sheets
@@ -239,7 +239,7 @@ sections:
             label: Account
             images:
               android: ${ref}/SettingsRedesignScreenshotTestKt/AccountSheetContentSignedInPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Account-sheet.1.png"}
+              ios: {light: "${ios}/Account-sheet.1.png", dark: "${ios}/Account-sheet-dark.1.png"}
           - id: version
             label: Version
             images:
@@ -254,12 +254,12 @@ sections:
             label: Door status
             images:
               android: ${ref}/HomeRedesignScreenshotTestKt/DoorStatusInfoSheetContentPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Info-door-status.1.png"}
+              ios: {light: "${ios}/Info-door-status.1.png", dark: "${ios}/Info-door-status-dark.1.png"}
           - id: remote-control
             label: Remote control
             images:
               android: ${ref}/HomeRedesignScreenshotTestKt/RemoteControlInfoSheetContentPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Info-remote-control.1.png"}
+              ios: {light: "${ios}/Info-remote-control.1.png", dark: "${ios}/Info-remote-control-dark.1.png"}
 
       - id: dialog-clear
         title: Clear diagnostics dialog
@@ -350,12 +350,12 @@ sections:
             label: Closed
             images:
               android: ${ref}/GarageDoorScreenshotTestKt/GarageDoorClosedPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Door-closed.1.png"}
+              ios: {light: "${ios}/Door-closed.1.png", dark: "${ios}/Door-closed-dark.1.png"}
           - id: opening
             label: Opening
             images:
               android: ${ref}/GarageDoorScreenshotTestKt/GarageDoorOpeningPreviewTest_{theme}_*.png
-              ios: {light: "${ios}/Door-opening.1.png"}
+              ios: {light: "${ios}/Door-opening.1.png", dark: "${ios}/Door-opening-dark.1.png"}
           - id: midway
             label: Midway
             images:
@@ -393,7 +393,7 @@ sections:
           - id: grid
             label: All states
             images:
-              ios: {light: "${ios}/Door-states.1.png"}
+              ios: {light: "${ios}/Door-states.1.png", dark: "${ios}/Door-states-dark.1.png"}
 
       - id: garage-icon
         title: Garage icon
@@ -455,7 +455,7 @@ sections:
           - id: grid
             label: All states
             images:
-              ios: {light: "${ios}/Remote-button-states.1.png"}
+              ios: {light: "${ios}/Remote-button-states.1.png", dark: "${ios}/Remote-button-states-dark.1.png"}
 
       - id: remote-section
         title: Remote control section

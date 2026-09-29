@@ -117,7 +117,7 @@ Image value idioms (one per platform, by design):
 
 - `android: ...Foo_{theme}_*.png` — `{theme}` expands per theme via
   `themeTokens`; the `*` absorbs the AGP content hash.
-- `ios: {light: "..."}` — explicit themes only; iOS snapshots are light-only
+- `ios: {light: "...", dark: "...-dark.1.png"}` — explicit themes; Prefire records every preview twice, and the `-dark` twin is the same view under a dark trait collection
   today, so dark shows an honest placeholder.
 - `wear: ...` — a plain string applies to **all** themes (the wear UI has a
   single theme; the same capture is correct under both).

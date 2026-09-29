@@ -13,7 +13,7 @@ viewer can reserve layout space before images load (stable scroll restore).
 
 Manifest schema — see MobileGarage/ui-gallery/README.md. Image value idioms:
   android: ${ref}/Foo_{theme}_*.png     -> {theme} expands per theme (Light/Dark)
-  ios:     {light: ${ios}/Bar.1.png}    -> explicit themes only (iOS is light-only)
+  ios:     {light: ${ios}/Bar.1.png, dark: ${ios}/Bar-dark.1.png}  -> explicit themes
   wear:    ${wear}/wear-baz.png         -> plain string = all themes (single-theme UI)
 
 Usage:
