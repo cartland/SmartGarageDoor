@@ -76,6 +76,7 @@ import com.chriscartland.garage.presentation.PermissionNagMapper
 import com.chriscartland.garage.presentation.SinceStatus
 import com.chriscartland.garage.presentation.StatusHeadline
 import com.chriscartland.garage.presentation.StatusHeadlineMapper
+import com.chriscartland.garage.presentation.WarningSeverity
 import com.chriscartland.garage.ui.DeviceCheckInPill
 import com.chriscartland.garage.ui.DoorStatusInfoBottomSheet
 import com.chriscartland.garage.ui.GarageIcon
@@ -430,9 +431,17 @@ private fun HomeStatusCardBody(
             val warning = status.warning
             if (warning != null) {
                 Spacer(modifier = Modifier.height(Spacing.Tight))
+                // Loudness is the shared decision's (WarningSeverity); this only
+                // maps it to a tone. Same rule iOS follows.
+                val chipTone = when (warning.severity) {
+                    WarningSeverity.ALARM ->
+                        MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+                    WarningSeverity.ADVISORY ->
+                        MaterialTheme.colorScheme.surfaceContainerHigh to LocalDoorStatusColorScheme.current.caution
+                }
                 Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    color = chipTone.first,
+                    contentColor = chipTone.second,
                     shape = MaterialTheme.shapes.medium,
                 ) {
                     Row(
