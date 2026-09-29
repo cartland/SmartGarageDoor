@@ -269,6 +269,17 @@ class ProfileViewModelTest {
         }
 
     @Test
+    fun theDoorIsExposedForTheSnoozeGate() =
+        runTest {
+            val viewModel = createViewModel(authState = AuthState.Authenticated(testUser))
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.OPENING, lastChangeTimeSeconds = 900L),
+            )
+            advanceUntilIdle()
+            assertEquals(DoorPosition.OPENING, viewModel.currentDoorEvent.value?.doorPosition)
+        }
+
+    @Test
     fun snoozeOpenDoorsTransitionsThroughSendingThenSucceeded() =
         runTest {
             val viewModel = createViewModel(

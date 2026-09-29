@@ -17,6 +17,8 @@ enum SnoozeRowDisplay: Equatable {
     case loading
     case permissionDenied
     case off
+    /// The door is moving, so a snooze cannot land until it settles; the row says so.
+    case doorMoving
     /// Snoozing until the given already-localized time of day.
     case snoozingUntil(String)
 
@@ -28,7 +30,7 @@ enum SnoozeRowDisplay: Equatable {
     /// `NotificationsPaused` / `NotificationsOff`.
     var icon: String {
         switch self {
-        case .loading, .off: return "bell"
+        case .loading, .off, .doorMoving: return "bell"
         case .snoozingUntil: return "bell.badge.slash"
         case .permissionDenied: return "bell.slash"
         }
@@ -37,7 +39,15 @@ enum SnoozeRowDisplay: Equatable {
     /// Whether tapping the row opens the duration sheet (versus asking the OS
     /// for permission). Derived from the same value the row rendered from, so
     /// the tap target cannot disagree with the label.
-    var opensDurationSheet: Bool { self != .permissionDenied }
+    var opensDurationSheet: Bool {
+        switch self {
+        case .loading, .off, .snoozingUntil: return true
+        case .permissionDenied, .doorMoving: return false
+        }
+    }
+
+    /// The one non-sheet tap that does something: asking the OS for permission.
+    var promptsForPermission: Bool { self == .permissionDenied }
 
     /// Row subtitle.
     ///
@@ -54,6 +64,8 @@ enum SnoozeRowDisplay: Equatable {
             return "Notifications disabled. Tap to enable."
         case .off:
             return "Notifications enabled"
+        case .doorMoving:
+            return "Snooze once the door settles"
         case .snoozingUntil(let time):
             return "Snoozing until \(time)"
         }
