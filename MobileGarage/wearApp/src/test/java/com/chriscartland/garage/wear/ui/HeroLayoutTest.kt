@@ -156,6 +156,96 @@ class HeroLayoutTest {
         }
     }
 
+    // ---- doorPlacement: the door is placed from the MEASURED label block ----
+
+    @Test
+    fun aOneLineBlockLeavesTheDoorWhereItHasAlwaysBeen() {
+        // Rule 1 reproduces the hand-tuned constant for the case it was tuned for.
+        ROUND_SIZES.forEach { diameter ->
+            val placed = placement(diameter, blockHeightDp = ONE_LINE_DP)
+            assertEquals("$diameter dp: side", diameter * DOOR_WIDTH_FRACTION, placed.sideDp, 0.01f)
+            assertEquals("$diameter dp: centred", diameter / 2f, placed.centreYDp, 0.01f)
+        }
+    }
+
+    @Test
+    fun aTwoLineBlockMovesTheDoorUpWithoutShrinkingIt() {
+        // Rule 2 — the since line's case, and "Not confirmed"'s.
+        ROUND_SIZES.forEach { diameter ->
+            val placed = placement(diameter, blockHeightDp = TWO_LINE_DP)
+            assertEquals("$diameter dp: size kept", diameter * DOOR_WIDTH_FRACTION, placed.sideDp, 0.01f)
+            assertTrue("$diameter dp: moved up", placed.centreYDp < diameter / 2f)
+        }
+    }
+
+    @Test
+    fun theDoorMovesUpByExactlyTheShortfallAndNoFurther() {
+        // Rule 2 is a MINIMUM, not "as high as it can go": the door's bottom
+        // edge lands exactly on the clearance line above the block. Found by
+        // a probe — pinning the centre and letting rule 3 rescue it also
+        // "moved up without shrinking", to the corner limit, and the test
+        // above could not tell the two apart.
+        ROUND_SIZES.forEach { diameter ->
+            val placed = placement(diameter, blockHeightDp = TWO_LINE_DP)
+            val blockTop = diameter - HeroLayout.bottomInsetDp(diameter, diameter * BOTTOM_TEXT_WIDTH_FRACTION) - TWO_LINE_DP
+            assertEquals(
+                "$diameter dp: bottom edge on the clearance line",
+                blockTop - HeroLayout.DOOR_LABEL_CLEARANCE_DP,
+                placed.centreYDp + placed.sideDp / 2f,
+                TOLERANCE,
+            )
+        }
+    }
+
+    @Test
+    fun aBlockTooTallToMoveClearOfShrinksTheDoor() {
+        // Rule 3 — positive control for the test above: a placement that never
+        // shrank would pass it.
+        ROUND_SIZES.forEach { diameter ->
+            val placed = placement(diameter, blockHeightDp = diameter * 0.35f)
+            assertTrue("$diameter dp: shrunk", placed.sideDp < diameter * DOOR_WIDTH_FRACTION)
+            assertTrue("$diameter dp: still a door", placed.sideDp > diameter * 0.2f)
+        }
+    }
+
+    @Test
+    fun theDoorNeverCrossesTheBlockAndStaysInsideTheCircleAndBelowTimeText() {
+        // The invariant, over every block height a real label could produce.
+        ROUND_SIZES.forEach { diameter ->
+            (0..80 step 4).map { it.toFloat() }.forEach { blockHeight ->
+                val placed = placement(diameter, blockHeight)
+                val blockTop = diameter - HeroLayout.bottomInsetDp(diameter, diameter * BOTTOM_TEXT_WIDTH_FRACTION) - blockHeight
+                val half = placed.sideDp / 2f
+                val bottomEdge = placed.centreYDp + half
+                assertTrue(
+                    "$diameter dp, block $blockHeight: bottom $bottomEdge crosses block top $blockTop",
+                    bottomEdge <= blockTop - HeroLayout.DOOR_LABEL_CLEARANCE_DP + 0.01f,
+                )
+                val rise = diameter / 2f - placed.centreYDp + half
+                val topCorner = sqrt(half * half + rise * rise)
+                assertTrue(
+                    "$diameter dp, block $blockHeight: top corner $topCorner outside " + HeroLayout.contentRadiusDp(diameter),
+                    topCorner <= HeroLayout.contentRadiusDp(diameter) + 0.01f,
+                )
+                assertTrue(
+                    "$diameter dp, block $blockHeight: flat top under TimeText",
+                    placed.centreYDp - half >= HeroLayout.TOP_CLEARANCE_DP - 0.01f,
+                )
+            }
+        }
+    }
+
+    private fun placement(
+        diameter: Float,
+        blockHeightDp: Float,
+    ): DoorPlacement =
+        HeroLayout.doorPlacement(
+            diameterDp = diameter,
+            blockHeightDp = blockHeightDp,
+            blockWidthDp = diameter * BOTTOM_TEXT_WIDTH_FRACTION,
+            doorFraction = DOOR_WIDTH_FRACTION,
+        )
+
     /**
      * Distance from the screen centre to a bottom-anchored block's bottom
      * corner — the point that has to clear the ring.
@@ -184,5 +274,9 @@ class HeroLayoutTest {
          */
         const val BOTTOM_TEXT_WIDTH_FRACTION = 0.46f
         const val DOOR_WIDTH_FRACTION = 0.46f
+
+        /** titleMedium alone, and titleMedium over bodySmall, in Wear M3's metrics. */
+        const val ONE_LINE_DP = 20f
+        const val TWO_LINE_DP = 36f
     }
 }

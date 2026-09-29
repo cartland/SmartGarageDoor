@@ -21,11 +21,12 @@ import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.DoorHeadline
+import com.chriscartland.garage.presentation.ElapsedDuration
+import com.chriscartland.garage.presentation.SinceStatus
 import com.chriscartland.garage.presentation.StatusHeadline
 import com.chriscartland.garage.wear.R
 import com.chriscartland.garage.wear.tile.GarageTileWords
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -134,28 +135,62 @@ class HeroScreenMappersTest {
 
     // ---------------------------------------------------------- resting note
 
+    // ---- the slot under the label ----
+
+    private val twoHours = SinceStatus(sinceEpochSeconds = 0L, elapsed = ElapsedDuration.HoursMinutes(hours = 2, minutes = 14))
+
+    private fun slot(
+        buttonState: RemoteButtonState,
+        hasDoorData: Boolean = true,
+        freshness: DataFreshness = DataFreshness.FRESH,
+        since: SinceStatus? = twoHours,
+        doorPosition: DoorPosition = DoorPosition.OPEN,
+    ): HeroSlot = HeroScreenMappers.slotFor(buttonState, doorPosition, hasDoorData, freshness, since)
+
     @Test
-    fun aDoorWeCannotVouchForSaysSoAtRest() {
+    fun aDatedConfirmedDoorSaysHowLongAtRest() {
+        assertEquals(HeroSlot.Since(ElapsedDuration.HoursMinutes(hours = 2, minutes = 14)), slot(RemoteButtonState.Ready))
+    }
+
+    @Test
+    fun aSettlingDoorKeepsItsDuration() {
+        // The settle window mutes the door; it changes no words.
         assertEquals(
-            R.string.door_state_not_confirmed,
-            HeroScreenMappers.restingNote(RemoteButtonState.Ready, hasDoorData = true, freshness = DataFreshness.STALE),
+            HeroSlot.Since(ElapsedDuration.HoursMinutes(hours = 2, minutes = 14)),
+            slot(RemoteButtonState.Ready, freshness = DataFreshness.SETTLING),
         )
     }
 
     @Test
-    fun aConfirmedDoorKeepsTheHoldHint() {
-        // Positive control: a note that appeared for every door would pass
-        // the test above.
-        assertNull(HeroScreenMappers.restingNote(RemoteButtonState.Ready, hasDoorData = true, freshness = DataFreshness.FRESH))
+    fun aDoorWeCannotVouchForSaysSoInsteadOfADuration() {
+        // A duration asserts the door has been that way continuously; a door we
+        // have lost contact with may have moved twice since.
+        assertEquals(HeroSlot.Words(R.string.door_state_not_confirmed), slot(RemoteButtonState.Ready, freshness = DataFreshness.STALE))
     }
 
     @Test
-    fun theNoteYieldsToTheRingMidHoldAndToTheHeadlineWithNoDoor() {
-        // Mid-hold the slot is the ring's; with nothing known the headline
-        // already says "No signal", so a second line would repeat it.
-        assertNull(
-            HeroScreenMappers.restingNote(RemoteButtonState.AwaitingConfirmation, hasDoorData = true, freshness = DataFreshness.STALE),
+    fun anUndatedDoorKeepsTheHoldHint() {
+        // Positive control for the two above: a slot that always said "since"
+        // would pass them.
+        assertEquals(HeroSlot.Words(R.string.button_hint_hold_to_close), slot(RemoteButtonState.Ready, since = null))
+    }
+
+    @Test
+    fun withNoDoorTheHintIsGenericWhateverElseIsKnown() {
+        assertEquals(
+            HeroSlot.Words(R.string.button_hint_hold_to_press_remote),
+            slot(RemoteButtonState.Ready, hasDoorData = false, freshness = DataFreshness.STALE, doorPosition = DoorPosition.UNKNOWN),
         )
-        assertNull(HeroScreenMappers.restingNote(RemoteButtonState.Ready, hasDoorData = false, freshness = DataFreshness.STALE))
+    }
+
+    @Test
+    fun theSlotIsTheRingsMidHoldAndTheHintsInFlight() {
+        // Mid-hold the ring is the channel; a dated door does not change that.
+        assertEquals(HeroSlot.Empty, slot(RemoteButtonState.AwaitingConfirmation))
+        assertEquals(HeroSlot.Empty, slot(RemoteButtonState.Preparing, freshness = DataFreshness.STALE))
+        assertEquals(HeroSlot.Words(R.string.button_hint_sending), slot(RemoteButtonState.SendingToServer))
+        assertEquals(HeroSlot.Words(R.string.button_hint_waiting_for_door), slot(RemoteButtonState.SendingToDoor))
+        assertEquals(HeroSlot.Words(R.string.button_hint_door_failed), slot(RemoteButtonState.DoorFailed))
+        assertEquals(HeroSlot.Words(R.string.button_hint_server_failed), slot(RemoteButtonState.ServerFailed))
     }
 }
