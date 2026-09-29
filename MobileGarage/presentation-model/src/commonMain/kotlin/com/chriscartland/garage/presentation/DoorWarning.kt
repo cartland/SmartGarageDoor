@@ -39,22 +39,51 @@ import com.chriscartland.garage.domain.model.DoorPosition
  *   localized string.
  */
 sealed interface DoorWarning {
-    /** Server-supplied warning text — render verbatim, no localization. */
+    val severity: WarningSeverity
+
+    /** Server-supplied warning text — render verbatim, no localization. The server only speaks up when something needs attention. */
     data class ServerMessage(
         val text: String,
-    ) : DoorWarning
+    ) : DoorWarning {
+        override val severity: WarningSeverity get() = WarningSeverity.ALARM
+    }
 
     /** Fallback for [DoorPosition.OPENING_TOO_LONG]. */
-    data object OpeningTooLong : DoorWarning
+    data object OpeningTooLong : DoorWarning {
+        override val severity: WarningSeverity get() = WarningSeverity.ALARM
+    }
 
     /** Fallback for [DoorPosition.CLOSING_TOO_LONG]. */
-    data object ClosingTooLong : DoorWarning
+    data object ClosingTooLong : DoorWarning {
+        override val severity: WarningSeverity get() = WarningSeverity.ALARM
+    }
 
-    /** Fallback for [DoorPosition.OPEN_MISALIGNED]. */
-    data object OpenMisaligned : DoorWarning
+    /** Fallback for [DoorPosition.OPEN_MISALIGNED]. The door works; the seat is off. */
+    data object OpenMisaligned : DoorWarning {
+        override val severity: WarningSeverity get() = WarningSeverity.ADVISORY
+    }
 
     /** Fallback for [DoorPosition.ERROR_SENSOR_CONFLICT]. */
-    data object SensorConflict : DoorWarning
+    data object SensorConflict : DoorWarning {
+        override val severity: WarningSeverity get() = WarningSeverity.ALARM
+    }
+}
+
+/**
+ * How loudly a [DoorWarning] should be drawn — decided HERE, so the two phones
+ * cannot colour the same note differently (strategy 1.5: before this, Android
+ * drew a transit tag in blue `tertiary` and iOS in orange for one shared
+ * decision).
+ *
+ * The platform words and colours it: ADVISORY gets the caution amber the
+ * History tags use, ALARM the error tone.
+ */
+enum class WarningSeverity {
+    /** Worth knowing, not worth acting on — "open, but it did not seat". */
+    ADVISORY,
+
+    /** Something is wrong NOW — a door still moving long after it should have stopped. */
+    ALARM,
 }
 
 /**
