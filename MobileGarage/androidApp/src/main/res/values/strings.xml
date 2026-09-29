@@ -264,6 +264,14 @@
     <string name="snooze_failed_not_authenticated">Sign in to snooze notifications.</string>
     <string name="snooze_failed_missing_data">No recent door event available. Try again in a moment.</string>
 
+    <!-- The open-door warning's notification action and its outcome cards
+         (strategy 3.5). Failure bodies reuse the snooze_failed_* strings
+         above; the success body reuses settings_notifications_subtitle_snoozing_until. -->
+    <string name="notification_action_snooze_one_hour">Snooze 1 hour</string>
+    <string name="notification_snoozed_title">Notifications snoozed</string>
+    <string name="notification_snooze_failed_title">Snooze did not apply</string>
+    <string name="notification_snooze_cleared">Snooze cleared</string>
+
     <!-- Settings → Account bottom sheet — sign out action. -->
     <string name="settings_account_sign_out">Sign out</string>
 

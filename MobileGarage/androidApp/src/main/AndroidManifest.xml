@@ -61,6 +61,13 @@
             </intent-filter>
         </service>
 
+        <!-- The warning's Snooze action (strategy 3.5). Private and answers no
+             outside intent; it can only snooze, never press
+             (SnoozeActionReceiverSafetyTest). -->
+        <receiver
+            android:name=".fcm.SnoozeActionReceiver"
+            android:exported="false" />
+
         <!-- Wear auth relay: answers the watch's RPC for the phone's
              signed-in identity + a Firebase ID token (Wearable Data Layer).
              Play services starts and binds it on demand; the path filter

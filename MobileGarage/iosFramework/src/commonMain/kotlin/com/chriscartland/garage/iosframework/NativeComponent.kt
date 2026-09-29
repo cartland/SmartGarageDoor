@@ -224,6 +224,10 @@ abstract class NativeComponent(
     abstract val liveClock: LiveClock
     abstract val appSettleWindow: AppSettleWindow
     abstract val receiveFcmDoorEventUseCase: ReceiveFcmDoorEventUseCase
+
+    // UI-less caller: the warning's Snooze action, handled in AppDelegate's
+    // notification-response callback with no screen and no ViewModel.
+    abstract val snoozeNotificationsUseCase: SnoozeNotificationsUseCase
     abstract val appClock: AppClock
     abstract val dispatcherProvider: DispatcherProvider
     abstract val networkButtonDataSource: NetworkButtonDataSource

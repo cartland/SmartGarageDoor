@@ -32,6 +32,10 @@ import co.touchlab.kermit.Logger
 import com.chriscartland.garage.MainActivity
 import com.chriscartland.garage.R
 import com.chriscartland.garage.data.DoorResolvedPayload
+import com.chriscartland.garage.domain.model.SnoozeAction
+import com.chriscartland.garage.ui.home.HomeStatusFormatter
+import java.time.Instant
+import java.time.ZoneId
 import java.util.Locale
 import java.util.TimeZone
 
@@ -75,7 +79,34 @@ class DoorNotificationPresenter(
     ) {
         ensureChannel()
         Logger.d { "DoorNotification: posting warning tag=$TAG title=$title" }
-        post(title = title, body = body)
+        post(title = title, body = body, action = snoozeAction())
+    }
+
+    /**
+     * Say how the warning's Snooze action went, where the warning was
+     * (strategy 3.5). A success REPLACES the warning card — the door is still
+     * open, but the user just said they know — so it lands on the same slot.
+     * A failure sits BESIDE it on its own slot, because the warning still
+     * stands and the card explains why the snooze did not. Which is which,
+     * and the words, are `SnoozeOutcomeWords`.
+     */
+    fun showSnoozeOutcome(
+        action: SnoozeAction,
+        now: Instant = Instant.now(),
+    ) {
+        val titleRes = SnoozeOutcomeWords.title(action) ?: return
+        val bodyRes = SnoozeOutcomeWords.body(action) ?: return
+        val body =
+            if (action is SnoozeAction.Succeeded.Set) {
+                val until = Instant.ofEpochSecond(action.untilEpochSeconds)
+                context.getString(bodyRes, HomeStatusFormatter.formatTimeOrDate(until, now, ZoneId.systemDefault()))
+            } else {
+                context.getString(bodyRes)
+            }
+        val id = if (SnoozeOutcomeWords.replacesWarning(action)) NOTIFICATION_ID else SNOOZE_OUTCOME_NOTIFICATION_ID
+        ensureChannel()
+        Logger.d { "DoorNotification: posting snooze outcome $action on id=$id" }
+        post(title = context.getString(titleRes), body = body, id = id)
     }
 
     /**
@@ -128,6 +159,8 @@ class DoorNotificationPresenter(
     private fun post(
         title: String,
         body: String,
+        id: Int = NOTIFICATION_ID,
+        action: NotificationCompat.Action? = null,
     ) {
         // The permission guard must live in the same method as notify() — lint's
         // MissingPermission check does not follow it across a helper call.
@@ -149,11 +182,31 @@ class DoorNotificationPresenter(
                 .setOnlyAlertOnce(true)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(launchAppIntent())
+                .apply { if (action != null) addAction(action) }
                 .build()
         // Same (tag, id) replaces the existing door notification in place — the
-        // single slot shared by the warning and its resolution.
-        NotificationManagerCompat.from(context).notify(TAG, NOTIFICATION_ID, notification)
+        // single slot shared by the warning and its resolution. A failed snooze
+        // passes its own id so the warning it could not silence stays.
+        NotificationManagerCompat.from(context).notify(TAG, id, notification)
     }
+
+    /**
+     * The warning's one action (strategy 3.5): snooze for an hour, from the
+     * card. Snooze is not a press — it changes what the server will say for
+     * an hour, never what the door does — which is why it may live here while
+     * the button may not. Handled by [SnoozeActionReceiver].
+     */
+    private fun snoozeAction(): NotificationCompat.Action =
+        NotificationCompat.Action
+            .Builder(
+                0,
+                context.getString(R.string.notification_action_snooze_one_hour),
+                SnoozeActionReceiver.pendingIntent(context),
+            )
+            // An unlocked device, as on iOS (`.authenticationRequired`): an
+            // hour of silence is not something a pocket should decide.
+            .setAuthenticationRequired(true)
+            .build()
 
     /**
      * Tap target: open the app. App-built notifications get NO tap action by
@@ -179,6 +232,9 @@ class DoorNotificationPresenter(
         /** One door-alert slot; the warning and its resolution share this (tag, id) for inline replace. */
         const val TAG = "garage_door"
         const val NOTIFICATION_ID = 7001
+
+        /** A failed snooze's card: beside the warning, never over it. */
+        const val SNOOZE_OUTCOME_NOTIFICATION_ID = 7002
 
         /**
          * Create the app-owned "Garage door" channel (HIGH importance).

@@ -86,6 +86,36 @@ sealed interface SnoozeAction {
          */
         data object EventChanged : Failed
     }
+
+    companion object {
+        /**
+         * The one mapping from a snooze request's typed result to the action
+         * a surface shows. Shared so the Settings sheet and the warning's
+         * Snooze action, on both phones, cannot word the same outcome
+         * differently (ADR-035: shared decides, platform words it).
+         */
+        fun of(result: AppResult<SnoozeState, ActionError>): SnoozeAction =
+            when (result) {
+                is AppResult.Success ->
+                    when (val state = result.data) {
+                        is SnoozeState.Snoozing -> Succeeded.Set(state.untilEpochSeconds)
+                        SnoozeState.NotSnoozing -> Succeeded.Cleared
+                        SnoozeState.Loading -> Succeeded.Cleared
+                    }
+                is AppResult.Error ->
+                    when (result.error) {
+                        ActionError.NotAuthenticated -> Failed.NotAuthenticated
+                        ActionError.MissingData -> Failed.MissingData
+                        ActionError.NetworkFailed -> Failed.NetworkError
+                        // The snooze repository never answers Forbidden (every
+                        // HTTP status but 404 is NetworkFailed there), so this
+                        // is worded as the generic failure rather than as a
+                        // snooze refusal nobody can produce.
+                        ActionError.Forbidden -> Failed.NetworkError
+                        ActionError.SnoozeEventChanged -> Failed.EventChanged
+                    }
+            }
+    }
 }
 
 /**

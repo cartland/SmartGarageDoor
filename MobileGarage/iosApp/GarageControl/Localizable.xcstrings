@@ -322,6 +322,9 @@
     "Notifications enabled": {
       "extractionState": "manual"
     },
+    "Notifications snoozed": {
+      "extractionState": "manual"
+    },
     "Open": {
       "extractionState": "manual"
     },
@@ -455,6 +458,12 @@
       "extractionState": "manual"
     },
     "Snooze 1 hour": {
+      "extractionState": "manual"
+    },
+    "Snooze cleared": {
+      "extractionState": "manual"
+    },
+    "Snooze did not apply": {
       "extractionState": "manual"
     },
     "Snooze did not apply. Check your connection and try again.": {

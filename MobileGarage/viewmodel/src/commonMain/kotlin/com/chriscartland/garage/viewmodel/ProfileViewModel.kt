@@ -21,9 +21,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.chriscartland.garage.domain.coroutines.DispatcherProvider
-import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppLoggerKeys
-import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorUpdateStrategyOverride
@@ -475,36 +473,15 @@ class DefaultProfileViewModel(
         Logger.d { "snoozeOpenDoorsNotifications" }
         _snoozeAction.value = SnoozeAction.Sending
         viewModelScope.launch(dispatchers.io) {
-            when (
-                val result = snoozeNotificationsUseCase(
+            val result =
+                snoozeNotificationsUseCase(
                     snoozeDurationHours = snoozeDuration.toServer().duration,
                     lastChangeTimeSeconds = currentDoorEvent.value?.lastChangeTimeSeconds,
                 )
-            ) {
-                is AppResult.Success -> {
-                    val newState = result.data
-                    _snoozeAction.value = when (newState) {
-                        is SnoozeState.Snoozing -> SnoozeAction.Succeeded.Set(newState.untilEpochSeconds)
-                        SnoozeState.NotSnoozing -> SnoozeAction.Succeeded.Cleared
-                        SnoozeState.Loading -> SnoozeAction.Succeeded.Cleared
-                    }
-                    scheduleActionReset()
-                }
-                is AppResult.Error -> {
-                    _snoozeAction.value = when (result.error) {
-                        ActionError.NotAuthenticated -> SnoozeAction.Failed.NotAuthenticated
-                        ActionError.MissingData -> SnoozeAction.Failed.MissingData
-                        ActionError.NetworkFailed -> SnoozeAction.Failed.NetworkError
-                        // The snooze repository never answers Forbidden (every
-                        // HTTP status but 404 is NetworkFailed there), so this
-                        // is worded as the generic failure rather than as a
-                        // snooze refusal nobody can produce.
-                        ActionError.Forbidden -> SnoozeAction.Failed.NetworkError
-                        ActionError.SnoozeEventChanged -> SnoozeAction.Failed.EventChanged
-                    }
-                    scheduleActionReset()
-                }
-            }
+            // One shared mapping (SnoozeAction.of), so the warning's Snooze
+            // action cannot word an outcome differently from this sheet.
+            _snoozeAction.value = SnoozeAction.of(result)
+            scheduleActionReset()
         }
     }
 

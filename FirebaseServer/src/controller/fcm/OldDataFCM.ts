@@ -21,7 +21,7 @@ import { DATABASE as ServerConfigDatabase } from '../../database/ServerConfigDat
 import { isWarningReplaceTagEnabled } from '../config/ConfigAccessors';
 
 import { SensorEvent, SensorEventType } from '../../model/SensorEvent';
-import { AndroidMessagePriority, TopicMessage, Notification, NotificationPriority, AndroidConfig, AndroidNotification } from '../../model/FCM';
+import { AndroidMessagePriority, TopicMessage, Notification, NotificationPriority, AndroidConfig, AndroidNotification, ApnsConfig, ApnsPushType, DOOR_WARNING_APNS_CATEGORY } from '../../model/FCM';
 import { buildTimestampToFcmTopic } from '../../model/FcmTopic';
 import { getSnoozeStatus, SnoozeLatestParams } from '../SnoozeNotifications';
 import { SnoozeStatus } from '../../model/SnoozeRequest';
@@ -186,6 +186,17 @@ export function getDoorNotClosedMessageFromEvent(buildTimestamp: string, current
   if (replaceTagEnabled) {
     message.android.notification.tag = WARNING_REPLACE_TAG;
   }
+  // iOS: name the client-registered notification category so the warning
+  // carries its "Snooze 1 hour" action (strategy 3.5). Additive for every
+  // old app — FCM applies `apns` to Apple devices only — and deliberately
+  // without `alert`: FCM derives `aps.alert` from `notification`, and an
+  // explicit one would override the title/body old apps render. Set before
+  // the switch so every warning branch inherits it; pinned by the freeze
+  // test against wire-contracts/fcmDoorWarning/apns_category.json.
+  message.apns = <ApnsConfig>{
+    headers: { 'apns-push-type': ApnsPushType.ALERT, 'apns-priority': '10' },
+    payload: { aps: { category: DOOR_WARNING_APNS_CATEGORY } },
+  };
   const type = currentEvent.type;
   switch (type) {
     case SensorEventType.Unknown:

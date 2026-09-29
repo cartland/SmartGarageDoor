@@ -19,8 +19,15 @@
  */
 import { expect } from 'chai';
 import { SensorEvent, SensorEventType } from '../../../src/model/SensorEvent';
-import { AndroidMessagePriority, NotificationPriority, TopicMessage } from '../../../src/model/FCM';
+import { AndroidMessagePriority, ApnsPushType, NotificationPriority, TopicMessage } from '../../../src/model/FCM';
 import { getDoorNotClosedMessageFromEvent } from '../../../src/controller/fcm/OldDataFCM';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// The same fixture the iOS client's NotificationActionTests reads.
+const APNS_FIXTURE = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '../../../../wire-contracts/fcmDoorWarning/apns_category.json'), 'utf8'),
+) as { category: string };
 
 describe('OldDataFCM warning freeze-test (old-app wire shape)', () => {
   const BUILD_TIMESTAMP = 'Sat Mar 13 14:45:00 2021';
@@ -74,6 +81,16 @@ describe('OldDataFCM warning freeze-test (old-app wire shape)', () => {
         const message = warningFor(type);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expect((message as any).data).to.be.undefined;
+      });
+
+      it('names the iOS warning category and nothing else in aps (additive to the old-app shape)', () => {
+        const message = warningFor(type);
+        expect(message.apns.headers['apns-push-type']).to.equal(ApnsPushType.ALERT);
+        expect(message.apns.headers['apns-priority']).to.equal('10');
+        // deep.equal, not property checks: an `alert` here would override the
+        // title/body old apps render, and `content-available` would turn the
+        // alert into a background wake.
+        expect(message.apns.payload.aps).to.deep.equal({ category: APNS_FIXTURE.category });
       });
 
       it('sets no channel_id, sound, or click_action (old-app render unchanged)', () => {
