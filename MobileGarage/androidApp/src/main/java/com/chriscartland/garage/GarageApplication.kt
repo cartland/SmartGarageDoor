@@ -20,11 +20,14 @@ package com.chriscartland.garage
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import androidx.glance.appwidget.updateAll
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import com.chriscartland.garage.di.AppComponent
 import com.chriscartland.garage.di.create
 import com.chriscartland.garage.fcm.DoorNotificationPresenter
+import com.chriscartland.garage.usecase.SystemSurfaceRefresher
+import com.chriscartland.garage.widget.GarageDoorWidget
 
 class GarageApplication : Application() {
     /** kotlin-inject component for dependency injection. */
@@ -44,6 +47,23 @@ class GarageApplication : Application() {
         // OS-rendered background open-door warnings to land on (M4). Idempotent.
         DoorNotificationPresenter.createChannel(this)
         reportVisibilityToSharedCode()
+        repaintTheWidgetWhenTheDoorChanges()
+    }
+
+    /**
+     * The home-screen widget is repainted by the launcher every thirty minutes
+     * and by nothing else — so without this, an FCM door event the phone had
+     * already received left the widget wrong for up to half an hour. Started
+     * here rather than in `AppStartup` because a process woken by FCM or by
+     * the launcher never creates an Activity, and this is exactly the case
+     * that matters. `updateAll` no-ops when no widget is placed.
+     */
+    private fun repaintTheWidgetWhenTheDoorChanges() {
+        SystemSurfaceRefresher(
+            doorEvents = component.doorRepository.currentDoorEvent,
+            refresh = { GarageDoorWidget().updateAll(this) },
+            scope = component.applicationScope,
+        ).start()
     }
 
     /**
