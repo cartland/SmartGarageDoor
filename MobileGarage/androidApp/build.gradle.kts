@@ -210,6 +210,17 @@ android {
 
 androidComponents {
     onVariants { variant ->
+        // res/xml/shortcuts.xml must name the variant's applicationId as its
+        // targetPackage (debug builds carry a ".debug" suffix), and res/xml
+        // cannot see manifest placeholders — so the id is handed over as a
+        // string resource, per variant. ShortcutsResourceTest pins the name.
+        variant.resValues.put(
+            variant.makeResValueKey("string", "shortcut_target_package"),
+            variant.applicationId.map {
+                com.android.build.api.variant
+                    .ResValue(it)
+            },
+        )
         variant.outputs.forEach { output ->
             if (output is com.android.build.api.variant.impl.VariantOutputImpl) {
                 output.outputFileName.set(

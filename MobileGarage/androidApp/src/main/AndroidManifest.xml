@@ -46,6 +46,11 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Static app shortcuts. Every entry is a place to LOOK; none can
+                 touch the door (LaunchTarget, ShortcutsResourceTest). -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <service

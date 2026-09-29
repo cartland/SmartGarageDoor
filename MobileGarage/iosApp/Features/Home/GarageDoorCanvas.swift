@@ -459,17 +459,11 @@ extension DoorPosition {
     ///
     /// Which positions collapse onto the same headline is decided by
     /// `DoorHeadlineMapper`, so the two apps cannot end up naming the same door
-    /// differently; this picks only the words. Anomalous variants say what makes
-    /// them anomalous in the warning chip, not here.
+    /// differently; the words live on `DoorHeadline.label`, shared with the
+    /// door-status intent. Anomalous variants say what makes them anomalous in
+    /// the warning chip, not here.
     var statusLabel: LocalizedStringResource {
-        switch DoorHeadlineMapper.shared.forPosition(position: self) {
-        case .open: return "Open"
-        case .closed: return "Closed"
-        case .opening: return "Opening"
-        case .closing: return "Closing"
-        case .unknown: return "Unknown"
-        case .sensorConflict: return "Sensor conflict"
-        }
+        DoorHeadlineMapper.shared.forPosition(position: self).label
     }
 }
 

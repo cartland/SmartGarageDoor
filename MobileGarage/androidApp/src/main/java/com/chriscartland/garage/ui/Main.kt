@@ -59,6 +59,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.autoSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -84,7 +85,7 @@ import com.chriscartland.garage.ui.theme.Spacing
 import kotlinx.serialization.Serializable
 
 @Composable
-fun GarageApp() {
+fun GarageApp(launchTarget: LaunchTarget) {
     // ProvideAppWindowSizeClass installs `LocalAppWindowSizeClass` for the
     // whole app. Adaptive layout decisions (current screen-width cap; future
     // single-pane vs. two-pane branching) read from that local — never from
@@ -100,7 +101,7 @@ fun GarageApp() {
     ProvideAppWindowSizeClass {
         AppTheme {
             CompositionLocalProvider(LocalDoorAnimationMemory provides doorAnimationMemory) {
-                AppNavigation()
+                AppNavigation(launchTarget = launchTarget)
             }
         }
     }
@@ -174,7 +175,7 @@ enum class Tab(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation() {
+fun AppNavigation(launchTarget: LaunchTarget) {
     // Nav3: `rememberNavBackStack` is the saveable back stack. Survives
     // configuration changes (rotation, window size, dark mode, locale,
     // font scale) AND process death. The serialized form rides through
@@ -189,7 +190,15 @@ fun AppNavigation() {
     // need to query historical entries, and a Window-size-class transition
     // triggers Activity recreation we can't lose state through), saveable
     // is the new floor.
-    val backStack: NavBackStack<NavKey> = rememberNavBackStack(Screen.Home)
+    //
+    // The seed is the launch target's stack (Home alone for a plain launch;
+    // Home plus a tab for a static app shortcut). It is only a seed: after a
+    // recreate the saved stack wins, so a shortcut launch survives rotation
+    // the same way any other navigation does. Nav3 takes the seed as varargs
+    // only; the spread copies an array of at most two entries, once, at the
+    // app root, which is what detekt's SpreadOperator rule is not about.
+    @Suppress("SpreadOperator")
+    val backStack: NavBackStack<NavKey> = rememberNavBackStack(*launchTarget.stack.toTypedArray())
 
     // Developer-only debug-color overlay. Read directly from the
     // AppSettings repo so the chrome can paint the override without
@@ -208,6 +217,7 @@ fun AppNavigation() {
             backStack = backStack,
             navigationRailItemPosition = navigationRailItemPosition,
             navigationRailTopPaddingDp = navigationRailTopPaddingDp,
+            openSnoozeOnLaunch = launchTarget.opensSnoozeSheet,
         )
     }
 }
@@ -218,12 +228,17 @@ private fun AppScaffold(
     backStack: NavBackStack<NavKey>,
     navigationRailItemPosition: NavigationRailItemPosition,
     navigationRailTopPaddingDp: Int,
+    openSnoozeOnLaunch: Boolean,
 ) {
     val debug = LocalLayoutDebugEnabled.current
     // Home's "Snooze notifications" lands on Settings with the sheet open
-    // (strategy 2.4). Saveable so a rotation mid-hand-off still arrives; cleared
-    // by Settings once consumed so a later visit does not reopen it.
-    var openSnoozeOnProfile by rememberSaveable { mutableStateOf(false) }
+    // (strategy 2.4); the "Snooze notifications" app shortcut makes the same
+    // hand-off from outside, which is the seed. Saveable so a rotation
+    // mid-hand-off still arrives; cleared by Settings once consumed so a later
+    // visit does not reopen it. The saver is spelled out because the seed is
+    // a parameter rather than a literal, which is all `checkRememberSaveable`
+    // can see; a Boolean is what autoSaver() is for.
+    var openSnoozeOnProfile by rememberSaveable(stateSaver = autoSaver()) { mutableStateOf(openSnoozeOnLaunch) }
     Scaffold(
         topBar = {
             // Back stack is `List<NavKey>`; narrow to our app's `Screen` type

@@ -250,6 +250,9 @@
     "Garage": {
       "extractionState": "manual"
     },
+    "Garage door status": {
+      "extractionState": "manual"
+    },
     "History": {
       "extractionState": "manual"
     },
@@ -271,6 +274,12 @@
     "Init recent door": {
       "extractionState": "manual"
     },
+    "Is the garage door open in ${applicationName}": {
+      "extractionState": "manual"
+    },
+    "It looks stuck.": {
+      "extractionState": "manual"
+    },
     "Just now": {
       "extractionState": "manual"
     },
@@ -290,6 +299,9 @@
       "extractionState": "manual"
     },
     "No signal": {
+      "extractionState": "manual"
+    },
+    "No signal from the garage.": {
       "extractionState": "manual"
     },
     "Not allowed for this account": {
@@ -382,6 +394,9 @@
     "Save": {
       "extractionState": "manual"
     },
+    "Says whether the garage door is open or closed, and since when. It never operates the door.": {
+      "extractionState": "manual"
+    },
     "Sending": {
       "extractionState": "manual"
     },
@@ -436,6 +451,9 @@
     "Since %@ · %@": {
       "extractionState": "manual"
     },
+    "Since %@.": {
+      "extractionState": "manual"
+    },
     "Snooze 1 hour": {
       "extractionState": "manual"
     },
@@ -455,6 +473,9 @@
       "extractionState": "manual"
     },
     "Status": {
+      "extractionState": "manual"
+    },
+    "Still connecting to the garage.": {
       "extractionState": "manual"
     },
     "Stuck closing": {
@@ -478,10 +499,37 @@
     "Test notifications": {
       "extractionState": "manual"
     },
+    "That is not confirmed: the garage has not reported recently.": {
+      "extractionState": "manual"
+    },
     "The door sensor checks in every 10 minutes, or whenever the door moves.": {
       "extractionState": "manual"
     },
+    "The garage app is not ready yet. Try again in a moment.": {
+      "extractionState": "manual"
+    },
+    "The garage door is closed.": {
+      "extractionState": "manual"
+    },
+    "The garage door is closing.": {
+      "extractionState": "manual"
+    },
+    "The garage door is open.": {
+      "extractionState": "manual"
+    },
+    "The garage door is opening.": {
+      "extractionState": "manual"
+    },
+    "The garage door's position is unknown.": {
+      "extractionState": "manual"
+    },
+    "The garage door's sensors disagree.": {
+      "extractionState": "manual"
+    },
     "The remote button checks in frequently. \"Available\" means it just told us it's ready to open or close the door.": {
+      "extractionState": "manual"
+    },
+    "The sensors look misaligned.": {
       "extractionState": "manual"
     },
     "This developer panel is gated to allowlisted accounts.": {
