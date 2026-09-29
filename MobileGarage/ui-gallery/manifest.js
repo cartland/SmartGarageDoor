@@ -55,6 +55,11 @@ window.UI_GALLERY = {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-closed-signed-out.1.png",
          "w": 1125,
          "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-closed-signed-out-dark.1.png",
+         "w": 1125,
+         "h": 2436
         }
        }
       },
@@ -80,6 +85,11 @@ window.UI_GALLERY = {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-open-signed-in.1.png",
          "w": 1125,
          "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-open-signed-in-dark.1.png",
+         "w": 1125,
+         "h": 2436
         }
        }
       },
@@ -103,6 +113,11 @@ window.UI_GALLERY = {
         },
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-confirm-state.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-confirm-state-dark.1.png",
          "w": 1125,
          "h": 2436
         }
@@ -149,6 +164,11 @@ window.UI_GALLERY = {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-opening-too-long-warning.1.png",
          "w": 1125,
          "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-opening-too-long-warning-dark.1.png",
+         "w": 1125,
+         "h": 2436
         }
        }
       },
@@ -193,6 +213,11 @@ window.UI_GALLERY = {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-with-alerts.1.png",
          "w": 1125,
          "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-with-alerts-dark.1.png",
+         "w": 1125,
+         "h": 2436
         }
        }
       },
@@ -216,6 +241,11 @@ window.UI_GALLERY = {
         },
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-sign-in-row.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Home-sign-in-row-dark.1.png",
          "w": 1125,
          "h": 2436
         }
@@ -351,6 +381,11 @@ window.UI_GALLERY = {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-recent-events.1.png",
          "w": 1125,
          "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-recent-events-dark.1.png",
+         "w": 1125,
+         "h": 2436
         }
        }
       },
@@ -374,6 +409,11 @@ window.UI_GALLERY = {
         },
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-closed-states.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-closed-states-dark.1.png",
          "w": 1125,
          "h": 2436
         }
@@ -401,6 +441,11 @@ window.UI_GALLERY = {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-empty.1.png",
          "w": 1125,
          "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-empty-dark.1.png",
+         "w": 1125,
+         "h": 2436
         }
        }
       },
@@ -413,6 +458,11 @@ window.UI_GALLERY = {
        "images": {
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-loading-older-page.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-loading-older-page-dark.1.png",
          "w": 1125,
          "h": 2436
         }
@@ -429,6 +479,11 @@ window.UI_GALLERY = {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-reached-beginning.1.png",
          "w": 1125,
          "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-reached-beginning-dark.1.png",
+         "w": 1125,
+         "h": 2436
         }
        }
       },
@@ -441,6 +496,11 @@ window.UI_GALLERY = {
        "images": {
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-stale-banner.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/History-stale-banner-dark.1.png",
          "w": 1125,
          "h": 2436
         }
@@ -482,6 +542,11 @@ window.UI_GALLERY = {
         },
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Settings-signed-in-developer.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Settings-signed-in-developer-dark.1.png",
          "w": 1125,
          "h": 2436
         }
@@ -528,6 +593,11 @@ window.UI_GALLERY = {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Settings-signed-out.1.png",
          "w": 1125,
          "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Settings-signed-out-dark.1.png",
+         "w": 1125,
+         "h": 2436
         }
        }
       },
@@ -553,6 +623,11 @@ window.UI_GALLERY = {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Settings-notifications-disabled.1.png",
          "w": 1125,
          "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Settings-notifications-disabled-dark.1.png",
+         "w": 1125,
+         "h": 2436
         }
        }
       },
@@ -576,6 +651,11 @@ window.UI_GALLERY = {
         },
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Settings-snooze-sending.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Settings-snooze-sending-dark.1.png",
          "w": 1125,
          "h": 2436
         }
@@ -619,6 +699,11 @@ window.UI_GALLERY = {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Functions-granted.1.png",
          "w": 1125,
          "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Functions-granted-dark.1.png",
+         "w": 1125,
+         "h": 2436
         }
        }
       },
@@ -644,6 +729,11 @@ window.UI_GALLERY = {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Functions-locked.1.png",
          "w": 1125,
          "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Functions-locked-dark.1.png",
+         "w": 1125,
+         "h": 2436
         }
        }
       },
@@ -656,6 +746,11 @@ window.UI_GALLERY = {
        "images": {
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Functions-test-notifications.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Functions-test-notifications-dark.1.png",
          "w": 1125,
          "h": 2436
         }
@@ -697,6 +792,11 @@ window.UI_GALLERY = {
         },
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Diagnostics-counters.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Diagnostics-counters-dark.1.png",
          "w": 1125,
          "h": 2436
         }
@@ -764,6 +864,11 @@ window.UI_GALLERY = {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Snooze-sheet-nothing-selected.1.png",
          "w": 1125,
          "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Snooze-sheet-nothing-selected-dark.1.png",
+         "w": 1125,
+         "h": 2436
         }
        }
       },
@@ -787,6 +892,11 @@ window.UI_GALLERY = {
         },
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Snooze-sheet-option-selected.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Snooze-sheet-option-selected-dark.1.png",
          "w": 1125,
          "h": 2436
         }
@@ -828,6 +938,11 @@ window.UI_GALLERY = {
         },
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Account-sheet.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Account-sheet-dark.1.png",
          "w": 1125,
          "h": 2436
         }
@@ -890,6 +1005,11 @@ window.UI_GALLERY = {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Info-door-status.1.png",
          "w": 1125,
          "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Info-door-status-dark.1.png",
+         "w": 1125,
+         "h": 2436
         }
        }
       },
@@ -913,6 +1033,11 @@ window.UI_GALLERY = {
         },
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Info-remote-control.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Info-remote-control-dark.1.png",
          "w": 1125,
          "h": 2436
         }
@@ -1277,6 +1402,11 @@ window.UI_GALLERY = {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Door-closed.1.png",
          "w": 1125,
          "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Door-closed-dark.1.png",
+         "w": 1125,
+         "h": 2436
         }
        }
       },
@@ -1300,6 +1430,11 @@ window.UI_GALLERY = {
         },
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Door-opening.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Door-opening-dark.1.png",
          "w": 1125,
          "h": 2436
         }
@@ -1463,6 +1598,11 @@ window.UI_GALLERY = {
        "images": {
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Door-states.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Door-states-dark.1.png",
          "w": 1125,
          "h": 2436
         }
@@ -1720,6 +1860,11 @@ window.UI_GALLERY = {
        "images": {
         "default|ios|light": {
          "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Remote-button-states.1.png",
+         "w": 1125,
+         "h": 2436
+        },
+        "default|ios|dark": {
+         "src": "../iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated/Remote-button-states-dark.1.png",
          "w": 1125,
          "h": 2436
         }

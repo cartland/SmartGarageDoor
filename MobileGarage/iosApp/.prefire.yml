@@ -5,6 +5,10 @@
 # `@testable import`s in the generated PreviewTests. The generated tests render
 # each preview via swift-snapshot-testing. Generation + the "regenerate, don't
 # assert" record posture are driven by scripts/generate-ios-screenshots.sh.
+# The test TEMPLATE is SnapshotTests/PreviewTests.stencil — Prefire's default
+# plus a dark appearance pass — passed as `--template` by the Run Script in
+# project.yml (`template_file_path` here would resolve against
+# `test_target_path`, which this project does not set).
 test_configuration:
   target: GarageControl
   # Previews reference Kotlin types (e.g. DoorPosition) from the `shared`

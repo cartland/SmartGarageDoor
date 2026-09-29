@@ -35,6 +35,15 @@ phase regenerates `PreviewTests.generated.swift` from every `#Preview` in
 (the run's "failures" are expected and ignored) — and (4) rebuilds
 `SCREENSHOT_GALLERY.md`.
 
+Every preview is recorded **twice**: the light snapshot (`Name.1.png`) and a
+dark twin (`Name-dark.1.png`), the same view under a dark trait collection —
+the mechanism the app follows at runtime, so dynamic colours resolve exactly
+as on a phone in dark mode. The pass lives in `PreviewTests.stencil`:
+Prefire's default test template plus one added function (`assertAppearances`),
+which the pre-build phase hands to Prefire with `--template`. When Prefire is
+bumped, diff its new embedded default against the stencil and carry that one
+function forward.
+
 ## Add a snapshot
 
 Just add a `#Preview` next to your view (which you do anyway for the Xcode
@@ -64,6 +73,7 @@ canvas), then run the script. Notes:
 | `__Snapshots__/**` | Yes | Reference PNGs — the browsable visual reference. |
 | `SCREENSHOT_GALLERY.md` | Yes | Generated browsable gallery. |
 | `../.prefire.yml` | Yes | Prefire config (`target: GarageControl`, `imports: [shared]`). |
+| `PreviewTests.stencil` | Yes | Prefire's test template: the 5.8.1 default plus the dark pass (`assertAppearances`). Passed with `--template` by the pre-build phase. |
 
 ## Building in Xcode
 
