@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Chris Cartland. All rights reserved.
+ * Copyright 2026 Chris Cartland. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,55 +17,36 @@
 
 package com.chriscartland.garage.ui.home
 
-import com.chriscartland.garage.presentation.CheckInAge
 import com.chriscartland.garage.presentation.CheckInStatus
 import com.chriscartland.garage.presentation.CheckInStatusMapper
 import com.chriscartland.garage.presentation.DataFreshness
 
 /**
- * Display state for the device check-in indicator. Carries pre-formatted
- * strings so the renderer (currently [com.chriscartland.garage.ui.DeviceCheckInPill])
- * stays stateless and unit tests cover the formatting directly.
+ * What the device check-in pill shows: the shared, typed verdict about the
+ * garage's last heartbeat, plus whether the pill may ALARM about it.
  *
- * @param durationLabel e.g. "Just now", "30 sec ago", "1 min 30 sec ago".
- *   Equals [NO_DATA_LABEL] when the heartbeat hasn't been observed.
- * @param isStale true once the heartbeat is older than the staleness
- *   threshold (`CheckInStatusMapper.STALE_THRESHOLD_SECONDS`, 11 min). Drives
- *   the icon flip and color change.
+ * @property status the shared [CheckInStatus] — `NoData` before the first
+ *   heartbeat (the pill hides its text), `Reported(age, isStale)` after. The
+ *   words for [CheckInStatus.Reported.age] are [DeviceCheckInWords]', resolved
+ *   from string resources in the Composable; nothing here is a sentence.
+ * @property isStale whether the pill shows its alarm (red, `SensorsOff`).
+ *   This is the SPOKEN verdict — the raw `status.isStale` gated by the settle
+ *   window (`DataFreshness.isSpoken`) — so a warm start on an aged heartbeat
+ *   keeps its words and holds its alarm for five seconds (CLAUDE.md § "The
+ *   settle window").
+ *
+ * Until strategy 4.6 this carried a `durationLabel: String` and a
+ * `NO_DATA_LABEL` sentinel the pill compared against to decide whether to
+ * show text — a Kotlin literal the Compose literal lint could not see, and
+ * a comparison on words. The typed status is the decision; the words are
+ * the platform's.
  */
 data class DeviceCheckInDisplay(
-    val durationLabel: String,
+    val status: CheckInStatus,
     val isStale: Boolean,
 )
 
-/**
- * Android adapter from the shared typed [CheckInStatus] to the rendered
- * [DeviceCheckInDisplay]. The bucketing + staleness *decision* moved to the
- * shared `presentation-model` ([CheckInStatusMapper], ADR-031); this object keeps
- * only the Android-side "… ago" string formatting (the per-UI step iOS mirrors in
- * Swift). Driven by [com.chriscartland.garage.usecase.LiveClock]'s tick via the
- * caller's `nowSeconds` — `MutableStateFlow` equality-dedup makes per-tick calls
- * free for unchanged formatted strings.
- *
- * @param lastCheckInSeconds epoch-seconds of the most recent device heartbeat
- *   (`DoorEvent.lastCheckInTimeSeconds`). Null when no event has been received.
- * @param nowSeconds epoch-seconds of the current wall clock — typically
- *   `LiveClock.nowEpochSeconds.value`.
- * @param staleThresholdSeconds heartbeat age past which the indicator flips to
- *   stale. Defaults to the shared 11-minute threshold.
- */
 object DeviceCheckIn {
-    /**
-     * @param freshness gates only the pill's ALARM styling, never its label.
-     *   The number of minutes is on screen throughout; what waits for
-     *   [DataFreshness.isSpoken] is the red. Without this the pill was the one
-     *   thing still shouting on arrival — a bright chip directly above a card
-     *   the settle window had gone to the trouble of quieting. The rule it
-     *   follows is worth stating: colour that ALARMS is gated on `isSpoken`,
-     *   colour that merely withholds confidence (the greyed door) is gated on
-     *   `isMuted`, so the escalation reads quiet → loud and nothing is hidden.
-     *   iOS applies the identical rule in `HomeViewModelWrapper.resolveCheckIn`.
-     */
     fun format(
         lastCheckInSeconds: Long?,
         nowSeconds: Long,
@@ -76,42 +57,18 @@ object DeviceCheckIn {
         // when the thing being gated is a warning.
         freshness: DataFreshness = DataFreshness.STALE,
         staleThresholdSeconds: Long = CheckInStatusMapper.STALE_THRESHOLD_SECONDS,
-    ): DeviceCheckInDisplay =
-        when (
-            val status =
-                CheckInStatusMapper.forCheckIn(
-                    lastCheckInEpochSeconds = lastCheckInSeconds,
-                    nowEpochSeconds = nowSeconds,
-                    staleThresholdSeconds = staleThresholdSeconds,
-                )
-        ) {
-            CheckInStatus.NoData -> DeviceCheckInDisplay(durationLabel = NO_DATA_LABEL, isStale = false)
-            is CheckInStatus.Reported ->
-                DeviceCheckInDisplay(
-                    durationLabel = label(status.age),
-                    isStale = status.isStale && freshness.isSpoken,
-                )
-        }
-
-    private fun label(age: CheckInAge): String =
-        when (age) {
-            CheckInAge.JustNow -> "Just now"
-            is CheckInAge.Seconds -> "${age.seconds} sec ago"
-            is CheckInAge.Minutes ->
-                if (age.seconds == 0) {
-                    "${age.minutes} min ago"
-                } else {
-                    "${age.minutes} min ${age.seconds} sec ago"
-                }
-            is CheckInAge.Hours ->
-                if (age.minutes == 0) {
-                    "${age.hours} hr ago"
-                } else {
-                    "${age.hours} hr ${age.minutes} min ago"
-                }
-            is CheckInAge.Days -> if (age.days == 1) "1 day ago" else "${age.days} days ago"
-        }
-
-    /** Sentinel duration label for "no heartbeat yet"; the pill hides its text for this value. */
-    const val NO_DATA_LABEL = "No data yet"
+    ): DeviceCheckInDisplay {
+        val status =
+            CheckInStatusMapper.forCheckIn(
+                lastCheckInEpochSeconds = lastCheckInSeconds,
+                nowEpochSeconds = nowSeconds,
+                staleThresholdSeconds = staleThresholdSeconds,
+            )
+        val isStale =
+            when (status) {
+                CheckInStatus.NoData -> false
+                is CheckInStatus.Reported -> status.isStale && freshness.isSpoken
+            }
+        return DeviceCheckInDisplay(status = status, isStale = isStale)
+    }
 }

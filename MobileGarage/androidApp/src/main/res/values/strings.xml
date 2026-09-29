@@ -482,4 +482,28 @@
     <string name="shortcut_history_long">Door history</string>
     <string name="shortcut_snooze_short">Snooze</string>
     <string name="shortcut_snooze_long">Snooze notifications</string>
+
+    <!-- The device check-in pill's heartbeat ages (strategy 4.6): the words
+         DeviceCheckInWords picks for the shared CheckInAge, which used to be
+         Kotlin literals the Compose literal lint could not see. Plurals so
+         each locale keeps its own rule. -->
+    <string name="check_in_just_now">Just now</string>
+    <plurals name="check_in_seconds_ago">
+        <item quantity="one">%1$d sec ago</item>
+        <item quantity="other">%1$d sec ago</item>
+    </plurals>
+    <plurals name="check_in_minutes_ago">
+        <item quantity="one">%1$d min ago</item>
+        <item quantity="other">%1$d min ago</item>
+    </plurals>
+    <string name="check_in_minutes_seconds_ago">%1$d min %2$d sec ago</string>
+    <plurals name="check_in_hours_ago">
+        <item quantity="one">%1$d hr ago</item>
+        <item quantity="other">%1$d hr ago</item>
+    </plurals>
+    <string name="check_in_hours_minutes_ago">%1$d hr %2$d min ago</string>
+    <plurals name="check_in_days_ago">
+        <item quantity="one">%1$d day ago</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
 </resources>
