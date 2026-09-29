@@ -21,6 +21,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 
 /**
@@ -38,31 +39,32 @@ import java.util.Locale
  */
 object HistoryFormatter {
     /**
-     * Format an epoch-seconds time as "h:mm a" (e.g. "9:47 AM").
+     * Format an epoch-seconds time in the locale's short time style: "9:47 AM",
+     * or "21:47" in a 24-hour locale.
      *
-     * The pattern and [Locale.US] are fixed, in production as well as in tests
-     * — this is NOT locale-aware, despite what this comment used to claim. A
-     * device set to 24-hour time still sees AM/PM here. iOS renders History the
-     * same way, so the two platforms agree; if this is ever localized, both
-     * sides should change together.
+     * Until strategy 1.8 this pinned "h:mm a" + [Locale.US] and its KDoc said
+     * iOS rendered History the same way. iOS never did: it uses a localized
+     * template that follows the device's hour cycle, and ADR-035 names 12- vs
+     * 24-hour a locale property rather than a product decision. Tests pass an
+     * explicit [locale] so they do not depend on the JVM's default.
      */
     fun formatTime(
         timeSeconds: Long,
         zone: ZoneId,
+        locale: Locale = Locale.getDefault(),
     ): String =
         Instant
             .ofEpochSecond(timeSeconds)
             .atZone(zone)
-            .format(timeFormatter)
+            .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale))
 
     /**
      * Format a [LocalDate] as a short day-and-date string (e.g.
-     * "Mon, Apr 27"). Used for [DayLabel.Date] rendering.
+     * "Mon, Apr 27"). Used for [DayLabel.Date] rendering. The day and month
+     * names follow [locale]; the field order is fixed.
      */
-    fun formatDate(date: LocalDate): String = date.format(dateFormatter)
-
-    private val timeFormatter: DateTimeFormatter =
-        DateTimeFormatter.ofPattern("h:mm a", Locale.US)
-    private val dateFormatter: DateTimeFormatter =
-        DateTimeFormatter.ofPattern("EEE, MMM d", Locale.US)
+    fun formatDate(
+        date: LocalDate,
+        locale: Locale = Locale.getDefault(),
+    ): String = date.format(DateTimeFormatter.ofPattern("EEE, MMM d", locale))
 }

@@ -18,9 +18,13 @@
 package com.chriscartland.garage.ui.home
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 /**
  * Tests for [HomeStatusFormatter].
@@ -43,29 +47,44 @@ class HomeStatusFormatterTest {
 
     // region formatTimeOrDate
 
+    private fun shortTime(
+        instant: Instant,
+        locale: Locale,
+    ): String = instant.atZone(zone).format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale))
+
     @Test
-    fun formatTimeOrDate_sameDay_shows_only_time() {
-        // 9:47 AM UTC on 2026-04-29.
+    fun formatTimeOrDate_sameDay_shows_only_the_locales_time() {
+        // 9:47 AM UTC on 2026-04-29, compared against the JDK's own localized
+        // rendering rather than a literal: CLDR changed the space before AM/PM
+        // across JDK versions, and the point here is the DECISION (time alone)
+        // plus the hour cycle, not the glyph.
         val instant = Instant.parse("2026-04-29T09:47:00Z")
-        assertEquals("9:47 AM", HomeStatusFormatter.formatTimeOrDate(instant, now, zone))
+        val rendered = HomeStatusFormatter.formatTimeOrDate(instant, now, zone, Locale.US)
+        assertEquals(shortTime(instant, Locale.US), rendered)
+        assertTrue("US is a 12-hour locale: $rendered", rendered.endsWith("AM"))
     }
 
     @Test
-    fun formatTimeOrDate_sameDay_pm() {
-        val instant = Instant.parse("2026-04-29T11:22:00Z")
-        assertEquals("11:22 AM", HomeStatusFormatter.formatTimeOrDate(instant, now, zone))
-    }
-
-    @Test
-    fun formatTimeOrDate_differentDay_shows_month_day_and_time() {
+    fun formatTimeOrDate_differentDay_prefixes_the_date() {
         val instant = Instant.parse("2026-04-28T21:47:00Z")
-        assertEquals("Apr 28, 9:47 PM", HomeStatusFormatter.formatTimeOrDate(instant, now, zone))
+        val rendered = HomeStatusFormatter.formatTimeOrDate(instant, now, zone, Locale.US)
+        assertEquals("Apr 28, " + shortTime(instant, Locale.US), rendered)
+        assertTrue("US is a 12-hour locale: $rendered", rendered.endsWith("PM"))
     }
 
     @Test
     fun formatTimeOrDate_differentMonth() {
         val instant = Instant.parse("2026-03-15T08:05:00Z")
-        assertEquals("Mar 15, 8:05 AM", HomeStatusFormatter.formatTimeOrDate(instant, now, zone))
+        val rendered = HomeStatusFormatter.formatTimeOrDate(instant, now, zone, Locale.US)
+        assertEquals("Mar 15, " + shortTime(instant, Locale.US), rendered)
+    }
+
+    @Test
+    fun formatTimeOrDate_follows_a_24_hour_locale() {
+        // The whole reason for strategy 1.8: a device in a 24-hour locale used
+        // to see AM/PM here anyway.
+        val instant = Instant.parse("2026-04-29T21:47:00Z")
+        assertEquals("21:47", HomeStatusFormatter.formatTimeOrDate(instant, now, zone, Locale.GERMANY))
     }
 
     // endregion

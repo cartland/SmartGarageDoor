@@ -17,6 +17,10 @@
 
 package com.chriscartland.garage.presentation
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+
 /**
  * Typed elapsed-time bucket for the Home "Since … · 2 hr 14 min" status line
  * (ADR-031 shared presentation model).
@@ -53,6 +57,21 @@ sealed interface ElapsedDuration {
 }
 
 /**
+ * How the "since" clock time should be shown: the time alone when the door
+ * changed today, the date as well when it did not.
+ *
+ * This is a DECISION (which variant the user sees), so it lives here (ADR-035);
+ * until strategy 1.8 Android and iOS each re-derived it — one comparing
+ * `LocalDate`s, the other calling `isDateInToday` — with nothing binding them.
+ * The clock FORMAT (12- vs 24-hour, field order) stays per platform: that is a
+ * locale property, not a product decision.
+ */
+enum class SinceClock {
+    TIME_ONLY,
+    DATE_AND_TIME,
+}
+
+/**
  * Typed data for the Home status line. `null` (from [SinceStatusMapper.forEvent])
  * means the door's last-change time is unknown — each UI renders its own
  * "last change time unknown" copy.
@@ -75,6 +94,22 @@ data class SinceStatus(
  * now shared (ADR-031) and unit-tested in `commonTest`.
  */
 object SinceStatusMapper {
+    /**
+     * [SinceClock.TIME_ONLY] when [sinceEpochSeconds] falls on the same local
+     * calendar day as [nowEpochSeconds] in [timeZoneId] (an IANA id — the same
+     * string [HistoryMapper] takes), else [SinceClock.DATE_AND_TIME].
+     */
+    fun clockFor(
+        sinceEpochSeconds: Long,
+        nowEpochSeconds: Long,
+        timeZoneId: String,
+    ): SinceClock {
+        val zone = TimeZone.of(timeZoneId)
+        val sinceDay = Instant.fromEpochSeconds(sinceEpochSeconds).toLocalDateTime(zone).date
+        val today = Instant.fromEpochSeconds(nowEpochSeconds).toLocalDateTime(zone).date
+        return if (sinceDay == today) SinceClock.TIME_ONLY else SinceClock.DATE_AND_TIME
+    }
+
     fun forEvent(
         lastChangeEpochSeconds: Long?,
         nowEpochSeconds: Long,

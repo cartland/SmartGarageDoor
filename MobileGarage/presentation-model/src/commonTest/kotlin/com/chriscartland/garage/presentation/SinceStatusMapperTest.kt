@@ -83,4 +83,28 @@ class SinceStatusMapperTest {
         assertEquals(ElapsedDuration.Days(2), elapsed(2 * 86_400L))
         assertEquals(ElapsedDuration.Days(7), elapsed(7 * 86_400L))
     }
+
+    // ---------------------------------------------------------------- clock
+
+    @Test
+    fun aDoorThatChangedTodayShowsTheTimeAlone() {
+        // 2026-04-29 09:47 UTC vs now 12:00 UTC the same day.
+        assertEquals(SinceClock.TIME_ONLY, SinceStatusMapper.clockFor(1_777_455_620L, 1_777_463_600L, "UTC"))
+    }
+
+    @Test
+    fun aDoorThatChangedYesterdayShowsTheDateToo() {
+        // 2026-04-28 21:47 UTC vs now 2026-04-29 12:00 UTC.
+        assertEquals(SinceClock.DATE_AND_TIME, SinceStatusMapper.clockFor(1_777_412_420L, 1_777_463_600L, "UTC"))
+    }
+
+    @Test
+    fun theCalendarDayIsTheZonesNotUtcs() {
+        // Positive control across midnight: 23:30 UTC on the 28th is already
+        // the 29th in Tokyo, so in Tokyo it is "today" and in UTC it is not.
+        val since = 1_777_419_000L // 2026-04-28T23:30:00Z
+        val now = 1_777_463_600L // 2026-04-29T12:00:00Z
+        assertEquals(SinceClock.TIME_ONLY, SinceStatusMapper.clockFor(since, now, "Asia/Tokyo"))
+        assertEquals(SinceClock.DATE_AND_TIME, SinceStatusMapper.clockFor(since, now, "UTC"))
+    }
 }

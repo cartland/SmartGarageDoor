@@ -372,8 +372,17 @@ final class HomeViewModelWrapper: ObservableObject {
     }()
 
     private static func clockText(for date: Date) -> String {
-        let formatter = Calendar.current.isDateInToday(date) ? timeOnlyFormatter : dateTimeFormatter
-        return formatter.string(from: date)
+        // WHICH form is the shared decision (strategy 1.8), so Android cannot
+        // draw the day line differently; the FORMAT stays this platform's.
+        let clock = SinceStatusMapper.shared.clockFor(
+            sinceEpochSeconds: Int64(date.timeIntervalSince1970),
+            nowEpochSeconds: Int64(Date().timeIntervalSince1970),
+            timeZoneId: TimeZone.current.identifier
+        )
+        switch clock {
+        case .timeOnly: return timeOnlyFormatter.string(from: date)
+        case .dateAndTime: return dateTimeFormatter.string(from: date)
+        }
     }
 
     private static func durationText(for elapsed: ElapsedDuration) -> LocalizedStringResource {
