@@ -28,6 +28,7 @@ import com.chriscartland.garage.di.create
 import com.chriscartland.garage.fcm.DoorNotificationPresenter
 import com.chriscartland.garage.usecase.SystemSurfaceRefresher
 import com.chriscartland.garage.widget.GarageDoorWidget
+import com.chriscartland.garage.widget.GarageWidgetPreview
 
 class GarageApplication : Application() {
     /** kotlin-inject component for dependency injection. */
@@ -48,6 +49,18 @@ class GarageApplication : Application() {
         DoorNotificationPresenter.createChannel(this)
         reportVisibilityToSharedCode()
         repaintTheWidgetWhenTheDoorChanges()
+        publishTheWidgetPreview()
+    }
+
+    /**
+     * The widget picker's image on Android 15+ is the widget's own composable
+     * over a canned reading (`GarageDoorWidget.providePreview`), not a drawing
+     * that drifts. Published here because the picker is consulted BEFORE any
+     * widget exists, so no widget callback runs early enough; older launchers
+     * read the captured `android:previewImage` instead.
+     */
+    private fun publishTheWidgetPreview() {
+        GarageWidgetPreview.publish(context = this, scope = component.applicationScope)
     }
 
     /**
