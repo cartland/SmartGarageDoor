@@ -38,7 +38,7 @@ import androidx.wear.protolayout.types.asLayoutConstraint
 import androidx.wear.protolayout.types.asLayoutString
 import androidx.wear.protolayout.types.layoutString
 import com.chriscartland.garage.presentation.GlanceStatus
-import com.chriscartland.garage.presentation.Liveness
+import com.chriscartland.garage.presentation.GlanceSubline
 import com.chriscartland.garage.wear.MainActivity
 import com.chriscartland.garage.wear.R
 import java.time.Instant
@@ -141,7 +141,7 @@ internal object GarageDoorTileLayout {
      * **When we cannot, there is no duration at all**, by design: the shared
      * mapper withholds the instant, because a duration asserts the door has
      * been this way continuously and a door we have lost contact with may have
-     * moved twice since. The line says [R.string.tile_not_confirmed] instead —
+     * moved twice since. The line says [R.string.door_state_not_confirmed] instead —
      * a word, not a measurement, so it cannot drift.
      *
      * Returning null rather than an empty string matters: `primaryLayout`
@@ -152,17 +152,23 @@ internal object GarageDoorTileLayout {
         context: Context,
         status: GlanceStatus,
     ): (MaterialScope.() -> LayoutElement)? {
-        if (status.liveness == Liveness.STALE) {
-            return {
-                text(
-                    context.getString(R.string.tile_not_confirmed).layoutString,
-                    typography = Typography.BODY_SMALL,
-                )
+        // The CHOICE is the shared GlanceSubline's, decided in the mapper.
+        return when (val subline = status.subline) {
+            GlanceSubline.NotConfirmed -> {
+                {
+                    text(
+                        context.getString(R.string.door_state_not_confirmed).layoutString,
+                        typography = Typography.BODY_SMALL,
+                    )
+                }
             }
+            is GlanceSubline.Duration -> {
+                val running = durationInState(context, subline.sinceEpochSeconds)
+                val slot: MaterialScope.() -> LayoutElement = { text(running, typography = Typography.BODY_SMALL) }
+                slot
+            }
+            GlanceSubline.Nothing -> null
         }
-        val since = status.stateSinceEpochSeconds ?: return null
-        val running = durationInState(context, since)
-        return { text(running, typography = Typography.BODY_SMALL) }
     }
 
     /**
@@ -214,7 +220,7 @@ internal object GarageDoorTileLayout {
             )
 
         return dynamic.asLayoutString(
-            staticValue = context.getString(R.string.tile_not_confirmed),
+            staticValue = context.getString(R.string.door_state_not_confirmed),
             layoutConstraint = DURATION_WIDTH_CONSTRAINT,
         )
     }
