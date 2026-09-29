@@ -329,6 +329,7 @@ fun ProfileContent(
             doorState = voiceCommandDoorState,
             lastVerdict = lastVoiceVerdict,
             onMicTap = resolved::voiceCommandMicTap,
+            onCancel = resolved::voiceCommandCancel,
             onTranscript = resolved::voiceCommandTranscript,
             onCaptureUnavailable = resolved::voiceCommandCaptureUnavailable,
             onBackgrounded = resolved::voiceCommandBackgrounded,

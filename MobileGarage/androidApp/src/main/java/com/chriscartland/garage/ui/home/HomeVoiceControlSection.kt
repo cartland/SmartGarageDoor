@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.chriscartland.garage.R
 import com.chriscartland.garage.domain.model.VoiceIntent
+import com.chriscartland.garage.ui.VoiceSurfaceMode
 import com.chriscartland.garage.ui.theme.PreviewComponentSurface
 import com.chriscartland.garage.ui.voice.VoiceControlCard
 import com.chriscartland.garage.ui.voice.VoiceRecognizerEffects
@@ -45,6 +46,7 @@ import com.chriscartland.garage.usecase.VoiceCommandState
 fun HomeVoiceControlSection(
     state: VoiceCommandState,
     onMicTap: () -> Unit,
+    onCancel: () -> Unit,
     onTranscript: (String?) -> Unit,
     onCaptureUnavailable: () -> Unit,
     onBackgrounded: () -> Unit,
@@ -59,6 +61,7 @@ fun HomeVoiceControlSection(
     HomeVoiceControlSectionBody(
         state = state,
         onMicTap = onMicTap,
+        onCancel = onCancel,
         modifier = modifier,
     )
 }
@@ -72,12 +75,14 @@ fun HomeVoiceControlSectionBody(
     state: VoiceCommandState,
     onMicTap: () -> Unit,
     modifier: Modifier = Modifier,
+    onCancel: () -> Unit = {},
 ) {
     HomeSection(
         label = stringResource(R.string.home_section_voice),
         modifier = modifier,
     ) {
-        VoiceControlCard(state = state, onMicTap = onMicTap)
+        // This card presses the REAL remote; the words state the action as fact.
+        VoiceControlCard(state = state, onMicTap = onMicTap, onCancel = onCancel, mode = VoiceSurfaceMode.Live)
     }
 }
 

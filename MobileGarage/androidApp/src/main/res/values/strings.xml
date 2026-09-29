@@ -168,7 +168,7 @@
     <string name="voice_control_armed_closing">Closing in %1$d · Tap to cancel</string>
     <string name="voice_control_sending">Pressing the remote…</string>
     <string name="voice_control_sent">Command sent</string>
-    <string name="voice_control_failed">Button press failed</string>
+    <string name="voice_control_failed">Remote press failed</string>
     <string name="voice_control_ignored_no_speech">No speech heard</string>
     <string name="voice_control_ignored_unavailable">Speech recognition is not available on this device</string>
     <string name="voice_control_ignored_not_a_command">Not a door command</string>
@@ -183,8 +183,20 @@
     <!-- Mic button content descriptions per state. -->
     <string name="voice_control_mic_cd_ready">Start voice command</string>
     <string name="voice_control_mic_cd_listening">Listening</string>
-    <string name="voice_control_mic_cd_armed">Cancel and speak again</string>
+    <string name="voice_control_mic_cd_armed">Cancel</string>
     <string name="voice_control_mic_cd_sending">Sending command</string>
+    <!-- The simulated surface (Settings → Simulated voice) presses a pretend
+         button, so its words stay conditional and end by saying outright that
+         nothing was sent — Wear's rule (VoiceSurfaceMode), ported in strategy
+         2.5. The countdown still counts, and the tap still cancels. -->
+    <string name="voice_sim_armed_opening">Would open in %1$d · Tap to cancel</string>
+    <string name="voice_sim_armed_closing">Would close in %1$d · Tap to cancel</string>
+    <string name="voice_sim_sending">Would press the remote</string>
+    <string name="voice_sim_sending_subtitle">Nothing is sent to the door</string>
+    <string name="voice_sim_sent">Nothing was sent</string>
+    <string name="voice_sim_sent_subtitle">The pretend door responds instead</string>
+    <string name="voice_sim_failed">Pretend press failed</string>
+    <string name="voice_sim_failed_subtitle">Nothing was sent</string>
 
     <!-- Home screen — section labels. -->
     <string name="home_section_status">Status</string>

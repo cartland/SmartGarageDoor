@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
@@ -55,6 +56,14 @@ object VoiceCommandUi {
     // Door-motion metaphor: up = opening, down = closing.
     fun directionIcon(intent: VoiceIntent): ImageVector =
         if (intent == VoiceIntent.CLOSE) Icons.Outlined.ArrowDownward else Icons.Outlined.ArrowUpward
+
+    /**
+     * Whether the card's tap cancels rather than opens the mic. The label
+     * under the countdown says "Tap to cancel", so while a command is armed
+     * the tap cancels and does nothing else (strategy 2.5 — Wear's rule);
+     * every other state's tap is the mic.
+     */
+    fun cancelsOnTap(state: VoiceCommandState): Boolean = state is VoiceCommandState.Armed
 }
 
 /** Icon shown inside the mic button for each state. */
@@ -81,28 +90,84 @@ fun VoiceCommandState.micContentDescription(): String =
     }
 
 @Composable
-fun VoiceCommandIgnoreReason.displayText(): String =
-    when (this) {
-        VoiceCommandIgnoreReason.NO_SPEECH ->
-            stringResource(R.string.voice_control_ignored_no_speech)
-        VoiceCommandIgnoreReason.RECOGNIZER_UNAVAILABLE ->
-            stringResource(R.string.voice_control_ignored_unavailable)
-        VoiceCommandIgnoreReason.NOT_A_COMMAND ->
-            stringResource(R.string.voice_control_ignored_not_a_command)
-        VoiceCommandIgnoreReason.NOT_CONFIDENT ->
-            stringResource(R.string.voice_control_ignored_not_confident)
-        VoiceCommandIgnoreReason.DOOR_ALREADY_OPEN ->
-            stringResource(R.string.voice_control_ignored_already_open)
-        VoiceCommandIgnoreReason.DOOR_ALREADY_CLOSED ->
-            stringResource(R.string.voice_control_ignored_already_closed)
-        VoiceCommandIgnoreReason.DOOR_MOVING ->
-            stringResource(R.string.voice_control_ignored_moving)
-        VoiceCommandIgnoreReason.DOOR_STUCK ->
-            stringResource(R.string.voice_control_ignored_stuck)
-        VoiceCommandIgnoreReason.DOOR_STATE_UNKNOWN ->
-            stringResource(R.string.voice_control_ignored_state_unknown)
-        VoiceCommandIgnoreReason.DOOR_STATE_CHANGED ->
-            stringResource(R.string.voice_control_ignored_state_changed)
-        VoiceCommandIgnoreReason.SERVER_UNREACHABLE ->
-            stringResource(R.string.voice_control_ignored_server_unreachable)
+fun VoiceCommandIgnoreReason.displayText(): String = stringResource(VoiceWords.ignoredLine(this))
+
+/**
+ * Which door a voice surface acts on. Ported from Wear's `VoiceSurfaceMode`:
+ * the Home card presses the real remote; the Settings sheet presses a pretend
+ * one, and its words must never claim otherwise.
+ */
+enum class VoiceSurfaceMode {
+    Live,
+    Simulated,
+}
+
+/**
+ * The words for each voice state, per surface: the live surface states the
+ * action as fact, the simulation keeps it conditional and ends by saying
+ * outright that nothing was sent (strategy 2.5 — Wear's rule, ported). Pure
+ * resource ids, so `VoiceWordsTest` can pin on the JVM that no
+ * action-describing state shares one string across the two surfaces.
+ *
+ * Refusals are the same words on both: they are about the utterance or about
+ * the door, and the simulated sheet already labels which door it is showing.
+ */
+object VoiceWords {
+    @StringRes
+    fun primaryLine(
+        state: VoiceCommandState,
+        mode: VoiceSurfaceMode,
+    ): Int {
+        val live = mode == VoiceSurfaceMode.Live
+        return when (state) {
+            VoiceCommandState.Ready -> R.string.home_voice_ready_title
+            is VoiceCommandState.Listening -> R.string.voice_control_listening
+            is VoiceCommandState.Armed ->
+                when {
+                    state.intent == VoiceIntent.CLOSE && live -> R.string.voice_control_armed_closing
+                    state.intent == VoiceIntent.CLOSE -> R.string.voice_sim_armed_closing
+                    live -> R.string.voice_control_armed_opening
+                    else -> R.string.voice_sim_armed_opening
+                }
+            is VoiceCommandState.Sending -> if (live) R.string.voice_control_sending else R.string.voice_sim_sending
+            is VoiceCommandState.Sent -> if (live) R.string.voice_control_sent else R.string.voice_sim_sent
+            is VoiceCommandState.Failed -> if (live) R.string.voice_control_failed else R.string.voice_sim_failed
+            is VoiceCommandState.Ignored -> ignoredLine(state.reason)
+        }
     }
+
+    /** The second line when there is no transcript to quote; the card quotes one when there is. */
+    @StringRes
+    fun secondaryLine(
+        state: VoiceCommandState,
+        mode: VoiceSurfaceMode,
+    ): Int {
+        val live = mode == VoiceSurfaceMode.Live
+        return when (state) {
+            is VoiceCommandState.Sending -> if (live) R.string.home_voice_sending_subtitle else R.string.voice_sim_sending_subtitle
+            is VoiceCommandState.Sent -> if (live) R.string.home_voice_sent_subtitle else R.string.voice_sim_sent_subtitle
+            is VoiceCommandState.Failed -> if (live) R.string.home_voice_failed_subtitle else R.string.voice_sim_failed_subtitle
+            VoiceCommandState.Ready,
+            is VoiceCommandState.Listening,
+            is VoiceCommandState.Armed,
+            is VoiceCommandState.Ignored,
+            -> R.string.home_voice_hint
+        }
+    }
+
+    @StringRes
+    fun ignoredLine(reason: VoiceCommandIgnoreReason): Int =
+        when (reason) {
+            VoiceCommandIgnoreReason.NO_SPEECH -> R.string.voice_control_ignored_no_speech
+            VoiceCommandIgnoreReason.RECOGNIZER_UNAVAILABLE -> R.string.voice_control_ignored_unavailable
+            VoiceCommandIgnoreReason.NOT_A_COMMAND -> R.string.voice_control_ignored_not_a_command
+            VoiceCommandIgnoreReason.NOT_CONFIDENT -> R.string.voice_control_ignored_not_confident
+            VoiceCommandIgnoreReason.DOOR_ALREADY_OPEN -> R.string.voice_control_ignored_already_open
+            VoiceCommandIgnoreReason.DOOR_ALREADY_CLOSED -> R.string.voice_control_ignored_already_closed
+            VoiceCommandIgnoreReason.DOOR_MOVING -> R.string.voice_control_ignored_moving
+            VoiceCommandIgnoreReason.DOOR_STUCK -> R.string.voice_control_ignored_stuck
+            VoiceCommandIgnoreReason.DOOR_STATE_UNKNOWN -> R.string.voice_control_ignored_state_unknown
+            VoiceCommandIgnoreReason.DOOR_STATE_CHANGED -> R.string.voice_control_ignored_state_changed
+            VoiceCommandIgnoreReason.SERVER_UNREACHABLE -> R.string.voice_control_ignored_server_unreachable
+        }
+}

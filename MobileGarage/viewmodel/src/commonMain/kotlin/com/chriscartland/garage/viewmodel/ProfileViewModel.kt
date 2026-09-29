@@ -218,6 +218,16 @@ interface ProfileViewModel {
     /** Mic tap: always starts over; cancels a pending command first. */
     fun voiceCommandMicTap()
 
+    /**
+     * The card's tap while a command is armed: cancel, and nothing else.
+     * Distinct from [voiceCommandMicTap], which restarts listening — the
+     * label under the countdown says "Tap to cancel", and since strategy 2.5
+     * that is what the tap does (Wear's rule on the phone). A tap that also
+     * reopened the mic would drop the user into a live session they did not
+     * ask for.
+     */
+    fun voiceCommandCancel()
+
     /** Recognizer outcome for the command loop (null = no speech). */
     fun voiceCommandTranscript(text: String?)
 
@@ -426,6 +436,8 @@ class DefaultProfileViewModel(
     }
 
     override fun voiceCommandMicTap() = voiceCommandController.onMicTap()
+
+    override fun voiceCommandCancel() = voiceCommandController.onCancel()
 
     override fun voiceCommandTranscript(text: String?) = voiceCommandController.onTranscript(text)
 

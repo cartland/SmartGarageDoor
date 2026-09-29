@@ -184,6 +184,7 @@ fun HomeContent(
                 HomeVoiceControlSection(
                     state = voiceCommandState,
                     onMicTap = resolved::voiceCommandMicTap,
+                    onCancel = resolved::voiceCommandCancel,
                     onTranscript = resolved::voiceCommandTranscript,
                     onCaptureUnavailable = resolved::voiceCommandCaptureUnavailable,
                     onBackgrounded = resolved::voiceCommandBackgrounded,

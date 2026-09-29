@@ -444,6 +444,22 @@ class ProfileViewModelTest {
     // it moves only the pretend door.
 
     @Test
+    fun aCancelledSpokenCommandLeavesEvenThePretendDoorAlone() =
+        runTest {
+            val viewModel = createViewModel()
+            viewModel.voiceCommandMicTap()
+            viewModel.voiceCommandTranscript("open the garage door")
+            testDispatcher.scheduler.runCurrent()
+            assertTrue(viewModel.voiceCommandState.value is VoiceCommandState.Armed)
+            viewModel.voiceCommandCancel()
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(VoiceCommandState.Ready, viewModel.voiceCommandState.value)
+            testDispatcher.scheduler.advanceTimeBy(3_001)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(VoiceDoorState.CLOSED, viewModel.voiceCommandDoorState.value)
+        }
+
+    @Test
     fun aSpokenCommandMovesOnlyThePretendDoor() =
         runTest {
             val viewModel = createViewModel()

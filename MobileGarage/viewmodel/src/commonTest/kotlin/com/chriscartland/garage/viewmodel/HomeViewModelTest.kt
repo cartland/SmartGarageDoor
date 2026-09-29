@@ -456,6 +456,31 @@ class HomeViewModelTest {
      * never reach the real button push path.
      */
     @Test
+    fun voiceCommandCancelWhileArmedNeverPresses() =
+        runTest {
+            val viewModel = createViewModel(
+                scope = backgroundScope,
+                authState = AuthState.Authenticated(
+                    User(name = DisplayName("User"), email = Email("user@example.com")),
+                ),
+                fetchOnInit = false,
+            )
+            viewModel.voiceCommandMicTap()
+            testDispatcher.scheduler.runCurrent()
+            viewModel.voiceCommandTranscript("open the garage door")
+            testDispatcher.scheduler.runCurrent()
+            assertTrue(viewModel.voiceCommandState.value is VoiceCommandState.Armed)
+
+            // The label says "Tap to cancel", so the tap cancels — and only cancels.
+            viewModel.voiceCommandCancel()
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(VoiceCommandState.Ready, viewModel.voiceCommandState.value)
+            testDispatcher.scheduler.advanceTimeBy(3_001)
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(0, remoteButtonRepository.pushCount, "a cancelled command must not commit when its window would have closed")
+        }
+
+    @Test
     fun voiceCommandRefusalNeverPressesRealButton() =
         runTest {
             val viewModel = createViewModel(
