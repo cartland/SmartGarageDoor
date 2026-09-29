@@ -18,14 +18,20 @@
 package com.chriscartland.garage.wear
 
 import android.app.Application
+import android.content.ComponentName
+import androidx.wear.tiles.TileService
+import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
+import com.chriscartland.garage.usecase.SystemSurfaceRefresher
 import com.chriscartland.garage.wear.auth.DataLayerWearAuthRelayClient
 import com.chriscartland.garage.wear.auth.FirebaseAuthBridge
 import com.chriscartland.garage.wear.auth.RelayFallbackAuthBridge
+import com.chriscartland.garage.wear.complication.GarageDoorComplicationService
 import com.chriscartland.garage.wear.config.WearAppConfigFactory
 import com.chriscartland.garage.wear.data.WearStatusCache
 import com.chriscartland.garage.wear.di.WearComponent
 import com.chriscartland.garage.wear.di.WearSignInConfig
 import com.chriscartland.garage.wear.di.create
+import com.chriscartland.garage.wear.tile.GarageDoorTileService
 import kotlinx.coroutines.launch
 
 /**
@@ -58,6 +64,7 @@ class GarageWearApplication : Application() {
         // Materialize the graph eagerly so always-on collectors
         // (auth state, door cache) start with the process.
         component
+        nudgeTheGlanceSurfacesWhenTheDoorChanges()
 
         // Tell the phone which build is on the wrist. Fire-and-forget on an
         // application-lifetime scope: nothing on the watch waits for it, and it
@@ -70,5 +77,29 @@ class GarageWearApplication : Application() {
                 versionCode = BuildConfig.VERSION_CODE.toLong(),
             )
         }
+    }
+
+    /**
+     * The tile redraws on a throttled freshness request and the complication
+     * every ten minutes; neither hears about a change the app's own poll just
+     * saw. So the face could show a door the user had just WATCHED move in the
+     * app (2026-09-28 audit, finding 3.2; strategy 0.3). The shared
+     * [SystemSurfaceRefresher] observes the door and asks both to redraw on a
+     * change. Their schedules stay the floor; this is the ceiling, and it
+     * cannot loop because an equal re-fetched event does not emit.
+     */
+    private fun nudgeTheGlanceSurfacesWhenTheDoorChanges() {
+        SystemSurfaceRefresher(
+            doorEvents = component.doorRepository.currentDoorEvent,
+            refresh = { requestGlanceSurfaceUpdates() },
+            scope = component.applicationScope,
+        ).start()
+    }
+
+    private fun requestGlanceSurfaceUpdates() {
+        TileService.getUpdater(this).requestUpdate(GarageDoorTileService::class.java)
+        ComplicationDataSourceUpdateRequester
+            .create(this, ComponentName(this, GarageDoorComplicationService::class.java))
+            .requestUpdateAll()
     }
 }
