@@ -374,7 +374,7 @@ That means today's Stage 0 is forward-compatible. Nothing here will need to be u
 
 - **Card edge alignment shifts on tablets.** Today, on every form factor, the card edge sits at 16dp from the screen edge. After Stage 0 on a tablet, the card sits at ~`(screenWidth - 640) / 2 + 16` from the screen edge. The bottom nav items still anchor to the screen edges. This is *the desired effect* — content centered, chrome full-width — but it does change the geometry. Worth confirming on a real tablet before locking the token value.
 - **Landscape phone gets less visible content.** A landscape phone is wider than 640dp. Capping at 640dp means a strip of margin appears. Acceptable, but call it out in the PR description so it's a deliberate decision, not a regression report.
-- **Tablet screenshot tests are new infrastructure.** Today every screenshot fixture is phone-portrait. Adding tablet fixtures means more PNGs in `android-screenshot-tests/screenshots/`, longer screenshot test runs, and potentially Layoutlib quirks at unusual viewport sizes. Start with one tablet fixture per route, not the full matrix.
+- **Tablet screenshot tests are new infrastructure.** Today every screenshot fixture is phone-portrait. Adding tablet fixtures means more PNGs in `androidApp/src/screenshotTestDebug/reference/`, longer screenshot test runs, and potentially Layoutlib quirks at unusual viewport sizes. Start with one tablet fixture per route, not the full matrix.
 - **Premature multi-token.** Resist the urge to ship `ContentWidth.Reading`, `ContentWidth.Wide`, and `ContentWidth.Standard` simultaneously. One value, observed in production on real form factors, then split.
 
 ### Open questions specific to the extension

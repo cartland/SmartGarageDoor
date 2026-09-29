@@ -2,7 +2,7 @@
 #
 # Generates Markdown files from YAML screenshot collection declarations.
 #
-# For each .yaml file in android-screenshot-tests/collections/, this script:
+# For each .yaml file in screenshots/collections/, this script:
 # 1. Deletes all .md files in the directory (clean slate)
 # 2. Reads each YAML to extract title, source, and screenshot entries
 # 3. Resolves each entry to a PNG path:
@@ -31,8 +31,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-COLLECTIONS_DIR="$REPO_ROOT/MobileGarage/android-screenshot-tests/collections"
-REFERENCE_DIR="$REPO_ROOT/MobileGarage/android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests"
+COLLECTIONS_DIR="$REPO_ROOT/MobileGarage/screenshots/collections"
+REFERENCE_DIR="$REPO_ROOT/MobileGarage/androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests"
 FRAMED_DIR="$REPO_ROOT/MobileGarage/screenshots/framed"
 
 if [ ! -d "$COLLECTIONS_DIR" ]; then
@@ -52,7 +52,7 @@ for yaml_file in "$COLLECTIONS_DIR"/*.yaml; do
 
     yaml_basename="$(basename "$yaml_file" .yaml)"
     md_file="$COLLECTIONS_DIR/$yaml_basename.md"
-    yaml_relpath="android-screenshot-tests/collections/$(basename "$yaml_file")"
+    yaml_relpath="screenshots/collections/$(basename "$yaml_file")"
 
     # Parse title
     title="$(grep '^title:' "$yaml_file" | sed 's/^title: *"\{0,1\}\(.*\)"\{0,1\}$/\1/' | sed 's/"$//')"

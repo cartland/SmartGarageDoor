@@ -43,7 +43,6 @@ abstract class ArchitectureCheckTask : DefaultTask() {
         // reimplement `DataFreshness`, which is the drift that type exists to
         // prevent.
         ":wearApp" to listOf(":domain", ":data", ":usecase", ":presentation-model"),
-        ":android-screenshot-tests" to listOf("*"),
         ":iosFramework" to listOf("*"),
         ":macrobenchmark" to listOf("*"),
     )

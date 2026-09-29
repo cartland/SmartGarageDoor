@@ -352,7 +352,7 @@ else
 fi
 
 step "Screenshot tests (compile)"
-if $GRADLE :android-screenshot-tests:compileDebugScreenshotTestKotlin; then
+if $GRADLE :androidApp:compileDebugScreenshotTestKotlin; then
     pass "screenshot test compilation"
 else
     fail "screenshot test compilation"

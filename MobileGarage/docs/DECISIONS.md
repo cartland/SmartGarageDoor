@@ -1759,7 +1759,7 @@ iOS had no equivalent. The app had no Swift test target at all; iOS CI only buil
 
 - ADR-029 — iOS ↔ Android parity / platform-native / shared identity (the door visualization this first captures is an identity item).
 - [`PENDING_FOLLOWUPS.md`](./PENDING_FOLLOWUPS.md) § 1 — iOS construction status.
-- Android analog: `scripts/generate-android-screenshots.sh`, `android-screenshot-tests/SCREENSHOT_GALLERY.md`, `checkPreviewCoverage`.
+- Android analog: `scripts/generate-android-screenshots.sh`, `screenshots/SCREENSHOT_GALLERY.md`, `checkPreviewCoverage`.
 
 ---
 

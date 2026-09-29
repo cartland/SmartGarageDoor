@@ -45,7 +45,7 @@ themes: [light, dark]
 themeTokens: {light: Light, dark: Dark}
 
 pathAliases:
-  ref: MobileGarage/android-screenshot-tests/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests
+  ref: MobileGarage/androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests
   ios: MobileGarage/iosApp/SnapshotTests/__Snapshots__/PreviewTests.generated
   wear: MobileGarage/screenshots/store/wear
   widget: MobileGarage/screenshots/store/widget

@@ -62,9 +62,9 @@ should_skip() {
         */.claude/skills/*) return 0 ;;
         */.claude/worktrees/*) return 0 ;;
         */.claude/projects/*) return 0 ;;
-        */android-screenshot-tests/*SCREENSHOT_GALLERY.md) return 0 ;;
-        */android-screenshot-tests/*PREVIEW_COVERAGE.md) return 0 ;;
-        */android-screenshot-tests/collections/*) return 0 ;;
+        */screenshots/*SCREENSHOT_GALLERY.md) return 0 ;;
+        */screenshots/*PREVIEW_COVERAGE.md) return 0 ;;
+        */screenshots/collections/*) return 0 ;;
         # Generated iOS snapshot gallery (same generated-artifact class as the
         # Android gallery above).
         */SnapshotTests/SCREENSHOT_GALLERY.md) return 0 ;;

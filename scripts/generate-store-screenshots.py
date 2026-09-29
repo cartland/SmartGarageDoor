@@ -9,7 +9,7 @@ though Layoutlib screenshot rendering is blank locally. Sources:
   * phone   -> the framed README shots in MobileGarage/screenshots/framed/
                (already wrapped in a Pixel bezel).
   * tablet  -> the CI-committed wide / 3-pane reference renders under the
-               android-screenshot-tests reference dir.
+               androidApp screenshot-test reference dir.
 
 Phone shots are flattened onto white at their native ~2.12:1 (Play accepted this
 ratio, approved 2026-06-11 - do not pad). Tablet shots are wrapped in a
@@ -32,7 +32,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRAMED = os.path.join(REPO, "MobileGarage/screenshots/framed")
 REF = os.path.join(
     REPO,
-    "MobileGarage/android-screenshot-tests/src/screenshotTestDebug/reference",
+    "MobileGarage/androidApp/src/screenshotTestDebug/reference",
 )
 OUT = os.path.join(REPO, "MobileGarage/screenshots/store")
 BG = (0, 0, 0)

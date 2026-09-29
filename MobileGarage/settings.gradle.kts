@@ -39,7 +39,6 @@ dependencyResolutionManagement {
 rootProject.name = "MobileGarage"
 include(":androidApp")
 include(":wearApp")
-include(":android-screenshot-tests")
 include(":data")
 include(":data-local")
 include(":domain")

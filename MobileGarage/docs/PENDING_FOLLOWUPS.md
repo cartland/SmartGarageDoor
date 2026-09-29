@@ -422,7 +422,7 @@ Each is its own PR because the API change ripples across module boundaries (mapp
 - [ ] `formatArgs` (`%1$s`, `%2$d`) for interpolated strings
 - [ ] `<plurals>` + `pluralStringResource` for count-based strings
 - [ ] `@Preview` fake data NOT migrated (not production-visible labels)
-- [ ] All values byte-identical to pre-migration → no screenshot churn (assert `git status MobileGarage/android-screenshot-tests/` is clean)
+- [ ] All values byte-identical to pre-migration → no screenshot churn (assert `git status MobileGarage/androidApp/src/screenshotTestDebug/reference/` is clean)
 - [ ] If screenshot churn happens, it's an intentional copy change in the same PR — note it in the PR body
 - [ ] `R` imported as `com.chriscartland.garage.R`
 - [ ] `import androidx.compose.ui.res.stringResource` (or `pluralStringResource`)
