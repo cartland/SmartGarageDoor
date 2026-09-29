@@ -22,6 +22,7 @@ import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.graph.DataGraph.Cadence
 import com.chriscartland.garage.domain.graph.NodeCadence
 import com.chriscartland.garage.domain.model.AppLoggerKeys
+import com.chriscartland.garage.domain.model.CheckInStaleness
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -76,7 +77,7 @@ interface CheckInStalenessManager {
          * (`CheckInStatusMapper.STALE_THRESHOLD_SECONDS`), and the server's
          * `doorCommand` gate mirrors it.
          */
-        const val CHECK_IN_STALE_THRESHOLD_SECONDS = 11L * 60
+        const val CHECK_IN_STALE_THRESHOLD_SECONDS = CheckInStaleness.THRESHOLD_SECONDS
 
         /** Re-evaluate staleness every 30 seconds (catches clock drift past threshold). */
         const val STALE_CHECK_INTERVAL_MS = 30_000L
