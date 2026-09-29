@@ -1,0 +1,17 @@
+# Files under MobileGarage/iosApp/Features that may carry a `default:` arm in a
+# Swift switch, checked by scripts/check-swift-default-arms.sh (validate-ios.sh
+# step 3 + ios-ci.yml). One repo-relative path per line; blank lines and `#`
+# comments are ignored.
+#
+# A `default:` on a switch over a shared Kotlin enum or sealed type turns the
+# compiler's exhaustiveness check off — a case added on the Kotlin side would no
+# longer fail the iOS build (ADR-010/011 have no `else` for the same reason on
+# Android). Name every case instead. A switch over a genuinely open type (an
+# Int, a platform enum that can grow) earns an entry HERE, with its reason in a
+# comment above it, rather than a `default:` in the clear. `@unknown default:`
+# is never flagged.
+#
+# The check fails on a stale entry (a file that no longer has a `default:`), so
+# this list only shrinks. Empty since strategy 4.2 removed the three arms it
+# found (two diagram-colour switches in HomeScreen.swift, the offline-age source
+# in HomeViewModelWrapper.swift).

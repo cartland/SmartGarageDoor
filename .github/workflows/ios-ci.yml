@@ -32,6 +32,8 @@ on:
       - 'scripts/check-ios-self-force-unwrap.sh'
       - 'scripts/check-ios-localizable-text.sh'
       - 'MobileGarage/ios-localizable-text-exemptions.txt'
+      - 'scripts/check-swift-default-arms.sh'
+      - 'MobileGarage/ios-swift-default-exemptions.txt'
   pull_request:
     paths:
       - 'MobileGarage/iosApp/**'
@@ -50,6 +52,8 @@ on:
       - 'scripts/check-ios-self-force-unwrap.sh'
       - 'scripts/check-ios-localizable-text.sh'
       - 'MobileGarage/ios-localizable-text-exemptions.txt'
+      - 'scripts/check-swift-default-arms.sh'
+      - 'MobileGarage/ios-swift-default-exemptions.txt'
 
 concurrency:
   group: ios-ci-${{ github.ref }}
@@ -79,6 +83,13 @@ jobs:
       # warning. Burn-down list in MobileGarage/ios-localizable-text-exemptions.txt.
       - name: Check localizable Text()/Label()
         run: ./scripts/check-ios-localizable-text.sh
+
+      # Cheap grep: a `default:` on a switch over a shared Kotlin enum turns the
+      # compiler's exhaustiveness check off — a case added on the Kotlin side
+      # would no longer fail this build. Burn-down list in
+      # MobileGarage/ios-swift-default-exemptions.txt (empty since strategy 4.2).
+      - name: Check Swift default arms
+        run: ./scripts/check-swift-default-arms.sh
 
       - name: Set up JDK
         uses: actions/setup-java@v5
