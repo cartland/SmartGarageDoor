@@ -192,5 +192,6 @@ class HeroScreenMappersTest {
         assertEquals(HeroSlot.Words(R.string.button_hint_waiting_for_door), slot(RemoteButtonState.SendingToDoor))
         assertEquals(HeroSlot.Words(R.string.button_hint_door_failed), slot(RemoteButtonState.DoorFailed))
         assertEquals(HeroSlot.Words(R.string.button_hint_server_failed), slot(RemoteButtonState.ServerFailed))
+        assertEquals(HeroSlot.Words(R.string.button_hint_forbidden), slot(RemoteButtonState.Forbidden))
     }
 }

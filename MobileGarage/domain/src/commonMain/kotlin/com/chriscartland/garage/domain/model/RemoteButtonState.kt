@@ -42,6 +42,14 @@ sealed interface RemoteButtonState {
     /** Network call to server did not return in time. */
     data object ServerFailed : RemoteButtonState
 
+    /**
+     * The server answered the press and refused it for this account (HTTP
+     * 403). Brief display before returning to Ready. Kept apart from
+     * [ServerFailed]: that one is silence, this one is a verdict, and they
+     * ask for different reactions (try again vs. ask to be allowed).
+     */
+    data object Forbidden : RemoteButtonState
+
     /** Door did not move after server acknowledged. */
     data object DoorFailed : RemoteButtonState
 }

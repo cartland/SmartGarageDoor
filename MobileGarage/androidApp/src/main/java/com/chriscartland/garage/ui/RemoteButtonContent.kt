@@ -105,6 +105,7 @@ private fun RemoteButtonState.phaseDescription(): String? =
         RemoteButtonState.SendingToDoor -> stringResource(R.string.remote_diagram_sending_to_door)
         RemoteButtonState.Succeeded -> stringResource(R.string.remote_diagram_succeeded)
         RemoteButtonState.ServerFailed -> stringResource(R.string.remote_diagram_server_failed)
+        RemoteButtonState.Forbidden -> stringResource(R.string.remote_diagram_forbidden)
         RemoteButtonState.DoorFailed -> stringResource(R.string.remote_diagram_door_failed)
         RemoteButtonState.AwaitingConfirmation -> stringResource(R.string.remote_diagram_armed)
         RemoteButtonState.Ready,
@@ -161,6 +162,12 @@ fun RemoteButtonContentSucceededPreview() {
 @Composable
 fun RemoteButtonContentServerFailedPreview() {
     PreviewComponentSurface { RemoteButtonContent(state = RemoteButtonState.ServerFailed, onTap = {}) }
+}
+
+@Preview
+@Composable
+fun RemoteButtonContentForbiddenPreview() {
+    PreviewComponentSurface { RemoteButtonContent(state = RemoteButtonState.Forbidden, onTap = {}) }
 }
 
 @Preview

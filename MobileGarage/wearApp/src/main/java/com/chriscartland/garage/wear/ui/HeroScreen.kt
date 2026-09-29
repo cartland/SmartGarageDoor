@@ -532,6 +532,7 @@ private fun GarageDoorTarget(
                     RemoteButtonState.SendingToDoor,
                     RemoteButtonState.Succeeded,
                     RemoteButtonState.ServerFailed,
+                    RemoteButtonState.Forbidden,
                     RemoteButtonState.DoorFailed,
                     -> Unit
                 }
@@ -741,6 +742,7 @@ internal object HeroScreenMappers {
             RemoteButtonState.SendingToServer -> HeroSlot.Words(R.string.button_hint_sending)
             RemoteButtonState.SendingToDoor -> HeroSlot.Words(R.string.button_hint_waiting_for_door)
             RemoteButtonState.ServerFailed -> HeroSlot.Words(R.string.button_hint_server_failed)
+            RemoteButtonState.Forbidden -> HeroSlot.Words(R.string.button_hint_forbidden)
             RemoteButtonState.DoorFailed -> HeroSlot.Words(R.string.button_hint_door_failed)
         }
 

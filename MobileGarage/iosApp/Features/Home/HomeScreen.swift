@@ -706,12 +706,13 @@ enum HomeInfoSheet: String, Identifiable {
         case .doorStatus:
             return [
                 "The door sensor checks in every 10 minutes, or whenever the door moves.",
-                "If we don't hear from it on schedule, this shows \"no signal\" so you know the sensor may be offline.",
+                "If we don't hear from it on schedule, the check-in time turns red so you know the sensor may be offline. \"No signal\" means we haven't heard from it at all.",
             ]
         case .remoteControl:
             return [
                 "The remote button checks in frequently. \"Available\" means it just told us it's ready to open or close the door.",
-                "If contact stops, this shows when we last heard from it. Tapping the button may not work until it reconnects.",
+                "\"Unavailable\" means contact stopped, and shows when we last heard from it. Tapping the button may not work until it reconnects.",
+                "\"Unknown\" means the server has no record of this button yet. \"Unauthorized\" means the app can't confirm your sign-in. No label means we're still waiting for a verdict.",
             ]
         }
     }
@@ -900,7 +901,7 @@ private struct HomeInfoSheetView: View {
         title: "Door status",
         paragraphs: [
             "The door sensor checks in every 10 minutes, or whenever the door moves.",
-            "If we don't hear from it on schedule, this shows \"no signal\" so you know the sensor may be offline.",
+            "If we don't hear from it on schedule, the check-in time turns red so you know the sensor may be offline. \"No signal\" means we haven't heard from it at all.",
         ]
     )
 }
@@ -910,7 +911,8 @@ private struct HomeInfoSheetView: View {
         title: "Remote control",
         paragraphs: [
             "The remote button checks in frequently. \"Available\" means it just told us it's ready to open or close the door.",
-            "If contact stops, this shows when we last heard from it. Tapping the button may not work until it reconnects.",
+            "\"Unavailable\" means contact stopped, and shows when we last heard from it. Tapping the button may not work until it reconnects.",
+            "\"Unknown\" means the server has no record of this button yet. \"Unauthorized\" means the app can't confirm your sign-in. No label means we're still waiting for a verdict.",
         ]
     )
 }

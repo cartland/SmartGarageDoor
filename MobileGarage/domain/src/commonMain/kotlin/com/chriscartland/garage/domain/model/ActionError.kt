@@ -18,9 +18,21 @@ sealed interface ActionError : AppError {
         override val message: String = "Required data not available"
     }
 
-    /** Network call failed (HTTP error or connection failure). */
+    /** Network call failed (connection failure, or any HTTP status but 403). */
     data object NetworkFailed : ActionError {
         override val message: String = "Network request failed"
+    }
+
+    /**
+     * The server answered and refused this account (HTTP 403): the email is
+     * not on the allowlist, or the push key does not match. Distinct from
+     * [NotAuthenticated], which is the LOCAL gate (no session) and never
+     * reaches the network. A refusal is a verdict, not a fault: retrying
+     * cannot change it, so every surface words it as "Not allowed for this
+     * account" rather than as a server error that will pass (strategy 2.6).
+     */
+    data object Forbidden : ActionError {
+        override val message: String = "Not allowed for this account"
     }
 
     /**

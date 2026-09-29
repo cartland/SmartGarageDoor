@@ -18,6 +18,7 @@
 package com.chriscartland.garage.viewmodel
 
 import com.chriscartland.garage.domain.coroutines.AppClock
+import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AppLoggerKeys
 import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.AuthState
@@ -29,6 +30,7 @@ import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.Email
 import com.chriscartland.garage.domain.model.LoadingResult
+import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.User
 import com.chriscartland.garage.domain.repository.ButtonHealthRepository
 import com.chriscartland.garage.presentation.DataFreshness
@@ -43,6 +45,7 @@ import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.FakeFeatureAllowlistRepository
 import com.chriscartland.garage.testcommon.FakeRemoteButtonRepository
 import com.chriscartland.garage.testcommon.TestDispatcherProvider
+import com.chriscartland.garage.usecase.ButtonStateMachine
 import com.chriscartland.garage.usecase.CheckDoorCommandUseCase
 import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
@@ -740,6 +743,53 @@ class HomeViewModelTest {
             runCurrent()
             assertEquals(DataFreshness.FRESH, viewModel.doorState.value.freshness)
         }
+
+    @Test
+    fun aRefusedPressSaysNotAllowedRatherThanServerError() =
+        runTest {
+            val viewModel = createViewModel(
+                scope = backgroundScope,
+                authState = AuthState.Authenticated(
+                    User(name = DisplayName("User"), email = Email("user@example.com")),
+                ),
+                fetchOnInit = false,
+            )
+            remoteButtonRepository.setPushError(ActionError.Forbidden)
+
+            pressAndConfirm(viewModel)
+
+            assertEquals(1, remoteButtonRepository.pushCount)
+            assertEquals(RemoteButtonState.Forbidden, viewModel.buttonState.value)
+        }
+
+    @Test
+    fun aPlainFailureIsStillServerError() =
+        runTest {
+            // Positive control for the test above: the two failures must land
+            // in different states, or the new arm could be a relabelled copy.
+            val viewModel = createViewModel(
+                scope = backgroundScope,
+                authState = AuthState.Authenticated(
+                    User(name = DisplayName("User"), email = Email("user@example.com")),
+                ),
+                fetchOnInit = false,
+            )
+            remoteButtonRepository.setPushSucceeds(false)
+
+            pressAndConfirm(viewModel)
+
+            assertEquals(RemoteButtonState.ServerFailed, viewModel.buttonState.value)
+        }
+
+    /** Tap, wait out the anti-bounce pause, tap again: the button's two-tap path. */
+    private fun pressAndConfirm(viewModel: DefaultHomeViewModel) {
+        viewModel.onButtonTap()
+        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceTimeBy(ButtonStateMachine.DEFAULT_PREPARING_DELAY + 1)
+        testDispatcher.scheduler.runCurrent()
+        viewModel.onButtonTap()
+        testDispatcher.scheduler.runCurrent()
+    }
 }
 
 private class HomeTestNoopButtonHealthRepository : ButtonHealthRepository {

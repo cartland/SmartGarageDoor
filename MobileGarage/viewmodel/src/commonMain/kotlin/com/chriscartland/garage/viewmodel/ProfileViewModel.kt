@@ -495,6 +495,11 @@ class DefaultProfileViewModel(
                         ActionError.NotAuthenticated -> SnoozeAction.Failed.NotAuthenticated
                         ActionError.MissingData -> SnoozeAction.Failed.MissingData
                         ActionError.NetworkFailed -> SnoozeAction.Failed.NetworkError
+                        // The snooze repository never answers Forbidden (every
+                        // HTTP status but 404 is NetworkFailed there), so this
+                        // is worded as the generic failure rather than as a
+                        // snooze refusal nobody can produce.
+                        ActionError.Forbidden -> SnoozeAction.Failed.NetworkError
                         ActionError.SnoozeEventChanged -> SnoozeAction.Failed.EventChanged
                     }
                     scheduleActionReset()

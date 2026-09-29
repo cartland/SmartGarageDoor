@@ -59,6 +59,10 @@
          (strategy 1.7), not an accident. -->
     <string name="button_hint_server_failed">Server did not respond</string>
     <string name="button_hint_door_failed">Door did not move</string>
+    <!-- HTTP 403: a verdict on the account, not a timeout, so it gets its own
+         words (the phone's, verbatim) rather than "Server did not respond"
+         (strategy 2.6). -->
+    <string name="button_hint_forbidden">Not allowed for this account</string>
     <!-- The hero's resting line: how long the door has been in its state,
          from the shared ElapsedDuration bucket (the phone's "2 hr 14 min").
          Single unit like the tile beside it ("for 2 hours"): the bottom chord

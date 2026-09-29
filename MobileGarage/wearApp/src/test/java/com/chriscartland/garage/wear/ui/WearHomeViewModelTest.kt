@@ -17,6 +17,7 @@
 
 package com.chriscartland.garage.wear.ui
 
+import com.chriscartland.garage.domain.model.ActionError
 import com.chriscartland.garage.domain.model.AuthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.DoorEvent
@@ -394,6 +395,19 @@ class WearHomeViewModelTest {
             completeHold(viewModel)
             assertEquals(1, remoteButtonRepository.pushCount)
             assertEquals(RemoteButtonState.ServerFailed, viewModel.buttonState.value)
+        }
+
+    @Test
+    fun aRefusedPressSaysNotAllowedAndStillBuzzesAsAFailure() =
+        runTest {
+            val viewModel = createViewModel()
+            signIn()
+            val cues = recordCues(viewModel)
+            remoteButtonRepository.setPushError(ActionError.Forbidden)
+            completeHold(viewModel)
+            assertEquals(1, remoteButtonRepository.pushCount)
+            assertEquals(RemoteButtonState.Forbidden, viewModel.buttonState.value)
+            assertTrue("a refusal is felt as a failed press: $cues", HapticCue.PressFailed in cues)
         }
 
     @Test

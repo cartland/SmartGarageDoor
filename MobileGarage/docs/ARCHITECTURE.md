@@ -149,7 +149,7 @@ Packages under `androidApp/src/main/java/com/chriscartland/garage/`:
 3. On confirm: `onSubmit` callback → `PushRemoteButtonUseCase` checks auth, refreshes token if expired
 4. `RemoteButtonRepository.push(idToken, buttonAckToken)` → POST `/addRemoteButtonCommand` (PushRepository was split into `RemoteButtonRepository` + `SnoozeRepository` in PR #203)
 5. State machine observes `pushButtonStatus`: SendingToServer → SendingToDoor (server ack) → Succeeded (door moves)
-6. Failure paths: ServerFailed / DoorFailed → Ready after display delay
+6. Failure paths: ServerFailed / Forbidden (HTTP 403, the server's verdict on the account) / DoorFailed → Ready after display delay
 7. All transitions atomic via single Channel consumer; testable with virtual time
 8. UI: GarageDoorButton (M3) + NetworkProgressDiagram (phone → server → door)
 
@@ -185,7 +185,7 @@ Safety rails enforced by `validate.sh`:
 ## State Management
 
 - **`LoadingResult<T>`** (sealed class): `Loading(data?)`, `Complete(data?)`, `Error(exception)`. Used by DoorViewModel to represent fetch state.
-- **`RemoteButtonState`** (sealed): `Ready`, `Preparing`, `AwaitingConfirmation`, `Cancelled`, `SendingToServer`, `SendingToDoor`, `Succeeded`, `ServerFailed`, `DoorFailed`. Unified state for the remote garage button — combines tap-to-confirm interaction with network/door request tracking. Owned by `ButtonStateMachine` in `usecase/`. See [`RemoteButtonState.kt`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/RemoteButtonState.kt) for the full state diagram in KDoc.
+- **`RemoteButtonState`** (sealed): `Ready`, `Preparing`, `AwaitingConfirmation`, `Cancelled`, `SendingToServer`, `SendingToDoor`, `Succeeded`, `ServerFailed`, `Forbidden`, `DoorFailed`. Unified state for the remote garage button — combines tap-to-confirm interaction with network/door request tracking. Owned by `ButtonStateMachine` in `usecase/`. See [`RemoteButtonState.kt`](../domain/src/commonMain/kotlin/com/chriscartland/garage/domain/model/RemoteButtonState.kt) for the full state diagram in KDoc.
 - **`SnoozeState`** (sealed): Loading, NotSnoozing, Snoozing(until). Always-visible current snooze status from server. **Note:** the server's snooze model is event-coupled — `Snoozing(until)` does NOT guarantee suppression across door state changes. See [`docs/SNOOZE_BEHAVIOR.md`](../../docs/SNOOZE_BEHAVIOR.md) for the full design, the 60s `Opening → OpeningTooLong` interaction that voids in-motion snoozes, and the practical "cannot meaningfully snooze a stuck-OPENING/CLOSING door" consequence.
 - **`SnoozeAction`** (sealed): Idle, Sending, Succeeded.{Cleared, Set}, Failed.{NotAuthenticated, MissingData, NetworkError, EventChanged}. Overlay on top of SnoozeState; auto-resets to Idle after 10s. `Failed.EventChanged` is dispatched specifically on server HTTP 404 ("snooze event timestamp does not match current event timestamp"); all four `Failed.*` variants are surfaced via a SnackbarHost in `ProfileContent` (previously the failure cases were computed by the ViewModel but never rendered, so failures were silent).
 - **`AuthState`** (sealed): Unknown, Unauthenticated, Authenticated(user). Drives sign-in UI.

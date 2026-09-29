@@ -159,6 +159,7 @@ private fun RemoteButtonState.disabledLabel(): String =
         RemoteButtonState.SendingToDoor -> stringResource(R.string.remote_button_waiting)
         RemoteButtonState.Succeeded -> stringResource(R.string.remote_button_succeeded)
         RemoteButtonState.ServerFailed -> stringResource(R.string.remote_button_server_failed)
+        RemoteButtonState.Forbidden -> stringResource(R.string.remote_button_forbidden)
         RemoteButtonState.DoorFailed -> stringResource(R.string.remote_button_door_failed)
         // Ready and AwaitingConfirmation are handled above, not here.
         RemoteButtonState.Ready,
@@ -250,6 +251,14 @@ fun GarageDoorButtonSucceededPreview() {
 fun GarageDoorButtonServerFailedPreview() {
     PreviewComponentSurface {
         GarageDoorButton(state = RemoteButtonState.ServerFailed, onTap = {})
+    }
+}
+
+@Preview
+@Composable
+fun GarageDoorButtonForbiddenPreview() {
+    PreviewComponentSurface {
+        GarageDoorButton(state = RemoteButtonState.Forbidden, onTap = {})
     }
 }
 
