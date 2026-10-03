@@ -1557,6 +1557,12 @@ create or push `wear/N` tags directly (the guardrails hook blocks them).
   repo Actions variable `WEAR_PLAY_UPLOAD_ENABLED` is `'true'`, it also
   uploads to the Play **Wear internal** track (`tracks: wear:internal`,
   same pinned uploader action and service account as the phone).
+  **Never concurrently with the phone's release:** both lanes are one Play
+  app, and Play allows one open edit per app, so two uploads at once make
+  the second fail with `This edit has expired, please create a new Edit.`
+  (`wear/33`, 2026-10-03 — re-run `--failed` after `android/284` finished
+  and it went through). Tag the watch after the phone's upload step is
+  green, or the other way round.
 - **One-time bootstrap — COMPLETED 2026-07-22:** `wear/1` (0.1.0 /
   versionCode 1000001) was uploaded manually in Play Console (Wear OS
   form-factor opt-in → Wear OS internal testing → full rollout), the
