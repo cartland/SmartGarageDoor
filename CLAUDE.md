@@ -357,6 +357,8 @@ git grep -l "ChangedType\|changedFunction" -- 'MobileGarage/wearApp/**'
 
 Step 3 is the one that decides it. A shared module changing is not the same as a lane being affected — on 2026-07-31 `:domain` and `:usecase` had both changed, but `wearApp/` referenced none of the changed symbols, so a Wear release would have shipped a functionally identical app. Wear and Firebase were skipped; Android and iOS shipped. **When a lane's diff turns out to be empty or non-user-facing, ask rather than assume** (the maintainer's standing preference — see the test-only-versionName rule in `docs/RELEASE_STRATEGY.md`).
 
+**Do not cut `android/N` and `wear/N` in the same minute.** The phone and the watch are ONE Play app (same `applicationId`), and the Play Developer API allows one open edit per app: when both release workflows uploaded concurrently (2026-10-03, `android/284` + `wear/33` tagged seconds apart), the phone's edit committed and the watch's died with `This edit has expired, please create a new Edit.` Nothing was uploaded for the watch; `gh run rerun <run-id> --failed` after the other lane's run finished succeeded on the first try. Push the second of the two tags only after the first lane's `Deploy to Google Play` step is green (iOS and the server are separate systems and can go in parallel with either).
+
 Confirm what actually landed from the authoritative source, not the workflow's exit code: the `play-track-log` issue body for Play tracks (it names the versionCode/versionName per track), and App Store Connect / the run's own upload step for TestFlight.
 
 ### Releasing Android
