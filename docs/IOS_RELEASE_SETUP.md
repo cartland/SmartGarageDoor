@@ -425,6 +425,22 @@ If CI aborts saying build `N` is taken, just re-release with the number it repor
 `./scripts/release-ios.sh --confirm-tag ios/<that number>`. (The failed tag is inert —
 nothing deployed — and can be deleted: `git push origin :refs/tags/ios/N && git tag -d ios/N`.)
 
+**The pre-flight can also fail for a reason that is not a collision: an Apple
+agreement.** `ios/18` (2026-10-03) died in the pre-flight with
+`asc-latest-build: apps query failed (HTTP 403)` and the body
+`FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED — "This request requires an
+in-effect agreement that has not been signed or has expired."` Apple had issued an
+updated agreement (the Apple Developer Program License Agreement, or the Paid Apps
+agreement) and **every App Store Connect API call is refused until the Account
+Holder accepts it** in App Store Connect → *Business* (or the developer account's
+*Agreements* page). The workflow's own error text points at the API-key secrets,
+which is misleading here: the key is fine, the account is gated. The fix is entirely
+outside the repo, so the recovery is to **re-run the same tag's workflow**
+(`gh run rerun <run-id>`), not to cut a new tag: nothing was archived or uploaded, so
+the build number is still free, and a tag-triggered workflow reads its file from the
+tagged commit either way. The `release-failure/ios` issue the run opened auto-closes
+on that success.
+
 ### Cutting a release
 
 Agent-facing shortcut: the `release-ios` skill (`.claude/skills/release-ios/SKILL.md`) mirrors this section as a copy-paste runbook, same as `release-android` and `release-firebase`.
