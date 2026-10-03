@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-04-24
+last_verified: 2026-10-02
 ---
 # Firebase Server Changelog
 
@@ -28,6 +28,11 @@ Example (placeholder tag numbers — the gate looks for exact `server/<real numb
 ```
 
 ---
+
+## server/38
+- **The open-door warning names the iOS notification category.** `getDoorNotClosedMessageFromEvent` adds `apns.payload.aps.category = DOOR_WARNING` (push-type `alert`, priority `10`), which is what lets iOS 0.3.0 show its "Snooze 1 hour" action on the warning. Nothing else about the warning changes.
+  - **Additive for Android.** FCM applies the `apns` block to Apple devices only; the `android` half and the `notification` block are byte-identical. No `alert` is set, deliberately: FCM derives `aps.alert` from the `notification` block, and an explicit one would override the title and body every old app renders.
+  - Pinned on both ends by `wire-contracts/fcmDoorWarning/apns_category.json`; the warning freeze test deep-equals `aps`, so a leaked `alert` or `content-available` fails it.
 
 ## server/37
 - **Door-event FCM now carries the APNs background-push config — the change that lets iOS receive live door updates at all.** A data-only FCM message reaches an Apple device only when it carries `apns.payload.aps['content-available'] = 1`; the door-event message has sent `data` + `topic` + `android` and nothing else since 2021, so FCM never forwarded it to APNs and the iOS client's receive path (correct since #915) had nothing to wake for. `getFCMDataFromEvent` now also sets `apns-push-type: background` and `apns-priority: 5` (APNs **rejects** priority 10 for an alert-less payload — a delivery requirement, not a preference). No `alert`/`sound`/`badge`: a silent background wake, not a visible notification.

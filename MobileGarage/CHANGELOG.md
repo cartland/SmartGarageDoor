@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-09-28
+last_verified: 2026-10-02
 ---
 # Android Changelog
 
@@ -14,6 +14,51 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 - **Patch (X.Y.Z)** — Bug fixes, UI polish, performance, refactors. No new capability.
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
+
+## 2.26.0
+
+- **Snooze from the warning itself.** The open-door notification the app
+  draws carries a **Snooze 1 hour** action. Tap it on an unlocked phone and
+  the door is snoozed for an hour: a success replaces the warning card
+  ("Snoozing until 3:42 PM"; the door is still open, but you just said you
+  know), and a failure sits beside it, worded the way the Settings sheet
+  words it, because the warning still stands. The warning the system draws
+  while the app is in the background cannot carry an action.
+- **Long-press the app icon** for two shortcuts: Door history and Snooze
+  notifications. Neither can press the button; a long-press menu is a
+  single, unconfirmable tap.
+- **The widget fits four cells.** A 4x1 layout puts the since-line beside
+  the headline, and the widget picker shows the real widget. The widget
+  also repaints the moment the door changes (it used to wait for the
+  launcher's half-hourly refresh), a stuck door reads "Opening · stuck"
+  instead of a plain "Opening", and a screen reader hears both lines as one
+  statement ("Closed, since 3:42 PM").
+- **Snooze from beside the open door.** Home offers a way to the snooze
+  sheet when the door is open and you are signed in. The sheet now waits
+  for a settled door ("Snooze once the door settles") because a snooze set
+  while the door is moving cannot take, and that failure no longer says
+  "Try again".
+- **A refused press says why.** When the server refuses the account, the
+  button says "Not allowed for this account" instead of "Server error", and
+  the diagram shows the request reaching the server and stopping there. The
+  remote-control health pill has proper labels and an info sheet that
+  explains all five of its states.
+- **The voice card, still behind its developer flag, tells the truth.** Tapping during the countdown cancels
+  (it used to restart listening), and the simulated sheet in Settings says
+  "Would open in 3" and "Nothing was sent" instead of claiming a command
+  went out. Wording: "Pressing the remote…", "No speech heard", "Not a door
+  command".
+- **Light mode is legible.** Section headers, the History "took longer than
+  expected" tag and the Diagnostics counters now meet WCAG AA; the tag is
+  amber (an advisory) rather than blue, and the Home warning chip follows
+  severity: alarm red for a door stuck or in conflict, amber for a door that
+  is open but seated off-centre.
+- **One grey.** A door the app cannot vouch for drains to the same grey on
+  the Home card and the widget as on the watch; the widget used to stay
+  brick-red.
+- **Times follow the device's hour cycle.** A phone set to a 24-hour locale
+  saw "9:47 PM" everywhere; it now sees "21:47". Whether "Since …" shows the
+  time alone or the date too is one shared decision with iOS.
 
 ## 2.25.0
 
