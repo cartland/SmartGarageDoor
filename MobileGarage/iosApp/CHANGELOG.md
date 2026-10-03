@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-06-29
+last_verified: 2026-10-02
 ---
 # iOS Changelog
 
@@ -18,6 +18,31 @@ as iOS changes merge.
 Versioning mirrors Android (see `MobileGarage/CHANGELOG.md` § versioning):
 major = rewrite or core-experience shift; minor = a user-facing feature added or
 removed; patch = fixes, polish, refactors. iOS uses independent `ios/N` tags.
+
+## 0.3.0
+
+- **Ask Siri whether the door is open.** "Is the garage door open in Garage
+  Control?" answers from the app's own reading: the door, any warning, and
+  since when, in the words the Home screen uses. It only looks; nothing can
+  act on the door by voice, deliberately.
+- **Snooze from beside the open door.** Home offers a way to the snooze
+  sheet when the door is open and you are signed in. The sheet waits for a
+  settled door ("Snooze once the door settles") because a snooze set while
+  the door is moving cannot take, and that failure no longer says "Try
+  again".
+- **Snooze from the warning itself.** The open-door notification gains a
+  **Snooze 1 hour** action (unlocked phone), with the outcome posted as a
+  card: "Snoozing until 3:42 PM", or the Settings sheet's own words for why
+  it failed. The action appears once the matching server release names the
+  notification category.
+- **A refused press says why.** When the server refuses the account, the
+  button says "Not allowed for this account" instead of "Server error".
+- **One warning vocabulary with Android.** Alarms (a door stuck or in
+  conflict) use the theme's red; advisories (a door seated off-centre, a
+  slow transit in History) use amber. A door the app cannot vouch for drains
+  to the same grey as every other surface.
+- "Last change time unknown" now shows when the time is unknown; the line
+  used to be blank.
 
 ## 0.2.2
 

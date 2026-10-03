@@ -1,3 +1,1 @@
-The garage door on your home screen. A new widget shows whether the door is open or closed and the time it last changed, so you can check it without opening the app. Tap the widget to open the app.
-
-The widget will not show you a time it cannot stand behind: if the app has lost contact with the garage, it says so instead.
+Snooze from the notification itself: the open-door warning now has a Snooze 1 hour button. Long-press the app icon for shortcuts to Door history and Snooze notifications. The home-screen widget has a wider 4x1 layout, updates the moment the door changes, and says when a door is stuck. Light mode is easier to read.

@@ -1,3 +1,3 @@
-The garage door can now go on the watch face itself. Add "Garage door" as a complication and the door is there without a swipe, along with how long it has been open or closed. It is offered for the text slots only, because an icon has nowhere to say whether the reading can be trusted.
+While the door is busy, the watch face shows an indicator: Sending, Waiting for the door, Opening, Closing. Tap it to come back to the app. Turn on Door progress in Settings to see it.
 
-There is also a tile: swipe right from the watch face. Both are read-only, and both must be added once by hand.
+The door screen now says how long the door has been open or closed, and screen readers can arm and confirm the remote in two steps.

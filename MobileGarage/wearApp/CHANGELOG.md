@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-07-22
+last_verified: 2026-10-02
 ---
 # Wear OS App Changelog
 
@@ -13,6 +13,34 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
+
+## 0.10.0
+
+- **The watch face keeps saying it after the wrist drops.** A press in
+  flight or a door in motion puts the platform's ongoing-activity indicator
+  on the watch face, with the status "Sending", "Waiting for the door",
+  "Opening" or "Closing"; tap it to come back to the app. The watch keeps
+  checking the door while it is busy, so the indicator clears when the door
+  answers rather than when the screen went dark. On Android 13+ a new
+  **Door progress** row in Settings asks for the notification permission,
+  never mid-press.
+- **The hold, for people who cannot hold.** A screen reader gets two actions
+  on the door, "Arm the remote" and then "Confirm", driving the same two-step
+  path as the hold with the same confirmation window. Never a single
+  activation.
+- **How long the door has been that way.** The door screen says "for 2
+  hours" (or "just now") under the label, and "Not confirmed" instead when
+  the reading cannot be vouched for. The door moves up to make room.
+- **The tile and the complication update the moment the door changes**, not
+  only on their own schedules. A stuck door reads "Stuck" on the
+  complication and "Opening · stuck" on the tile, and a screen reader hears
+  "Open, not confirmed" rather than a bare "Open" for a reading the watch
+  cannot confirm.
+- **A signed-out watch points at the phone**: "Sign in on your phone to use
+  the watch", where it used to offer a sign-in that Wear OS rejects.
+- **A refused press says why.** "Not allowed for this account" when the
+  server refuses the account (it used to say "Server did not respond"), and
+  "Remote press failed" where the voice surface said "Button press failed".
 
 ## 0.9.2
 
