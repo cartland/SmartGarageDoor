@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-10-02
+last_verified: 2026-10-04
 ---
 # Android Changelog
 
@@ -14,6 +14,23 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 - **Patch (X.Y.Z)** — Bug fixes, UI polish, performance, refactors. No new capability.
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
+
+## 2.26.1
+
+- **The widget no longer sticks on a door in motion.** A door that went
+  Opening and then Open a few seconds later could leave the home screen
+  saying "Opening" until the launcher's next half-hourly refresh. The widget
+  read the door once per render session, and the system does not restart a
+  session that is still alive. It now follows the door for as long as the
+  session lives. This was a bug in 2.26.0.
+- **Opening the app brings the widget up to date, and so does leaving it.**
+  Either one repaints the widget, and so does the app noticing that the
+  garage has gone quiet. On a warm open the widget's own refresh is also
+  the request to the server, so the screen benefits too.
+- **The widget says "Not confirmed" when the app's own fetch failed**, and
+  stops as soon as a push or any fetch gets through. "Could not reach the
+  server" is now remembered once for the whole app rather than once per
+  render.
 
 ## 2.26.0
 
