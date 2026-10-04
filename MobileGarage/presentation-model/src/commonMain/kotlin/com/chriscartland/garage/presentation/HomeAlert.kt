@@ -34,7 +34,7 @@ package com.chriscartland.garage.presentation
  * One banner in the Home tab's alert stack, rendered above the Status card.
  *
  * Display order (decided by [HomeAlertMapper.toHomeAlerts]): [Stale] first,
- * then [PermissionMissing], then [FetchError].
+ * then [PermissionMissing], then [ServerUnreachable].
  */
 sealed interface HomeAlert {
     /**
@@ -57,11 +57,15 @@ sealed interface HomeAlert {
     ) : HomeAlert
 
     /**
-     * A door-event fetch failed. [truncatedException] carries the raw,
-     * length-bounded exception text — each UI interpolates it into its
-     * localized "Error fetching ..." string.
+     * The app's requests for the door have been failing long enough to say
+     * so — `DoorDataHealthManager`'s verdict, never a single failed fetch.
+     * Each UI draws it as a SLIM bar ("Unable to reach the server" + Retry),
+     * not a full banner: it qualifies a reading that is still shown rather
+     * than replacing it.
+     *
+     * Replaced `FetchError(truncatedException)` (2026-10-04), which could
+     * never appear — nothing set the error state it waited for — and which
+     * would have printed a raw exception into the UI if anything had.
      */
-    data class FetchError(
-        val truncatedException: String,
-    ) : HomeAlert
+    data object ServerUnreachable : HomeAlert
 }

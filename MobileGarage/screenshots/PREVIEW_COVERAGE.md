@@ -3,7 +3,7 @@
 
 # Preview Screenshot Coverage
 
-**108 / 108 (100%)**
+**109 / 109 (100%)**
 
 ## Covered
 
@@ -59,6 +59,7 @@
 - `HomeContentRemotePillUnauthorizedPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentRemotePillUnknownPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentSendingToDoorPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
+- `HomeContentServerUnreachablePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentSettledStalePreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentSettlingPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`
 - `HomeContentSignedOutPreview` — `androidApp/src/main/java/com/chriscartland/garage/ui/home/HomeContent.kt`

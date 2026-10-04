@@ -170,6 +170,7 @@ class RealNetworkButtonHealthRepositoryPropagationTest {
             pushRemoteButtonUseCase = PushRemoteButtonUseCase(authRepo, FakeRemoteButtonRepository()),
             checkDoorCommandUseCase = CheckDoorCommandUseCase(authRepo, FakeDoorCommandRepository()),
             checkInStalenessManager = stalenessManager,
+            doorDataHealthManager = FakeDoorDataHealthManager(),
             liveClock = liveClock,
             appSettleWindow = FakeAppSettleWindow(),
             buttonHealthDisplay = computeButtonHealth(),

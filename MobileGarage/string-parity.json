@@ -11,6 +11,7 @@
   { "concept": "StatusHeadline.Connecting", "android": "home_door_state_connecting", "wear": "door_state_connecting", "ios": "Connecting…" },
   { "concept": "StatusHeadline.NoSignal", "android": "home_door_state_no_signal", "wear": "door_state_no_signal", "ios": "No signal" },
   { "concept": "GlanceSubline.NotConfirmed", "android": "widget_not_confirmed", "wear": "door_state_not_confirmed" },
+  { "concept": "HomeAlert.ServerUnreachable", "android": "home_alert_server_unreachable", "ios": "Unable to reach the server" },
   { "concept": "Snooze sheet title", "android": "settings_snooze_title", "ios": "Snooze notifications" },
   { "concept": "SnoozeDurationUIOption.None", "android": "settings_snooze_option_none", "ios": "Don't snooze" },
   { "concept": "SnoozeDurationUIOption.OneHour", "android": "settings_snooze_option_one_hour", "ios": "1 hour" },

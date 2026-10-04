@@ -46,6 +46,7 @@ import com.chriscartland.garage.usecase.ButtonHealthFcmSubscriptionManager
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultCheckInStalenessManager
 import com.chriscartland.garage.usecase.DefaultLiveClock
+import com.chriscartland.garage.usecase.DoorDataHealthManager
 import com.chriscartland.garage.usecase.DoorResolvedFcmSubscriptionManager
 import com.chriscartland.garage.usecase.DoorUpdateManager
 import com.chriscartland.garage.usecase.FcmRegistrationManager
@@ -99,6 +100,20 @@ class AppStartupTest {
 
     /** The settle-window fake handed to the most recent [createAppStartup]. */
     private lateinit var lastSettleWindow: RecordingAppSettleWindow
+
+    /** A health manager whose `start()` can be asserted, for the same reason. */
+    private class RecordingDoorDataHealthManager : DoorDataHealthManager {
+        override val isDoorDataUnhealthy: StateFlow<Boolean> = MutableStateFlow(false)
+
+        var started: Boolean = false
+            private set
+
+        override fun start() {
+            started = true
+        }
+    }
+
+    private lateinit var lastHealthManager: RecordingDoorDataHealthManager
 
     private fun createFcmManager(scope: TestScope): FcmRegistrationManager {
         val useCase = object : RegisterFcmUseCase {
@@ -253,6 +268,8 @@ class AppStartupTest {
         // iOS suppressed for the life of the process.
         val settleWindow = RecordingAppSettleWindow()
         this.lastSettleWindow = settleWindow
+        val healthManager = RecordingDoorDataHealthManager()
+        this.lastHealthManager = healthManager
         val buttonHealthMgr = createButtonHealthFcmSubscriptionManager(scope)
         val doorResolvedMgr = createDoorResolvedFcmSubscriptionManager(scope)
         val initialDoorFetchMgr = createInitialDoorFetchManager(scope, logger, counters)
@@ -279,6 +296,7 @@ class AppStartupTest {
         return AppStartup(
             fcmRegistrationManager = fcmManager,
             checkInStalenessManager = stalenessManager,
+            doorDataHealthManager = healthManager,
             liveClock = liveClock,
             appSettleWindow = settleWindow,
             logAppEvent = LogAppEventUseCase(logger, counters),
@@ -322,6 +340,7 @@ class AppStartupTest {
                 listOf(
                     "startFcmRegistration",
                     "startCheckInStaleness",
+                    "startDoorDataHealth",
                     "startLiveClock",
                     "startAppSettleWindow",
                     "startButtonHealthFcmSubscription",
@@ -355,6 +374,20 @@ class AppStartupTest {
             startup.run()
             advanceUntilIdle()
             assertTrue("AppSettleWindow.start() must be called", lastSettleWindow.started)
+        }
+
+    /**
+     * The health manager is STARTED, not merely named. Never started, its
+     * verdict stays false for the life of the process and the
+     * server-unreachable bar can never appear — silently.
+     */
+    @Test
+    fun onActivityCreated_startsTheDoorDataHealthManager() =
+        runTest(testDispatcher) {
+            val startup = createAppStartup(this)
+            startup.run()
+            advanceUntilIdle()
+            assertTrue("DoorDataHealthManager.start() must be called", lastHealthManager.started)
         }
 
     @Test

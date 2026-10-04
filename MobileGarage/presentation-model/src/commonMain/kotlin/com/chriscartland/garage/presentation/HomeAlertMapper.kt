@@ -17,9 +17,6 @@
 
 package com.chriscartland.garage.presentation
 
-import com.chriscartland.garage.domain.model.DoorEvent
-import com.chriscartland.garage.domain.model.LoadingResult
-
 /**
  * Pure mapper that decides which [HomeAlert] banners the Home tab shows
  * (ADR-031 shared presentation model). Moved out of `androidApp/`'s `HomeMapper`
@@ -31,11 +28,11 @@ import com.chriscartland.garage.domain.model.LoadingResult
 object HomeAlertMapper {
     /**
      * Returns the banners to render above the Status card, in display order:
-     * stale first, then permission, then fetch error.
+     * stale first, then permission, then the server-unreachable bar.
      *
-     * @param currentDoorEvent latest door-event flow value; an
-     *   [LoadingResult.Error] surfaces a [HomeAlert.FetchError]. A `Loading`
-     *   value never emits a fetch error (the previous good value is still shown).
+     * @param isServerUnreachable the shared health verdict
+     *   (`DoorDataHealthManager`): requests have been failing long enough to
+     *   say so. One failed fetch never sets it.
      * @param isCheckInStale device telemetry is older than the staleness
      *   threshold → [HomeAlert.Stale].
      * @param notificationPermissionGranted resolved per-UI (Android runtime
@@ -45,7 +42,7 @@ object HomeAlertMapper {
      *   permission banner's action this session; passed through verbatim into
      *   [HomeAlert.PermissionMissing.attemptCount] for the escalation copy.
      * @param freshness gates the two FRESHNESS banners — and only those. Both
-     *   [HomeAlert.Stale] and [HomeAlert.FetchError] are statements about how
+     *   [HomeAlert.Stale] and [HomeAlert.ServerUnreachable] are statements about how
      *   current the data is, and both carry a Retry, so both wait for
      *   [DataFreshness.isSpoken]. Before that the screen still shows the
      *   condition, as a muted door; it just does not put it into words while
@@ -55,7 +52,7 @@ object HomeAlertMapper {
      *   about to resolve itself, so it has nothing to wait for.
      */
     fun toHomeAlerts(
-        currentDoorEvent: LoadingResult<DoorEvent?>,
+        isServerUnreachable: Boolean,
         isCheckInStale: Boolean,
         notificationPermissionGranted: Boolean,
         notificationRequestCount: Int,
@@ -68,16 +65,8 @@ object HomeAlertMapper {
             if (!notificationPermissionGranted) {
                 add(HomeAlert.PermissionMissing(attemptCount = notificationRequestCount))
             }
-            if (freshness.isSpoken && currentDoorEvent is LoadingResult.Error) {
-                add(
-                    HomeAlert.FetchError(
-                        truncatedException = currentDoorEvent.exception
-                            .toString()
-                            .take(MAX_ERROR_MESSAGE_LEN),
-                    ),
-                )
+            if (freshness.isSpoken && isServerUnreachable) {
+                add(HomeAlert.ServerUnreachable)
             }
         }
-
-    private const val MAX_ERROR_MESSAGE_LEN = 500
 }

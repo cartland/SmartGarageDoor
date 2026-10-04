@@ -148,7 +148,7 @@ class GarageDoorWidget : GlanceAppWidget() {
             localDoorDataSource = component.localDoorDataSource,
             fetchCurrentDoorEvent = component.fetchCurrentDoorEventUseCase,
             clock = component.appClock,
-            fetchFailed = component.doorRepository.currentDoorFetchFailed,
+            fetchFailures = component.doorRepository.currentDoorFetchFailures,
             repaintRequests = component.widgetRepaintRequests.count,
         )
 

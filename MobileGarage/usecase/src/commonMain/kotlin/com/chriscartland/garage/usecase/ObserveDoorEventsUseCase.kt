@@ -49,12 +49,13 @@ class ObserveDoorEventsUseCase(
     fun current(): StateFlow<DoorEvent?> = doorRepository.currentDoorEvent
 
     /**
-     * Whether the last attempt to hear [current] from the server failed —
-     * by any surface, not just the caller's (ADR-022 pass-through; the repo
-     * owns the StateFlow). A reader that keeps its own copy of this instead
-     * is how two surfaces come to describe one door two ways.
+     * How many attempts in a row to hear [current] from the server have
+     * failed — by any surface, not just the caller's (ADR-022 pass-through;
+     * the repo owns the StateFlow). `> 0` means the last attempt failed. A
+     * reader that keeps its own copy of this instead is how two surfaces come
+     * to describe one door two ways.
      */
-    fun currentFetchFailed(): StateFlow<Boolean> = doorRepository.currentDoorFetchFailed
+    fun currentFetchFailures(): StateFlow<Int> = doorRepository.currentDoorFetchFailures
 
     fun recent(): StateFlow<List<DoorEvent>> = doorRepository.recentDoorEvents
 

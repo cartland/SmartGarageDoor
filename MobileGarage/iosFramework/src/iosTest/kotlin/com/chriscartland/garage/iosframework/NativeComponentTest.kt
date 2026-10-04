@@ -222,6 +222,10 @@ class NativeComponentTest {
         assertSame(component.checkInStalenessManager, component.checkInStalenessManager, "checkInStalenessManager")
 
     @Test
+    fun doorDataHealthManagerIsSingleton() =
+        assertSame(component.doorDataHealthManager, component.doorDataHealthManager, "doorDataHealthManager")
+
+    @Test
     fun liveClockIsSingleton() = assertSame(component.liveClock, component.liveClock, "liveClock")
 
     @Test

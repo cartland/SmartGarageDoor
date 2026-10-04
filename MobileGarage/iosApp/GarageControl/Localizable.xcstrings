@@ -220,9 +220,6 @@
     "Double tap to copy": {
       "extractionState": "manual"
     },
-    "Error fetching current door event: %@": {
-      "extractionState": "manual"
-    },
     "Exceeded expected time without FCM": {
       "extractionState": "manual"
     },
@@ -560,6 +557,9 @@
       "extractionState": "manual"
     },
     "Turn on notifications to get alerted when the door is left open.": {
+      "extractionState": "manual"
+    },
+    "Unable to reach the server": {
       "extractionState": "manual"
     },
     "Unauthorized": {

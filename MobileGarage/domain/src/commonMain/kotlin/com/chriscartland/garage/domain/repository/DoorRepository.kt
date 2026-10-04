@@ -22,8 +22,12 @@ interface DoorRepository {
     val currentDoorEvent: StateFlow<DoorEvent?>
 
     /**
-     * Observation: whether the most recent attempt to hear the current door
-     * from the server failed (ADR-022 — state-y, repo-owned).
+     * Observation: how many attempts IN A ROW to hear the current door from
+     * the server have failed (ADR-022 — state-y, repo-owned). Zero means the
+     * last attempt succeeded, or a push landed since; `> 0` is "the last
+     * attempt failed". A count rather than a flag because how many failures
+     * have piled up is what separates a blip from data that is unhealthy
+     * (`DoorDataHealthManager`).
      *
      * ONE memory for the whole process, on purpose. "We could not reach the
      * server" is a fact about the app, not about whichever surface happened
@@ -34,17 +38,17 @@ interface DoorRepository {
      * same door as confirmed. Whoever asks now writes the answer here, and
      * every surface reads it.
      *
-     * True after [fetchCurrentDoorEvent] returns an error, by any caller.
-     * False after one succeeds, and after [insertDoorEvent]: a reading the
-     * server pushed to us is as confirmed as a reading gets, whatever the
-     * last request did. Seeded false — a process that has not asked yet is
-     * un-asked, not failed, and the check-in's age is what says how much the
-     * cached reading is worth.
+     * Goes up by one each time [fetchCurrentDoorEvent] returns an error, by
+     * any caller. Back to zero when one succeeds, and after [insertDoorEvent]:
+     * a reading the server pushed to us is as confirmed as a reading gets,
+     * whatever the last request did. Seeded zero — a process that has not
+     * asked yet is un-asked, not failed, and the check-in's age is what says
+     * how much the cached reading is worth.
      *
      * PUSH, because a push can clear it at any time.
      */
     @NodeCadence(Cadence.PUSH)
-    val currentDoorFetchFailed: StateFlow<Boolean>
+    val currentDoorFetchFailures: StateFlow<Int>
 
     /**
      * Observation: recent door events owned as a [StateFlow] (ADR-022 —

@@ -52,6 +52,9 @@ final class HomeViewModelWrapper: ObservableObject {
     @Published private(set) var warning: HomeWarningDisplay?
     @Published private(set) var lastChangeTimeSeconds: Int64?
     @Published private(set) var isCheckInStale: Bool = false
+    /// The shared health verdict (`DoorDataHealthManager`): requests have
+    /// been failing long enough to say so. Never set by a single failure.
+    @Published private(set) var isServerUnreachable: Bool = false
     /// How current the door data is AND how loudly the screen may say so.
     ///
     /// This is what stopped Home from flashing a Retry banner on every warm
@@ -193,7 +196,7 @@ final class HomeViewModelWrapper: ObservableObject {
             return
         }
         let typed = HomeAlertMapper.shared.toHomeAlerts(
-            currentDoorEvent: result,
+            isServerUnreachable: isServerUnreachable,
             isCheckInStale: isCheckInStale,
             notificationPermissionGranted: notificationGranted,
             notificationRequestCount: notificationRequestCount,
@@ -251,11 +254,11 @@ final class HomeViewModelWrapper: ObservableObject {
                 message: .data(justificationText(attemptCount: permission.attemptCount)),
                 actionLabel: "Allow"
             )
-        case .fetchError(let fetchError):
+        case .serverUnreachable:
             return HomeAlertItem(
-                id: "fetchError",
-                kind: .fetchError,
-                message: .copy("Error fetching current door event: \(fetchError.truncatedException)"),
+                id: "serverUnreachable",
+                kind: .serverUnreachable,
+                message: .copy("Unable to reach the server"),
                 actionLabel: "Retry"
             )
         }
@@ -305,7 +308,9 @@ final class HomeViewModelWrapper: ObservableObject {
         // the transition from a muted card to a card with words on it.
         let freshnessChanged = freshness != door.freshness
         freshness = door.freshness
-        if staleChanged || freshnessChanged {
+        let unreachableChanged = isServerUnreachable != door.isServerUnreachable
+        isServerUnreachable = door.isServerUnreachable
+        if staleChanged || freshnessChanged || unreachableChanged {
             rebuildAlerts()
             // The pill's alarm styling is gated on the same verdict, so it has
             // to be rebuilt here too — otherwise it would keep whatever colour
@@ -573,7 +578,8 @@ final class HomeViewModelWrapper: ObservableObject {
             vm.fetchCurrentDoorEvent()
         case .permission:
             requestNotificationPermission()
-        case .fetchError:
+        case .serverUnreachable:
+            vm.log(key: AppLoggerKeys.shared.USER_FETCH_CURRENT_DOOR)
             vm.fetchCurrentDoorEvent()
         }
     }
@@ -587,7 +593,7 @@ final class HomeViewModelWrapper: ObservableObject {
 /// `internal` so `#Preview` fixtures can construct it (the generated snapshot
 /// test embeds preview bodies verbatim and can't see `private` symbols).
 struct HomeAlertItem: Identifiable {
-    enum Kind { case stale, permission, fetchError }
+    enum Kind { case stale, permission, serverUnreachable }
 
     let id: String
     let kind: Kind

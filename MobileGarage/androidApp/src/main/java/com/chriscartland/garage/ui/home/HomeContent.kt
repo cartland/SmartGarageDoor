@@ -35,10 +35,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.SensorsOff
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -219,10 +221,18 @@ fun HomeContent(
                 item(key = "alerts") {
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.BetweenItems)) {
                         alerts.forEach { alert ->
-                            HomeAlertCard(
-                                alert = alert,
-                                onAction = { onAlertAction(alert) },
-                            )
+                            when (alert) {
+                                // A bar, not a card: it qualifies a reading
+                                // that is still on screen rather than
+                                // replacing it, so it takes one line.
+                                HomeAlert.ServerUnreachable -> HomeServerUnreachableBar(
+                                    onRetry = { onAlertAction(alert) },
+                                )
+                                HomeAlert.Stale, is HomeAlert.PermissionMissing -> HomeAlertCard(
+                                    alert = alert,
+                                    onAction = { onAlertAction(alert) },
+                                )
+                            }
                         }
                     }
                 }
@@ -683,6 +693,51 @@ private fun HomeAuthLoadingBody() {
     }
 }
 
+/**
+ * The data is unhealthy: the app's requests for the door have been failing
+ * for long enough to say so (`DoorDataHealthManager` — three in a row, or a
+ * minute without recovery; never one failure). One line, deliberately: the
+ * door and its last known state stay readable underneath, already muted by
+ * the same verdict, and this only says why and offers to try again.
+ */
+@Composable
+private fun HomeServerUnreachableBar(onRetry: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = Spacing.Screen),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.CloudOff,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(ParagraphSpacing.IconToText))
+            Text(
+                text = stringResource(R.string.home_alert_server_unreachable),
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(
+                onClick = onRetry,
+                // The theme's primary is a pale blue in this palette and
+                // nearly vanished on the bar's container; the bar's own
+                // foreground reads at full contrast.
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+            ) {
+                Text(stringResource(R.string.home_alert_action_retry))
+            }
+        }
+    }
+}
+
 @Composable
 private fun HomeAlertCard(
     alert: HomeAlert,
@@ -694,18 +749,19 @@ private fun HomeAlertCard(
         // no-signal metaphors on one screen.
         HomeAlert.Stale -> Icons.Outlined.SensorsOff
         is HomeAlert.PermissionMissing -> Icons.Outlined.NotificationsActive
-        is HomeAlert.FetchError -> Icons.Outlined.WarningAmber
+        // Drawn as HomeServerUnreachableBar by the caller; named here only
+        // because the when is exhaustive over HomeAlert.
+        HomeAlert.ServerUnreachable -> Icons.Outlined.CloudOff
     }
     val message = when (alert) {
         HomeAlert.Stale -> stringResource(R.string.home_alert_stale_message)
         is HomeAlert.PermissionMissing -> notificationJustificationText(alert.attemptCount)
-        is HomeAlert.FetchError ->
-            stringResource(R.string.home_alert_fetch_error_format, alert.truncatedException)
+        HomeAlert.ServerUnreachable -> stringResource(R.string.home_alert_server_unreachable)
     }
     val actionLabel = when (alert) {
         HomeAlert.Stale -> stringResource(R.string.home_alert_action_retry)
         is HomeAlert.PermissionMissing -> stringResource(R.string.home_alert_action_allow)
-        is HomeAlert.FetchError -> stringResource(R.string.home_alert_action_retry)
+        HomeAlert.ServerUnreachable -> stringResource(R.string.home_alert_action_retry)
     }
     Surface(
         color = MaterialTheme.colorScheme.errorContainer,
@@ -805,6 +861,7 @@ private object HomePreviewData {
         ),
     )
     val staleAlert = HomeAlert.Stale
+    val serverUnreachableAlert = HomeAlert.ServerUnreachable
     val permissionAlert = HomeAlert.PermissionMissing(attemptCount = 0)
 
     // Heartbeat cadence is ~10 min, so a representative typical pill reads
@@ -983,6 +1040,28 @@ fun HomeContentSettlingPreview() =
     }
 
 // Five seconds later: same muted card, now with the banner it earned.
+
+/**
+ * Requests have been failing long enough to say so. The check-in is still
+ * fresh — the garage is reporting fine, it is OUR path to the server that is
+ * down — so the only thing on screen is the slim bar and the muted door it
+ * explains. One failed fetch never produces this.
+ */
+@Preview(heightDp = 900)
+@Composable
+fun HomeContentServerUnreachablePreview() =
+    PreviewScreenSurface {
+        HomeContent(
+            status = HomePreviewData.closedStatus.copy(freshness = DataFreshness.STALE),
+            sinceLine = HomePreviewData.CLOSED_SINCE_LINE,
+            authState = HomeAuthState.SignedIn,
+            alerts = listOf(HomePreviewData.serverUnreachableAlert),
+            deviceCheckIn = HomePreviewData.freshCheckIn,
+            buttonHealthDisplay = ButtonHealthDisplay.Online,
+            modifier = Modifier.padding(horizontal = Spacing.Screen),
+        )
+    }
+
 @Preview(heightDp = 900)
 @Composable
 fun HomeContentSettledStalePreview() =

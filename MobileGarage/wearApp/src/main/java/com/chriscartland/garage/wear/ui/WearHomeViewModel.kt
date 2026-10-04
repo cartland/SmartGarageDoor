@@ -132,7 +132,7 @@ class WearHomeViewModel(
      * that the face's last refresh could not get through, and the tile drawn
      * as the user leaves already knows what the last poll here found.
      */
-    private val lastFetchFailed: StateFlow<Boolean> = observeDoorEvents.currentFetchFailed()
+    private val fetchFailures: StateFlow<Int> = observeDoorEvents.currentFetchFailures()
 
     /**
      * The watch's notion of "now", for judging how old the door reading is.
@@ -185,17 +185,17 @@ class WearHomeViewModel(
         combine(
             currentDoorEvent,
             appSettleWindow.isSettling,
-            lastFetchFailed,
+            fetchFailures,
             nowEpochSeconds,
-        ) { event, settling, failed, now ->
-            wearFreshness(event, settling, failed, now)
+        ) { event, settling, failures, now ->
+            wearFreshness(event, settling, failures > 0, now)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = wearFreshness(
                 currentDoorEvent.value,
                 appSettleWindow.isSettling.value,
-                lastFetchFailed.value,
+                fetchFailures.value > 0,
                 nowEpochSeconds.value,
             ),
         )
@@ -458,7 +458,7 @@ class WearHomeViewModel(
                 // for the life of the process, so the dial stayed fully
                 // saturated and confident over hours of failures — it would
                 // assert a six-hour-old reading as current. The repository
-                // records the outcome (`lastFetchFailed` above reads it), which
+                // records the outcome (`fetchFailures` above reads it), which
                 // is what lets the SHARED `isFetchError` input speak for the
                 // watch — its screen, its tile and its complication alike.
                 fetchCurrentDoorEventUseCase()

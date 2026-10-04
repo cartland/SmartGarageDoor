@@ -73,12 +73,12 @@ class WidgetGlanceStatus(
     private val clock: AppClock,
     /**
      * Whether the last attempt to hear the door from the server failed —
-     * `DoorRepository.currentDoorFetchFailed`, the process's ONE memory of
+     * `DoorRepository.currentDoorFetchFailures` above zero, the process's ONE memory of
      * it. Not a field of this reader: the app's own fetch and a push write
      * the same flag, so the widget says "Not confirmed" exactly when the rest
      * of the app would, and stops saying it the moment anyone gets through.
      */
-    private val fetchFailed: StateFlow<Boolean>,
+    private val fetchFailures: StateFlow<Int>,
     private val repaintRequests: StateFlow<Long>,
 ) {
     /**
@@ -88,7 +88,7 @@ class WidgetGlanceStatus(
     suspend fun current(): GlanceStatus =
         verdict(
             event = localDoorDataSource.currentDoorEvent.first(),
-            refreshFailed = fetchFailed.value,
+            refreshFailed = fetchFailures.value > 0,
         )
 
     /**
@@ -106,10 +106,10 @@ class WidgetGlanceStatus(
     fun observe(): Flow<GlanceStatus> =
         combine(
             localDoorDataSource.currentDoorEvent,
-            fetchFailed,
+            fetchFailures,
             repaintRequests,
-        ) { event, refreshFailed, _ ->
-            verdict(event = event, refreshFailed = refreshFailed)
+        ) { event, failures, _ ->
+            verdict(event = event, refreshFailed = failures > 0)
         }.distinctUntilChanged()
 
     /**

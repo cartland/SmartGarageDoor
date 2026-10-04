@@ -148,7 +148,28 @@ class NetworkDoorRepositoryIntegrationTest {
             assertNull(repo.currentDoorEvent.first())
         }
 
-    // --- currentDoorFetchFailed: one memory of "could not reach the server" ---
+    // --- currentDoorFetchFailures: one memory of "could not reach the server" ---
+
+    @Test
+    fun failuresInARowAreCountedAndOneSuccessResetsTheCount() =
+        runTest {
+            // The count is what tells a blip from an outage, so it must climb
+            // across repeated failures and drop to zero, not one, on recovery.
+            configDataSource.setServerConfigResult(successConfig())
+            networkDataSource.setCurrentDoorEventResult(NetworkResult.ConnectionFailed)
+            val repo = createRepository()
+
+            repo.fetchCurrentDoorEvent()
+            repo.fetchCurrentDoorEvent()
+            repo.fetchCurrentDoorEvent()
+            assertEquals(3, repo.currentDoorFetchFailures.value)
+
+            networkDataSource.setCurrentDoorEventResult(
+                NetworkResult.Success(DoorEvent(doorPosition = DoorPosition.CLOSED)),
+            )
+            repo.fetchCurrentDoorEvent()
+            assertEquals(0, repo.currentDoorFetchFailures.value)
+        }
 
     @Test
     fun aRequestThatCannotReachTheServerIsRemembered() =
@@ -156,11 +177,11 @@ class NetworkDoorRepositoryIntegrationTest {
             configDataSource.setServerConfigResult(successConfig())
             networkDataSource.setCurrentDoorEventResult(NetworkResult.ConnectionFailed)
             val repo = createRepository()
-            assertEquals(false, repo.currentDoorFetchFailed.value, "a repository that has not asked is un-asked, not failed")
+            assertEquals(false, (repo.currentDoorFetchFailures.value > 0), "a repository that has not asked is un-asked, not failed")
 
             repo.fetchCurrentDoorEvent()
 
-            assertEquals(true, repo.currentDoorFetchFailed.value)
+            assertEquals(true, (repo.currentDoorFetchFailures.value > 0))
         }
 
     @Test
@@ -175,7 +196,7 @@ class NetworkDoorRepositoryIntegrationTest {
             val result = repo.fetchCurrentDoorEvent()
 
             assertIs<AppResult.Error<*>>(result)
-            assertEquals(true, repo.currentDoorFetchFailed.value)
+            assertEquals(true, (repo.currentDoorFetchFailures.value > 0))
         }
 
     @Test
@@ -185,14 +206,14 @@ class NetworkDoorRepositoryIntegrationTest {
             networkDataSource.setCurrentDoorEventResult(NetworkResult.ConnectionFailed)
             val repo = createRepository()
             repo.fetchCurrentDoorEvent()
-            assertEquals(true, repo.currentDoorFetchFailed.value)
+            assertEquals(true, (repo.currentDoorFetchFailures.value > 0))
 
             networkDataSource.setCurrentDoorEventResult(
                 NetworkResult.Success(DoorEvent(doorPosition = DoorPosition.CLOSED)),
             )
             repo.fetchCurrentDoorEvent()
 
-            assertEquals(false, repo.currentDoorFetchFailed.value)
+            assertEquals(false, (repo.currentDoorFetchFailures.value > 0))
         }
 
     @Test
@@ -204,11 +225,11 @@ class NetworkDoorRepositoryIntegrationTest {
             networkDataSource.setCurrentDoorEventResult(NetworkResult.ConnectionFailed)
             val repo = createRepository()
             repo.fetchCurrentDoorEvent()
-            assertEquals(true, repo.currentDoorFetchFailed.value)
+            assertEquals(true, (repo.currentDoorFetchFailures.value > 0))
 
             repo.insertDoorEvent(DoorEvent(doorPosition = DoorPosition.OPEN))
 
-            assertEquals(false, repo.currentDoorFetchFailed.value)
+            assertEquals(false, (repo.currentDoorFetchFailures.value > 0))
         }
 
     @Test
@@ -223,7 +244,7 @@ class NetworkDoorRepositoryIntegrationTest {
             val result = repo.fetchRecentDoorEvents()
 
             assertIs<AppResult.Error<*>>(result)
-            assertEquals(false, repo.currentDoorFetchFailed.value)
+            assertEquals(false, (repo.currentDoorFetchFailures.value > 0))
         }
 
     // --- fetchRecentDoorEvents (first page) ---
