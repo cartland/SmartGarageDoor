@@ -21,12 +21,17 @@ import com.chriscartland.garage.domain.coroutines.AppClock
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.presentation.DoorHeadline
+import com.chriscartland.garage.presentation.GlanceStatus
 import com.chriscartland.garage.presentation.GlanceWarning
 import com.chriscartland.garage.presentation.Liveness
 import com.chriscartland.garage.presentation.StatusHeadline
 import com.chriscartland.garage.testcommon.FakeDoorRepository
 import com.chriscartland.garage.testcommon.InMemoryLocalDoorDataSource
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -39,9 +44,16 @@ import org.junit.Test
  * The scar these tests protect is a cold process: the system renders a widget
  * while the app is not running, so the door has to come off disk, and the
  * verdict has to admit when the network could not confirm it.
+ *
+ * The second scar is a session that outlives its first frame: Glance does not
+ * restart one that is still alive, so a reader that answers once freezes the
+ * widget on the first thing it saw. The `observe` tests are that.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class WidgetGlanceStatusTest {
-    private val now = 1_000_000L
+    private var now = 1_000_000L
+
+    private val repaints = WidgetRepaintRequests()
 
     private fun readerFor(
         local: InMemoryLocalDoorDataSource,
@@ -50,7 +62,127 @@ class WidgetGlanceStatusTest {
         localDoorDataSource = local,
         fetchCurrentDoorEvent = FetchCurrentDoorEventUseCase(repo),
         clock = AppClock { now },
+        repaintRequests = repaints.count,
     )
+
+    /** Everything a live session would have been handed, in order. */
+    private fun TestScope.framesOf(reader: WidgetGlanceStatus): List<GlanceStatus> {
+        val frames = mutableListOf<GlanceStatus>()
+        backgroundScope.launch { reader.observe().collect { frames += it } }
+        runCurrent()
+        return frames
+    }
+
+    private fun door(
+        position: DoorPosition,
+        changedAgo: Long = 600,
+        checkedInAgo: Long = 30,
+    ) = DoorEvent(
+        doorPosition = position,
+        lastChangeTimeSeconds = now - changedAgo,
+        lastCheckInTimeSeconds = now - checkedInAgo,
+    )
+
+    @Test
+    fun aSecondChangeInsideOneSessionReachesTheWidget() =
+        runTest {
+            // THE scar. A door goes Opening and then Open a few seconds later:
+            // two pushes, one widget session (it lives about 45 seconds and
+            // Glance does not restart it). The reader used to be asked once,
+            // so the home screen said "Opening" until the launcher's next
+            // half-hourly update.
+            val local = InMemoryLocalDoorDataSource()
+            local.insertDoorEvent(door(DoorPosition.CLOSED))
+            val frames = framesOf(readerFor(local, FakeDoorRepository()))
+
+            local.insertDoorEvent(door(DoorPosition.OPENING, changedAgo = 0))
+            runCurrent()
+            local.insertDoorEvent(door(DoorPosition.OPEN, changedAgo = 0))
+            runCurrent()
+
+            assertEquals(
+                listOf(
+                    StatusHeadline.Door(DoorHeadline.CLOSED),
+                    StatusHeadline.Door(DoorHeadline.OPENING),
+                    StatusHeadline.Door(DoorHeadline.OPEN),
+                ),
+                frames.map { it.headline },
+            )
+        }
+
+    @Test
+    fun theFirstObservedFrameIsTheOneCurrentAlreadyGave() =
+        runTest {
+            // The session composes current() and then collects observe(). If
+            // the two could differ, every render would start with a correction.
+            val local = InMemoryLocalDoorDataSource()
+            local.insertDoorEvent(door(DoorPosition.OPEN))
+            val reader = readerFor(local, FakeDoorRepository())
+
+            val first = reader.current()
+            val frames = framesOf(reader)
+
+            assertEquals(listOf(first), frames)
+        }
+
+    @Test
+    fun aRefreshThatFailsReachesALiveSession() =
+        runTest {
+            // The session no longer re-reads after its refresh; it has to HEAR
+            // the outcome. Without the flag being observed, a widget that could
+            // not reach the server would go on presenting the door as current.
+            val local = InMemoryLocalDoorDataSource()
+            local.insertDoorEvent(door(DoorPosition.OPEN))
+            val repo = FakeDoorRepository().apply { setFailCurrentDoorEventFetch(true) }
+            val reader = readerFor(local, repo)
+            val frames = framesOf(reader)
+
+            reader.refresh()
+            runCurrent()
+
+            assertEquals(listOf(Liveness.LIVE, Liveness.STALE), frames.map { it.liveness })
+        }
+
+    @Test
+    fun aRepaintRequestJudgesTheSameDoorAgainstThePresent() =
+        runTest {
+            // The garage goes quiet. Nothing on disk changes — the app notices
+            // only because time passed — so the request is the only way a live
+            // session can find out.
+            val local = InMemoryLocalDoorDataSource()
+            local.insertDoorEvent(door(DoorPosition.CLOSED, checkedInAgo = 30))
+            val frames = framesOf(readerFor(local, FakeDoorRepository()))
+
+            now += 4_000
+            runCurrent()
+            assertEquals(
+                "time passing alone tells a session nothing — that is the gap the request closes",
+                listOf(Liveness.LIVE),
+                frames.map { it.liveness },
+            )
+
+            repaints.request()
+            runCurrent()
+
+            assertEquals(listOf(Liveness.LIVE, Liveness.STALE), frames.map { it.liveness })
+        }
+
+    @Test
+    fun aRepaintRequestThatChangesNothingSendsNothing() =
+        runTest {
+            // Glance re-sends the whole widget for every value it is handed,
+            // and the app asks on every arrival and departure. Most of those
+            // requests find the verdict exactly as it was.
+            val local = InMemoryLocalDoorDataSource()
+            local.insertDoorEvent(door(DoorPosition.CLOSED))
+            val frames = framesOf(readerFor(local, FakeDoorRepository()))
+
+            repaints.request()
+            repaints.request()
+            runCurrent()
+
+            assertEquals(1, frames.size)
+        }
 
     @Test
     fun aDoorAlreadyOnDiskIsReadWithoutTheNetwork() =

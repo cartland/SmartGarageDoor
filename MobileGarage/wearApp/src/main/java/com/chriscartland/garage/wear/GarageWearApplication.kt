@@ -65,7 +65,7 @@ class GarageWearApplication : Application() {
         // Materialize the graph eagerly so always-on collectors
         // (auth state, door cache) start with the process.
         component
-        nudgeTheGlanceSurfacesWhenTheDoorChanges()
+        nudgeTheGlanceSurfacesWhenTheAppLearnsSomething()
         // The channel the watch face's door-progress chip is filed under, made
         // before any press can need it. Idempotent.
         DoorActivityService.ensureChannel(this)
@@ -91,10 +91,21 @@ class GarageWearApplication : Application() {
      * [SystemSurfaceRefresher] observes the door and asks both to redraw on a
      * change. Their schedules stay the floor; this is the ceiling, and it
      * cannot loop because an equal re-fetched event does not emit.
+     *
+     * It also asks when the app is opened and when it is left. Leaving is the
+     * one that shows: the watch face is what replaces the app, a second after
+     * the user read the door there, and a face that still said something else
+     * would be the two disagreeing in plain sight. The watch keeps no
+     * staleness verdict of its own between glances (its clock is the poll
+     * loop, which stops with the screen), so there is no third input here as
+     * there is on the phone.
      */
-    private fun nudgeTheGlanceSurfacesWhenTheDoorChanges() {
+    private fun nudgeTheGlanceSurfacesWhenTheAppLearnsSomething() {
         SystemSurfaceRefresher(
-            doorEvents = component.doorRepository.currentDoorEvent,
+            changes = listOf(
+                component.doorRepository.currentDoorEvent,
+                component.appVisibilityState.visibility,
+            ),
             refresh = { requestGlanceSurfaceUpdates() },
             scope = component.applicationScope,
         ).start()

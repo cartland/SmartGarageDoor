@@ -21,6 +21,7 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -57,7 +58,7 @@ import com.chriscartland.garage.presentation.GlanceStatus
 import com.chriscartland.garage.presentation.GlanceSubline
 import com.chriscartland.garage.ui.home.HomeStatusFormatter
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -98,6 +99,21 @@ import java.time.ZoneId
  * reading to STALE via [WidgetGlanceStatus], and the subline says so instead of
  * claiming a span.
  *
+ * ## It OBSERVES the door; it does not take a reading of it
+ *
+ * A session outlives its first frame by about 45 seconds, and Glance says of
+ * itself that `update` / `updateAll` "do not restart `provideGlance` if it is
+ * already running", so "you should load initial data before calling
+ * `provideContent`, and then observe your sources of data within the
+ * composition". Until 2026-10-03 this widget did the first half only: it read
+ * the door once, refreshed once, and held those two readings for the rest of
+ * the session. A second change inside the same session was therefore dropped —
+ * and two changes a few seconds apart is what a door DOES (Opening, then Open),
+ * so the home screen could say "Opening" for the half hour until the launcher
+ * next asked. [GarageDoorWidgetSession] collects [WidgetGlanceStatus.observe]
+ * for as long as the session lives, which follows the same row on disk the
+ * app, a push and every fetch write to.
+ *
  * ## Two sizes, two layouts
  *
  * The body is composed once per size in [GarageWidgetLayout.SIZES] and the
@@ -132,26 +148,43 @@ class GarageDoorWidget : GlanceAppWidget() {
             localDoorDataSource = component.localDoorDataSource,
             fetchCurrentDoorEvent = component.fetchCurrentDoorEventUseCase,
             clock = component.appClock,
+            repaintRequests = component.widgetRepaintRequests.count,
         )
 
         // Read the cache BEFORE composing so the first frame is the real door
         // rather than a placeholder that has to be corrected.
-        val status = MutableStateFlow(reader.current())
+        val firstFrame = reader.current()
 
         coroutineScope {
-            launch {
-                reader.refresh()
-                // Re-read rather than trusting the refresh's own return: the
-                // verdict depends on the fetch outcome AND on what landed in
-                // the cache, and current() is the one place that combines them.
-                status.value = reader.current()
-            }
+            // Nothing is done with the result here: the fetch lands in the
+            // cache and its outcome in the reader, and the session below is
+            // already observing both.
+            launch { reader.refresh() }
             provideContent {
-                val shown by status.collectAsState()
-                GarageDoorWidgetContent(shown)
+                GarageDoorWidgetSession(firstFrame = firstFrame, statuses = remember { reader.observe() }) {
+                    GarageDoorWidgetContent(it)
+                }
             }
         }
     }
+}
+
+/**
+ * One widget session: the first frame, then every verdict after it.
+ *
+ * Its own composable, with the drawing handed in, so that "the widget follows
+ * the flow for as long as the session lives" is something a JVM test can
+ * assert — [GarageDoorWidgetContent] needs a Context to find its words and
+ * cannot be rendered there.
+ */
+@Composable
+internal fun GarageDoorWidgetSession(
+    firstFrame: GlanceStatus,
+    statuses: Flow<GlanceStatus>,
+    content: @Composable (GlanceStatus) -> Unit,
+) {
+    val shown by statuses.collectAsState(initial = firstFrame)
+    content(shown)
 }
 
 /**

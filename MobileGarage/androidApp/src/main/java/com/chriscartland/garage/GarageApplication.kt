@@ -48,7 +48,7 @@ class GarageApplication : Application() {
         // OS-rendered background open-door warnings to land on (M4). Idempotent.
         DoorNotificationPresenter.createChannel(this)
         reportVisibilityToSharedCode()
-        repaintTheWidgetWhenTheDoorChanges()
+        repaintTheWidgetWhenTheAppLearnsSomething()
         publishTheWidgetPreview()
     }
 
@@ -70,11 +70,31 @@ class GarageApplication : Application() {
      * here rather than in `AppStartup` because a process woken by FCM or by
      * the launcher never creates an Activity, and this is exactly the case
      * that matters. `updateAll` no-ops when no widget is placed.
+     *
+     * Three things count as the app learning something (see
+     * [SystemSurfaceRefresher]): the door event, the app's own verdict that
+     * the garage has gone quiet, and the user arriving at or leaving the app.
+     * On a phone the arrival is also the only thing that ASKS — this app
+     * ships `DoorUpdateStrategyId.PUSH`, which fetches nothing on a warm
+     * open, so the widget's own refresh is the request, and what it lands in
+     * the cache is what the screen then shows too.
+     *
+     * A repaint is two steps because Glance needs both: number the request so
+     * a session that is already alive judges its verdict again, and call
+     * `updateAll` so a widget with no session gets one — see
+     * `WidgetRepaintRequests`.
      */
-    private fun repaintTheWidgetWhenTheDoorChanges() {
+    private fun repaintTheWidgetWhenTheAppLearnsSomething() {
         SystemSurfaceRefresher(
-            doorEvents = component.doorRepository.currentDoorEvent,
-            refresh = { GarageDoorWidget().updateAll(this) },
+            changes = listOf(
+                component.doorRepository.currentDoorEvent,
+                component.checkInStalenessManager.isCheckInStale,
+                component.appVisibilityState.visibility,
+            ),
+            refresh = {
+                component.widgetRepaintRequests.request()
+                GarageDoorWidget().updateAll(this)
+            },
             scope = component.applicationScope,
         ).start()
     }
