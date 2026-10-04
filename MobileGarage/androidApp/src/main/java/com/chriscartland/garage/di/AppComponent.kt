@@ -153,6 +153,7 @@ import com.chriscartland.garage.viewmodel.DefaultFunctionListViewModel
 import com.chriscartland.garage.viewmodel.DefaultHomeViewModel
 import com.chriscartland.garage.viewmodel.DefaultProfileViewModel
 import com.chriscartland.garage.wearrelay.PlayServicesWearCompanionRepository
+import com.chriscartland.garage.widget.WidgetRepaintRequests
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -263,6 +264,13 @@ abstract class AppComponent(
      * watches a signal nobody writes to.
      */
     abstract val appVisibilityState: AppVisibilityState
+
+    /**
+     * Entry point because `GarageApplication` increments it and a widget
+     * session the SYSTEM started observes it. Two instances would be two
+     * counters, with the session listening to the one nobody touches.
+     */
+    abstract val widgetRepaintRequests: WidgetRepaintRequests
     abstract val doorUpdateManager: DoorUpdateManager
     abstract val computeButtonHealthDisplayUseCase: ComputeButtonHealthDisplayUseCase
 
@@ -1044,6 +1052,10 @@ abstract class AppComponent(
     @Provides
     @Singleton
     fun provideAppVisibilityState(): AppVisibilityState = AppVisibilityState()
+
+    @Provides
+    @Singleton
+    fun provideWidgetRepaintRequests(): WidgetRepaintRequests = WidgetRepaintRequests()
 
     @Provides
     fun providePushDoorUpdateStrategy(): PushDoorUpdateStrategy = PushDoorUpdateStrategy()

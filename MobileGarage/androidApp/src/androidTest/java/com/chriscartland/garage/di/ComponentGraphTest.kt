@@ -141,6 +141,16 @@ class ComponentGraphTest {
     }
 
     @Test
+    fun widgetRepaintRequestsIsSingleton() {
+        // GarageApplication increments this counter and a widget session the
+        // system started observes it. Two instances would mean a repaint
+        // request that reaches no live session: the widget would go back to
+        // freezing on the first thing it saw.
+        val c = component
+        assertSame("WidgetRepaintRequests must be singleton", c.widgetRepaintRequests, c.widgetRepaintRequests)
+    }
+
+    @Test
     fun doorUpdateManagerIsSingleton() {
         // Owns the one running strategy and its idempotent start(). Two
         // instances would each run their own strategy against the same
