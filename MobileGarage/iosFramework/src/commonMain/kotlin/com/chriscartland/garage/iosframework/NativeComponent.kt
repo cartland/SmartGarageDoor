@@ -492,7 +492,14 @@ abstract class NativeComponent(
         localDoorDataSource: LocalDoorDataSource,
         fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
         appClock: AppClock,
-    ): IntentGlanceStatus = IntentGlanceStatus(localDoorDataSource, fetchCurrentDoorEvent, appClock)
+        doorRepository: DoorRepository,
+    ): IntentGlanceStatus =
+        IntentGlanceStatus(
+            localDoorDataSource = localDoorDataSource,
+            fetchCurrentDoorEvent = fetchCurrentDoorEvent,
+            clock = appClock,
+            fetchFailed = doorRepository.currentDoorFetchFailed,
+        )
 
     @Provides
     fun provideFetchRecentDoorEventsUseCase(doorRepository: DoorRepository): FetchRecentDoorEventsUseCase =

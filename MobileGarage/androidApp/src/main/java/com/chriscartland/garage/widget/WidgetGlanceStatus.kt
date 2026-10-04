@@ -19,13 +19,11 @@ package com.chriscartland.garage.widget
 
 import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.domain.coroutines.AppClock
-import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.domain.model.DoorEvent
 import com.chriscartland.garage.presentation.GlanceStatus
 import com.chriscartland.garage.presentation.GlanceStatusMapper
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -73,15 +71,16 @@ class WidgetGlanceStatus(
     private val localDoorDataSource: LocalDoorDataSource,
     private val fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
     private val clock: AppClock,
+    /**
+     * Whether the last attempt to hear the door from the server failed —
+     * `DoorRepository.currentDoorFetchFailed`, the process's ONE memory of
+     * it. Not a field of this reader: the app's own fetch and a push write
+     * the same flag, so the widget says "Not confirmed" exactly when the rest
+     * of the app would, and stops saying it the moment anyone gets through.
+     */
+    private val fetchFailed: StateFlow<Boolean>,
     private val repaintRequests: StateFlow<Long>,
 ) {
-    /**
-     * Whether the refresh this render attempted failed. Seeded false: a widget
-     * that has not asked anything yet is un-asked, not failed. A flow so that
-     * [observe] hears the outcome land.
-     */
-    private val lastRefreshFailed = MutableStateFlow(false)
-
     /**
      * The verdict to show right now, from what is already on disk. Read before
      * composing, so the first frame is the real door rather than a placeholder.
@@ -89,14 +88,14 @@ class WidgetGlanceStatus(
     suspend fun current(): GlanceStatus =
         verdict(
             event = localDoorDataSource.currentDoorEvent.first(),
-            refreshFailed = lastRefreshFailed.value,
+            refreshFailed = fetchFailed.value,
         )
 
     /**
      * Every verdict from here on, for as long as it is collected.
      *
      * Judged again whenever any of the three things it depends on moves: the
-     * door on disk, the outcome of [refresh], or a repaint request — the last
+     * door on disk, the outcome of the last fetch, or a repaint request — the last
      * being how a change produced by the CLOCK gets in, since `now` is read
      * when the verdict is computed and nothing else about a garage going quiet
      * changes any stored value.
@@ -107,7 +106,7 @@ class WidgetGlanceStatus(
     fun observe(): Flow<GlanceStatus> =
         combine(
             localDoorDataSource.currentDoorEvent,
-            lastRefreshFailed,
+            fetchFailed,
             repaintRequests,
         ) { event, refreshFailed, _ ->
             verdict(event = event, refreshFailed = refreshFailed)
@@ -116,12 +115,12 @@ class WidgetGlanceStatus(
     /**
      * Ask the server for a newer reading.
      *
-     * Records the outcome so the verdict presents a value we could not confirm
-     * as remembered rather than current. Never throws: a widget that cannot
-     * reach the server still has something true to show.
+     * The result is not kept here: the repository records the outcome where
+     * every surface reads it, and [observe] hears it land. Never throws: a
+     * widget that cannot reach the server still has something true to show.
      */
     suspend fun refresh() {
-        lastRefreshFailed.value = fetchCurrentDoorEvent() is AppResult.Error
+        fetchCurrentDoorEvent()
     }
 
     /** The one place the pieces become a verdict, so [current] and [observe] cannot disagree. */

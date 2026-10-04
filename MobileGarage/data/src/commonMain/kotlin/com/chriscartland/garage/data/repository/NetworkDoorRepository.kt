@@ -48,6 +48,12 @@ class NetworkDoorRepository(
     private val _currentDoorEvent = MutableStateFlow<DoorEvent?>(null)
     override val currentDoorEvent: StateFlow<DoorEvent?> = _currentDoorEvent
 
+    // The outcome of the last attempt to hear the current door, for every
+    // surface at once (see the interface). Written in exactly two places:
+    // the fetch wrapper below and insertDoorEvent.
+    private val _currentDoorFetchFailed = MutableStateFlow(false)
+    override val currentDoorFetchFailed: StateFlow<Boolean> = _currentDoorFetchFailed
+
     // Same StateFlow + always-on collector pattern as currentDoorEvent.
     // Exposing this as StateFlow lets `DoorHistoryViewModel` synchronously
     // read `.value` to seed its initial loading-result with the cached
@@ -84,9 +90,20 @@ class NetworkDoorRepository(
     override suspend fun insertDoorEvent(doorEvent: DoorEvent) {
         Logger.d { "Inserting DoorEvent: $doorEvent" }
         localDoorDataSource.insertDoorEvent(doorEvent)
+        // The server just told us the door. Whatever the last request did,
+        // this reading is confirmed.
+        _currentDoorFetchFailed.value = false
     }
 
-    override suspend fun fetchCurrentDoorEvent(): AppResult<DoorEvent, FetchError> {
+    // A wrapper rather than a write on each return path: the request has
+    // three ways to fail and one to succeed, and an outcome recorded per
+    // branch is an outcome some future branch forgets to record.
+    override suspend fun fetchCurrentDoorEvent(): AppResult<DoorEvent, FetchError> =
+        requestCurrentDoorEvent().also { result ->
+            _currentDoorFetchFailed.value = result is AppResult.Error
+        }
+
+    private suspend fun requestCurrentDoorEvent(): AppResult<DoorEvent, FetchError> {
         val buildTimestamp = fetchBuildTimestampCached()
         if (buildTimestamp == null) {
             Logger.e { "Server config is null" }

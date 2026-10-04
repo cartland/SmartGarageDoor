@@ -68,13 +68,12 @@ class NativeComponentTest {
     }
 
     @Test
-    fun intentGlanceStatusResolvesFreshEachTime() {
-        // Each intent run keeps its own memory of its own refresh, so the
-        // graph must hand out a new reader per resolution — a cached one
-        // would let one failed refresh word every later answer.
-        val first = component.intentGlanceStatus
-        assertNotNull(first)
-        assertNotSame(first, component.intentGlanceStatus)
+    fun intentGlanceStatusResolves() {
+        // The reader holds no memory of its own: whether the last fetch
+        // failed is the repository's flag, shared with the app's poll. So
+        // nothing depends on whether the graph hands out one reader or many
+        // (it used to, when each kept its own copy of that outcome).
+        assertNotNull(component.intentGlanceStatus)
     }
 
     @Test

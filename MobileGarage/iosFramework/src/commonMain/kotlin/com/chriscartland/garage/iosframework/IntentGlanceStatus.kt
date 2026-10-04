@@ -19,10 +19,10 @@ package com.chriscartland.garage.iosframework
 
 import com.chriscartland.garage.data.LocalDoorDataSource
 import com.chriscartland.garage.domain.coroutines.AppClock
-import com.chriscartland.garage.domain.model.AppResult
 import com.chriscartland.garage.presentation.GlanceStatus
 import com.chriscartland.garage.presentation.GlanceStatusMapper
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 
 /**
@@ -42,16 +42,18 @@ import kotlinx.coroutines.flow.first
  * READ-ONLY. It holds nothing that can press, and the intent that consumes
  * it is pinned to that by `DoorStatusIntentTests` on the Swift side.
  *
- * Not a singleton: `lastRefreshFailed` is one resolution's memory of its own
- * refresh, so every intent run gets a fresh instance.
+ * Holds no memory of its own. Whether the last fetch failed is the
+ * repository's `currentDoorFetchFailed` — the process's one copy, which the
+ * app's own poll writes too — so Siri describes the door exactly as the
+ * screen would. The intent refreshes before it answers, so what it reads is
+ * normally its own attempt.
  */
 class IntentGlanceStatus(
     private val localDoorDataSource: LocalDoorDataSource,
     private val fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
     private val clock: AppClock,
+    private val fetchFailed: StateFlow<Boolean>,
 ) {
-    private var lastRefreshFailed: Boolean = false
-
     /** The verdict to say right now, from what is already on disk. */
     suspend fun current(): GlanceStatus {
         val event = localDoorDataSource.currentDoorEvent.first()
@@ -60,12 +62,12 @@ class IntentGlanceStatus(
             lastCheckInEpochSeconds = event?.lastCheckInTimeSeconds,
             lastChangeEpochSeconds = event?.lastChangeTimeSeconds,
             nowEpochSeconds = clock.nowEpochSeconds(),
-            isFetchError = lastRefreshFailed,
+            isFetchError = fetchFailed.value,
         )
     }
 
-    /** Ask the server for a newer reading; the outcome shapes the next [current]. */
+    /** Ask the server for a newer reading; the repository records the outcome that shapes the next [current]. */
     suspend fun refresh() {
-        lastRefreshFailed = fetchCurrentDoorEvent() is AppResult.Error
+        fetchCurrentDoorEvent()
     }
 }
