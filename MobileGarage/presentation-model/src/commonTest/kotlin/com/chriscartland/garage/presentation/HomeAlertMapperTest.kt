@@ -17,9 +17,6 @@
 
 package com.chriscartland.garage.presentation
 
-import com.chriscartland.garage.domain.model.DoorEvent
-import com.chriscartland.garage.domain.model.DoorPosition
-import com.chriscartland.garage.domain.model.LoadingResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -30,8 +27,6 @@ import kotlin.test.assertTrue
  * on every platform.
  */
 class HomeAlertMapperTest {
-    private fun event(position: DoorPosition): DoorEvent = DoorEvent(doorPosition = position)
-
     // Every case below that asserts a banner APPEARS passes
     // DataFreshness.STALE, because that is the only verdict under which a
     // freshness banner exists at all. The settle window's own effect — the
@@ -41,7 +36,7 @@ class HomeAlertMapperTest {
     @Test
     fun cleanStateEmpty() {
         val alerts = HomeAlertMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Complete(event(DoorPosition.OPEN)),
+            isServerUnreachable = false,
             isCheckInStale = false,
             notificationPermissionGranted = true,
             notificationRequestCount = 0,
@@ -53,7 +48,7 @@ class HomeAlertMapperTest {
     @Test
     fun staleOnly() {
         val alerts = HomeAlertMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Complete(event(DoorPosition.OPEN)),
+            isServerUnreachable = false,
             isCheckInStale = true,
             notificationPermissionGranted = true,
             notificationRequestCount = 0,
@@ -65,7 +60,7 @@ class HomeAlertMapperTest {
     @Test
     fun permissionOnly() {
         val alerts = HomeAlertMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Complete(event(DoorPosition.OPEN)),
+            isServerUnreachable = false,
             isCheckInStale = false,
             notificationPermissionGranted = false,
             notificationRequestCount = 0,
@@ -82,7 +77,7 @@ class HomeAlertMapperTest {
         // appends escalation lines at counts 3+, 4+, 5+.
         val firstAttempt = HomeAlertMapper
             .toHomeAlerts(
-                currentDoorEvent = LoadingResult.Complete(event(DoorPosition.OPEN)),
+                isServerUnreachable = false,
                 isCheckInStale = false,
                 notificationPermissionGranted = false,
                 notificationRequestCount = 0,
@@ -90,7 +85,7 @@ class HomeAlertMapperTest {
             ).first() as HomeAlert.PermissionMissing
         val manyAttempts = HomeAlertMapper
             .toHomeAlerts(
-                currentDoorEvent = LoadingResult.Complete(event(DoorPosition.OPEN)),
+                isServerUnreachable = false,
                 isCheckInStale = false,
                 notificationPermissionGranted = false,
                 notificationRequestCount = 5,
@@ -101,37 +96,21 @@ class HomeAlertMapperTest {
     }
 
     @Test
-    fun fetchErrorOnly() {
+    fun serverUnreachableOnly() {
         val alerts = HomeAlertMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Error(RuntimeException("boom")),
+            isServerUnreachable = true,
             isCheckInStale = false,
             notificationPermissionGranted = true,
             notificationRequestCount = 0,
             freshness = DataFreshness.STALE,
         )
-        assertEquals(1, alerts.size)
-        val a = alerts[0] as HomeAlert.FetchError
-        assertTrue(a.truncatedException.contains("boom"))
-    }
-
-    @Test
-    fun errorMessageTruncatedTo500() {
-        val long = "x".repeat(2_000)
-        val alerts = HomeAlertMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Error(RuntimeException(long)),
-            isCheckInStale = false,
-            notificationPermissionGranted = true,
-            notificationRequestCount = 0,
-            freshness = DataFreshness.STALE,
-        )
-        val a = alerts[0] as HomeAlert.FetchError
-        assertTrue(a.truncatedException.length <= 500, "Got len=${a.truncatedException.length}")
+        assertEquals(listOf(HomeAlert.ServerUnreachable), alerts)
     }
 
     @Test
     fun allThreeInDocumentedOrder() {
         val alerts = HomeAlertMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Error(RuntimeException("boom")),
+            isServerUnreachable = true,
             isCheckInStale = true,
             notificationPermissionGranted = false,
             notificationRequestCount = 0,
@@ -140,13 +119,13 @@ class HomeAlertMapperTest {
         assertEquals(3, alerts.size)
         assertTrue(alerts[0] is HomeAlert.Stale, "[0] should be Stale")
         assertTrue(alerts[1] is HomeAlert.PermissionMissing, "[1] should be PermissionMissing")
-        assertTrue(alerts[2] is HomeAlert.FetchError, "[2] should be FetchError")
+        assertTrue(alerts[2] is HomeAlert.ServerUnreachable, "[2] should be ServerUnreachable")
     }
 
     @Test
-    fun loadingStateDoesNotEmitFetchError() {
+    fun aHealthyConnectionSaysNothing() {
         val alerts = HomeAlertMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Loading(null),
+            isServerUnreachable = false,
             isCheckInStale = false,
             notificationPermissionGranted = true,
             notificationRequestCount = 0,
@@ -164,7 +143,7 @@ class HomeAlertMapperTest {
     @Test
     fun settlingSuppressesTheStaleBanner() {
         val alerts = HomeAlertMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Complete(event(DoorPosition.OPEN)),
+            isServerUnreachable = false,
             isCheckInStale = true,
             notificationPermissionGranted = true,
             notificationRequestCount = 0,
@@ -175,9 +154,9 @@ class HomeAlertMapperTest {
 
     /** Same rule for the other Retry-carrying banner. */
     @Test
-    fun settlingSuppressesTheFetchErrorBanner() {
+    fun settlingSuppressesTheServerUnreachableBar() {
         val alerts = HomeAlertMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Error(RuntimeException("boom")),
+            isServerUnreachable = true,
             isCheckInStale = false,
             notificationPermissionGranted = true,
             notificationRequestCount = 0,
@@ -199,7 +178,7 @@ class HomeAlertMapperTest {
     @Test
     fun settlingDoesNotSuppressThePermissionBanner() {
         val alerts = HomeAlertMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Complete(event(DoorPosition.OPEN)),
+            isServerUnreachable = false,
             isCheckInStale = true,
             notificationPermissionGranted = false,
             notificationRequestCount = 0,
@@ -218,7 +197,7 @@ class HomeAlertMapperTest {
     @Test
     fun freshSuppressesFreshnessBannersToo() {
         val alerts = HomeAlertMapper.toHomeAlerts(
-            currentDoorEvent = LoadingResult.Error(RuntimeException("boom")),
+            isServerUnreachable = true,
             isCheckInStale = true,
             notificationPermissionGranted = true,
             notificationRequestCount = 0,

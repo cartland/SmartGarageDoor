@@ -57,7 +57,7 @@ data class GlanceRefresh(
  *
  * Whether the last fetch failed IS shared — and with the watch's SCREEN as
  * well, not only between these two: it is the repository's
- * `currentDoorFetchFailed`, the process's one memory of it. "We could not
+ * `currentDoorFetchFailures`, the process's one memory of it. "We could not
  * reach the server" is a fact about the process, not about one surface. Until
  * 2026-10-03 this class kept its own copy and `WearHomeViewModel` kept
  * another, so the dial could grey over a failed poll while the tile, drawn a
@@ -92,7 +92,7 @@ class WearGlanceStatus(
                 lastChangeEpochSeconds = event?.lastChangeTimeSeconds,
                 nowEpochSeconds = clock.nowEpochSeconds(),
                 // Whoever asked last, on any surface — see the class KDoc.
-                isFetchError = observeDoorEvents.currentFetchFailed().value,
+                isFetchError = observeDoorEvents.currentFetchFailures().value > 0,
             ),
             event = event,
         )

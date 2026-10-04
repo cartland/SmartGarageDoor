@@ -114,7 +114,7 @@ fun HomeContent(
     // formats clock time + localized units.
     val sinceLine = rememberSinceLine(doorState.sinceStatus, now, zone)
     val alerts = HomeAlertMapper.toHomeAlerts(
-        currentDoorEvent = currentDoorEvent,
+        isServerUnreachable = doorState.isServerUnreachable,
         isCheckInStale = doorState.isCheckInStale,
         notificationPermissionGranted = notificationPermissionState.status.isGranted,
         notificationRequestCount = permissionRequestCount,
@@ -158,7 +158,8 @@ fun HomeContent(
                     notificationPermissionState.launchPermissionRequest()
                     resolved.log(AppLoggerKeys.USER_REQUESTED_NOTIFICATION_PERMISSION)
                 }
-                is HomeAlert.FetchError -> {
+                HomeAlert.ServerUnreachable -> {
+                    resolved.log(AppLoggerKeys.USER_FETCH_CURRENT_DOOR)
                     resolved.fetchCurrentDoorEvent()
                 }
             }

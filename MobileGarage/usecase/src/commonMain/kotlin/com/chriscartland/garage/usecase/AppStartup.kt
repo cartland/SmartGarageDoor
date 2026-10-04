@@ -37,6 +37,7 @@ import kotlinx.coroutines.launch
 class AppStartup(
     private val fcmRegistrationManager: FcmRegistrationManager,
     private val checkInStalenessManager: CheckInStalenessManager,
+    private val doorDataHealthManager: DoorDataHealthManager,
     private val liveClock: LiveClock,
     private val appSettleWindow: AppSettleWindow,
     private val logAppEvent: LogAppEventUseCase,
@@ -64,6 +65,10 @@ class AppStartup(
         Logger.d { "AppStartup: Starting check-in staleness manager" }
         checkInStalenessManager.start()
         actions.add("startCheckInStaleness")
+
+        Logger.d { "AppStartup: Starting door data health manager" }
+        doorDataHealthManager.start()
+        actions.add("startDoorDataHealth")
 
         Logger.d { "AppStartup: Starting live clock" }
         liveClock.start()

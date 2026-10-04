@@ -8,7 +8,7 @@
 |---|---|---|---|---|---|
 | `authState` | input | USER_ACTION | `AuthRepository` | — | `HomeViewModel` (invoke), `ProfileViewModel` (invoke) |
 | `currentDoorEvent` | input | PUSH | `DoorRepository` | — | `FunctionListViewModel` (current), `HomeViewModel` (current, position), `ProfileViewModel` (current) |
-| `currentDoorFetchFailed` | input | PUSH | `DoorRepository` | — | — |
+| `currentDoorFetchFailures` | input | PUSH | `DoorRepository` | — | — |
 | `recentDoorEvents` | input | PUSH | `DoorRepository` | — | `DoorHistoryViewModel` (recent) |
 | `paginationState` | input | USER_ACTION | `DoorRepository` | — | `DoorHistoryViewModel` (paginationState) |
 | `buttonHealth` | input | PUSH | `ButtonHealthRepository` | — | — |
@@ -18,6 +18,7 @@
 | `testNotificationSandbox` | input | USER_ACTION | `TestNotificationRepository` | — | `FunctionListViewModel` (invoke) |
 | `nowEpochSeconds` | input | CLOCK | `LiveClock` | — | `DoorHistoryViewModel` (direct), `HomeViewModel` (direct) |
 | `isCheckInStale` | input | CLOCK | `CheckInStalenessManager` | — | `DoorHistoryViewModel` (direct), `HomeViewModel` (direct) |
+| `isDoorDataUnhealthy` | input | CLOCK | `DoorDataHealthManager` | — | `HomeViewModel` (direct) |
 | `isSettling` | input | CLOCK | `AppSettleWindow` | — | `HomeViewModel` (direct) |
 | `watchCompanion` | input | POLL | `WearCompanionRepository` | — | — |
 | `buttonHealthDisplay` | derived | — | `ComputeButtonHealthDisplayUseCase` | eager | `HomeViewModel` |
@@ -41,7 +42,7 @@ inputs and none of the derived nodes.
 graph LR
     authState(["authState · USER_ACTION"])
     currentDoorEvent(["currentDoorEvent · PUSH"])
-    currentDoorFetchFailed(["currentDoorFetchFailed · PUSH"])
+    currentDoorFetchFailures(["currentDoorFetchFailures · PUSH"])
     recentDoorEvents(["recentDoorEvents · PUSH"])
     paginationState(["paginationState · USER_ACTION"])
     buttonHealth(["buttonHealth · PUSH"])
@@ -51,6 +52,7 @@ graph LR
     testNotificationSandbox(["testNotificationSandbox · USER_ACTION"])
     nowEpochSeconds(["nowEpochSeconds · CLOCK"])
     isCheckInStale(["isCheckInStale · CLOCK"])
+    isDoorDataUnhealthy(["isDoorDataUnhealthy · CLOCK"])
     isSettling(["isSettling · CLOCK"])
     watchCompanion(["watchCompanion · POLL"])
     buttonHealthDisplay["buttonHealthDisplay"]
@@ -68,7 +70,7 @@ graph LR
     ObserveAuthStateUseCase --> HomeViewModel
     ObserveAuthStateUseCase --> ProfileViewModel
     currentDoorEvent --> ObserveDoorEventsUseCase
-    currentDoorFetchFailed --> ObserveDoorEventsUseCase
+    currentDoorFetchFailures --> ObserveDoorEventsUseCase
     paginationState --> ObserveDoorEventsUseCase
     recentDoorEvents --> ObserveDoorEventsUseCase
     ObserveDoorEventsUseCase --> DoorHistoryViewModel
@@ -83,10 +85,12 @@ graph LR
     ObserveTestNotificationStateUseCase --> FunctionListViewModel
     isCheckInStale --> DoorHistoryViewModel
     isCheckInStale --> HomeViewModel
+    isDoorDataUnhealthy --> HomeViewModel
     isSettling --> HomeViewModel
     nowEpochSeconds --> DoorHistoryViewModel
     nowEpochSeconds --> HomeViewModel
     currentDoorEvent -. reacts .-> isCheckInStale
+    currentDoorFetchFailures -. reacts .-> isDoorDataUnhealthy
     authState --> buttonHealthDisplay
     buttonHealth --> buttonHealthDisplay
     nowEpochSeconds --> buttonHealthDisplay

@@ -347,7 +347,7 @@
     <string name="home_alert_action_retry">Retry</string>
     <string name="home_alert_action_allow">Allow</string>
     <!-- Fetch error banner. %1$s is the truncated exception message. -->
-    <string name="home_alert_fetch_error_format">Error fetching current door event: %1$s</string>
+    <string name="home_alert_server_unreachable">Unable to reach the server</string>
 
     <!-- Function List screen — warning paragraph + per-action button labels. -->
     <string name="function_list_warning">Each button below performs a real action immediately. No confirmation prompts. Tapping triggers calls to the server, modifies app state, or wipes local data. Double-check the label before tapping.</string>

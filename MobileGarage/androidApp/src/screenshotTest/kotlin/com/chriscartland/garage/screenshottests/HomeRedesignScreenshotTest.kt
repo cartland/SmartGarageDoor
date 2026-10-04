@@ -36,6 +36,7 @@ import com.chriscartland.garage.ui.home.HomeContentRemotePillOnlinePreview
 import com.chriscartland.garage.ui.home.HomeContentRemotePillUnauthorizedPreview
 import com.chriscartland.garage.ui.home.HomeContentRemotePillUnknownPreview
 import com.chriscartland.garage.ui.home.HomeContentSendingToDoorPreview
+import com.chriscartland.garage.ui.home.HomeContentServerUnreachablePreview
 import com.chriscartland.garage.ui.home.HomeContentSettledStalePreview
 import com.chriscartland.garage.ui.home.HomeContentSettlingPreview
 import com.chriscartland.garage.ui.home.HomeContentSignedOutPreview
@@ -116,6 +117,18 @@ fun HomeContentSettlingPreviewTest() {
 @Composable
 fun HomeContentSettledStalePreviewTest() {
     AppTheme { HomeContentSettledStalePreview() }
+}
+
+@PreviewTest
+@Preview(showBackground = true, name = "Light")
+@Preview(
+    showBackground = true,
+    name = "Dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+fun HomeContentServerUnreachablePreviewTest() {
+    AppTheme { HomeContentServerUnreachablePreview() }
 }
 
 @PreviewTest

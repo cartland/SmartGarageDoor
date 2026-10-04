@@ -32,6 +32,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class NetworkDoorRepository(
@@ -51,8 +52,8 @@ class NetworkDoorRepository(
     // The outcome of the last attempt to hear the current door, for every
     // surface at once (see the interface). Written in exactly two places:
     // the fetch wrapper below and insertDoorEvent.
-    private val _currentDoorFetchFailed = MutableStateFlow(false)
-    override val currentDoorFetchFailed: StateFlow<Boolean> = _currentDoorFetchFailed
+    private val _currentDoorFetchFailures = MutableStateFlow(0)
+    override val currentDoorFetchFailures: StateFlow<Int> = _currentDoorFetchFailures
 
     // Same StateFlow + always-on collector pattern as currentDoorEvent.
     // Exposing this as StateFlow lets `DoorHistoryViewModel` synchronously
@@ -92,7 +93,7 @@ class NetworkDoorRepository(
         localDoorDataSource.insertDoorEvent(doorEvent)
         // The server just told us the door. Whatever the last request did,
         // this reading is confirmed.
-        _currentDoorFetchFailed.value = false
+        _currentDoorFetchFailures.value = 0
     }
 
     // A wrapper rather than a write on each return path: the request has
@@ -100,7 +101,9 @@ class NetworkDoorRepository(
     // branch is an outcome some future branch forgets to record.
     override suspend fun fetchCurrentDoorEvent(): AppResult<DoorEvent, FetchError> =
         requestCurrentDoorEvent().also { result ->
-            _currentDoorFetchFailed.value = result is AppResult.Error
+            _currentDoorFetchFailures.update { failures ->
+                if (result is AppResult.Error) failures + 1 else 0
+            }
         }
 
     private suspend fun requestCurrentDoorEvent(): AppResult<DoorEvent, FetchError> {

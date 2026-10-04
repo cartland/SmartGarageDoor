@@ -2,7 +2,7 @@
 
 # Screenshot Gallery
 
-Generated on Tue Sep 29 10:23:34 PDT 2026
+Generated on Sun Oct  4 03:49:04 PDT 2026
 
 ## Table of Contents
 - [ComponentsScreenshotTestKt](#componentsscreenshottestkt)
@@ -456,6 +456,12 @@ Generated on Tue Sep 29 10:23:34 PDT 2026
 
 ### HomeContentSendingToDoorPreviewTest_Light_fc5b723e_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSendingToDoorPreviewTest_Light_fc5b723e_0.png" width="300" />
+
+### HomeContentServerUnreachablePreviewTest_Dark_77106447_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentServerUnreachablePreviewTest_Dark_77106447_0.png" width="300" />
+
+### HomeContentServerUnreachablePreviewTest_Light_fc5b723e_0
+<img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentServerUnreachablePreviewTest_Light_fc5b723e_0.png" width="300" />
 
 ### HomeContentSettledStalePreviewTest_Dark_77106447_0
 <img src="../androidApp/src/screenshotTestDebug/reference/com/chriscartland/garage/screenshottests/HomeRedesignScreenshotTestKt/HomeContentSettledStalePreviewTest_Dark_77106447_0.png" width="300" />

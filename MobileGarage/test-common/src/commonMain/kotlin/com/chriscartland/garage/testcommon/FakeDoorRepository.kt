@@ -30,10 +30,10 @@ class FakeDoorRepository : DoorRepository {
     private val _recentDoorEvents = MutableStateFlow<List<DoorEvent>>(emptyList())
     private val _paginationState = MutableStateFlow(PaginationState.Initial)
 
-    private val _currentDoorFetchFailed = MutableStateFlow(false)
+    private val _currentDoorFetchFailures = MutableStateFlow(0)
 
     override val currentDoorEvent: StateFlow<DoorEvent?> = _currentDoorEvent
-    override val currentDoorFetchFailed: StateFlow<Boolean> = _currentDoorFetchFailed
+    override val currentDoorFetchFailures: StateFlow<Int> = _currentDoorFetchFailures
     override val recentDoorEvents: StateFlow<List<DoorEvent>> = _recentDoorEvents
     override val paginationState: StateFlow<PaginationState> = _paginationState
 
@@ -102,7 +102,7 @@ class FakeDoorRepository : DoorRepository {
 
     override suspend fun insertDoorEvent(doorEvent: DoorEvent) {
         _currentDoorEvent.value = doorEvent
-        _currentDoorFetchFailed.value = false
+        _currentDoorFetchFailures.value = 0
     }
 
     // Records its outcome exactly as the real repository does, so a surface
@@ -114,7 +114,7 @@ class FakeDoorRepository : DoorRepository {
             failCurrentDoorEventFetch -> AppResult.Error(FetchError.NetworkFailed)
             else -> _currentDoorEvent.value?.let { AppResult.Success(it) } ?: AppResult.Error(FetchError.NotReady)
         }
-        _currentDoorFetchFailed.value = result is AppResult.Error
+        _currentDoorFetchFailures.value = if (result is AppResult.Error) _currentDoorFetchFailures.value + 1 else 0
         return result
     }
 

@@ -82,7 +82,7 @@ object DataGraph {
     ) {
         AUTH_STATE("authState"),
         CURRENT_DOOR_EVENT("currentDoorEvent"),
-        CURRENT_DOOR_FETCH_FAILED("currentDoorFetchFailed"),
+        CURRENT_DOOR_FETCH_FAILURES("currentDoorFetchFailures"),
         RECENT_DOOR_EVENTS("recentDoorEvents"),
         PAGINATION_STATE("paginationState"),
         BUTTON_HEALTH("buttonHealth"),
@@ -92,6 +92,7 @@ object DataGraph {
         TEST_NOTIFICATION_SANDBOX("testNotificationSandbox"),
         NOW_EPOCH_SECONDS("nowEpochSeconds"),
         IS_CHECK_IN_STALE("isCheckInStale"),
+        IS_DOOR_DATA_UNHEALTHY("isDoorDataUnhealthy"),
         IS_SETTLING("isSettling"),
         WATCH_COMPANION("watchCompanion"),
         BUTTON_HEALTH_DISPLAY("buttonHealthDisplay"),

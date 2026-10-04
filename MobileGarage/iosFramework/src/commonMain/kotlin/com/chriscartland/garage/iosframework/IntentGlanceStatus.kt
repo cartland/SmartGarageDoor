@@ -43,7 +43,7 @@ import kotlinx.coroutines.flow.first
  * it is pinned to that by `DoorStatusIntentTests` on the Swift side.
  *
  * Holds no memory of its own. Whether the last fetch failed is the
- * repository's `currentDoorFetchFailed` — the process's one copy, which the
+ * repository's `currentDoorFetchFailures` — the process's one copy, which the
  * app's own poll writes too — so Siri describes the door exactly as the
  * screen would. The intent refreshes before it answers, so what it reads is
  * normally its own attempt.
@@ -52,7 +52,7 @@ class IntentGlanceStatus(
     private val localDoorDataSource: LocalDoorDataSource,
     private val fetchCurrentDoorEvent: FetchCurrentDoorEventUseCase,
     private val clock: AppClock,
-    private val fetchFailed: StateFlow<Boolean>,
+    private val fetchFailures: StateFlow<Int>,
 ) {
     /** The verdict to say right now, from what is already on disk. */
     suspend fun current(): GlanceStatus {
@@ -62,7 +62,7 @@ class IntentGlanceStatus(
             lastCheckInEpochSeconds = event?.lastCheckInTimeSeconds,
             lastChangeEpochSeconds = event?.lastChangeTimeSeconds,
             nowEpochSeconds = clock.nowEpochSeconds(),
-            isFetchError = fetchFailed.value,
+            isFetchError = fetchFailures.value > 0,
         )
     }
 

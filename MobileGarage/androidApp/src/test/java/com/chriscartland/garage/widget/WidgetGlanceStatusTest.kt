@@ -62,7 +62,7 @@ class WidgetGlanceStatusTest {
         localDoorDataSource = local,
         fetchCurrentDoorEvent = FetchCurrentDoorEventUseCase(repo),
         clock = AppClock { now },
-        fetchFailed = repo.currentDoorFetchFailed,
+        fetchFailures = repo.currentDoorFetchFailures,
         repaintRequests = repaints.count,
     )
 

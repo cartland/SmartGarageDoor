@@ -141,6 +141,15 @@ class ComponentGraphTest {
     }
 
     @Test
+    fun doorDataHealthManagerIsSingleton() {
+        // AppStartup starts it and the Home ViewModel reads it. Two instances
+        // and the screen reads a verdict that never moves: the bar could
+        // never appear.
+        val c = component
+        assertSame("DoorDataHealthManager must be singleton", c.doorDataHealthManager, c.doorDataHealthManager)
+    }
+
+    @Test
     fun widgetRepaintRequestsIsSingleton() {
         // GarageApplication increments this counter and a widget session the
         // system started observes it. Two instances would mean a repaint

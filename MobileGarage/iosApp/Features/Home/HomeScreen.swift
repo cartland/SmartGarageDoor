@@ -171,8 +171,15 @@ struct HomeContentView: View {
             if !alerts.isEmpty {
                 Section {
                     ForEach(alerts) { alert in
-                        HomeAlertBanner(alert: alert, onAction: { onAlertAction(alert.kind) })
-                            .listRowBackground(GarageColors.statusWarning.opacity(0.12))
+                        switch alert.kind {
+                        case .serverUnreachable:
+                            // One line, no alert tint: it qualifies a reading
+                            // that is still shown rather than replacing it.
+                            ServerUnreachableBar(alert: alert, onRetry: { onAlertAction(alert.kind) })
+                        case .stale, .permission:
+                            HomeAlertBanner(alert: alert, onAction: { onAlertAction(alert.kind) })
+                                .listRowBackground(GarageColors.statusWarning.opacity(0.12))
+                        }
                     }
                 }
             }
@@ -364,7 +371,35 @@ private struct HomeAlertBanner: View {
         switch alert.kind {
         case .stale: return "wifi.slash"
         case .permission: return "bell.badge"
-        case .fetchError: return "exclamationmark.triangle"
+        // Drawn by ServerUnreachableBar; named here because the switch is
+        // exhaustive.
+        case .serverUnreachable: return "icloud.slash"
+        }
+    }
+}
+
+/// The data is unhealthy: requests for the door have been failing long enough
+/// to say so (`DoorDataHealthManager` — three in a row, or a minute without
+/// recovery; never one failure). The SwiftUI analog of Android's
+/// `HomeServerUnreachableBar`: one line, so the door and its last known state
+/// stay readable underneath, already muted by the same verdict.
+private struct ServerUnreachableBar: View {
+    let alert: HomeAlertItem
+    let onRetry: () -> Void
+
+    var body: some View {
+        HStack(spacing: GarageSpacing.tight) {
+            Image(systemName: "icloud.slash")
+                .foregroundStyle(GarageColors.statusWarning)
+                .imageScale(.small)
+            alert.message.view
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button(alert.actionLabel, action: onRetry)
+                .buttonStyle(.borderless)
+                .font(.footnote)
         }
     }
 }
@@ -1074,6 +1109,41 @@ private struct HomeInfoSheetView: View {
                 ),
             ],
             checkIn: DeviceCheckInItem(label: previewText("23 min ago"), isStale: true),
+            onButtonTap: {},
+            onSignIn: {},
+            onRefresh: {},
+            onSnooze: {},
+            onAlertAction: { _ in }
+        )
+    }
+}
+
+/// Requests have been failing long enough to say so. The check-in is fresh —
+/// the garage is reporting fine; it is the app's path to the server that is
+/// down — so the only change from a healthy screen is the muted card and the
+/// one-line bar that explains it. One failed fetch never produces this.
+#Preview("Home server unreachable") {
+    NavigationStack {
+        HomeContentView(
+            doorPosition: .closed,
+            lastChangeTimeSeconds: nil,
+            sinceLine: previewText("Since 8:15 AM · 1 hr 5 min"),
+            warning: nil,
+            isCheckInStale: false,
+            buttonItem: RemoteButtonItem(kind: .ready, title: "Tap to open or close", subtitle: nil),
+            buttonHealth: ButtonHealthItem(label: "Available", kind: .online),
+            authState: .signedIn,
+            hasDoorData: true,
+            freshness: .stale,
+            alerts: [
+                HomeAlertItem(
+                    id: "serverUnreachable",
+                    kind: .serverUnreachable,
+                    message: .copy("Unable to reach the server"),
+                    actionLabel: "Retry"
+                ),
+            ],
+            checkIn: DeviceCheckInItem(label: previewText("2 min ago"), isStale: false),
             onButtonTap: {},
             onSignIn: {},
             onRefresh: {},

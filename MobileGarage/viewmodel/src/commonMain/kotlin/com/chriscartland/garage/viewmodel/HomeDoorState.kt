@@ -65,6 +65,14 @@ data class HomeDoorState(
      * colour came from one collected copy and the words from another.
      */
     val freshness: DataFreshness,
+    /**
+     * The app's requests for the door have been failing long enough to say
+     * so: `DoorDataHealthManager`'s verdict (three failures in a row, or a
+     * minute with no recovery), NOT a single failed fetch. Drives the slim
+     * "Unable to reach the server" bar and feeds [freshness], so the door is
+     * muted by the same fact the bar puts into words.
+     */
+    val isServerUnreachable: Boolean,
 )
 
 /**
@@ -76,10 +84,11 @@ data class HomeDoorState(
  */
 object HomeDoorStateMapper {
     /**
-     * @param isFetchError the last fetch failed. Kept separate from [event]
-     *   because a failed refresh does not erase the previous good value
-     *   (stale-while-revalidate) — the event still renders, it is only its
-     *   trustworthiness that changed.
+     * @param isFetchError the app's requests for the door are failing, by the
+     *   shared health rule — never one failed fetch on its own. Kept separate
+     *   from [event] because a failed refresh does not erase the previous
+     *   good value (stale-while-revalidate) — the event still renders, it is
+     *   only its trustworthiness that changed.
      * @param isSettling the app is inside `AppSettleWindow`'s grace period,
      *   which downgrades every "something is wrong" verdict from words to a
      *   colour. See [DataFreshness].
@@ -102,5 +111,6 @@ object HomeDoorStateMapper {
                 isFetchError = isFetchError,
                 isSettling = isSettling,
             ),
+            isServerUnreachable = isFetchError,
         )
 }

@@ -38,6 +38,7 @@ import com.chriscartland.garage.usecase.CheckDoorCommandUseCase
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.DeregisterFcmUseCase
+import com.chriscartland.garage.usecase.DoorDataHealthManager
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.LiveClock
@@ -185,6 +186,7 @@ class DefaultHomeViewModel(
     private val pushRemoteButtonUseCase: PushRemoteButtonUseCase,
     private val checkDoorCommandUseCase: CheckDoorCommandUseCase,
     private val checkInStalenessManager: CheckInStalenessManager,
+    doorDataHealthManager: DoorDataHealthManager,
     private val liveClock: LiveClock,
     appSettleWindow: AppSettleWindow,
     override val buttonHealthDisplay: StateFlow<ButtonHealthDisplay>,
@@ -226,6 +228,12 @@ class DefaultHomeViewModel(
     // door is rendered muted and wordless, outside it the screen may say so.
     private val isSettling: StateFlow<Boolean> = appSettleWindow.isSettling
 
+    // ADR-022 pass-through. Whether the app's requests have been failing long
+    // enough to say so — the shared rule, never a single failure. Replaces
+    // `LoadingResult.Error` as the fetch-error input, which nothing ever set:
+    // `fetchCurrentDoorEvent` restores the previous data on a failure.
+    private val isDoorDataUnhealthy: StateFlow<Boolean> = doorDataHealthManager.isDoorDataUnhealthy
+
     // The whole door-status surface as ONE derived node (G7,
     // docs/DATA_GRAPH_PLAN.md): a single combine + a single pure
     // transform replaces the former three independent stateIns
@@ -240,12 +248,13 @@ class DefaultHomeViewModel(
             checkInStale,
             nowEpochSeconds,
             isSettling,
-        ) { event, stale, now, settling ->
+            isDoorDataUnhealthy,
+        ) { event, stale, now, settling, unhealthy ->
             HomeDoorStateMapper.compute(
                 event = event.data,
                 isCheckInStale = stale,
                 nowEpochSeconds = now,
-                isFetchError = event is LoadingResult.Error,
+                isFetchError = unhealthy,
                 isSettling = settling,
             )
         }.stateIn(
@@ -255,7 +264,7 @@ class DefaultHomeViewModel(
                 event = _currentDoorEvent.value.data,
                 isCheckInStale = checkInStale.value,
                 nowEpochSeconds = nowEpochSeconds.value,
-                isFetchError = _currentDoorEvent.value is LoadingResult.Error,
+                isFetchError = isDoorDataUnhealthy.value,
                 isSettling = isSettling.value,
             ),
         )

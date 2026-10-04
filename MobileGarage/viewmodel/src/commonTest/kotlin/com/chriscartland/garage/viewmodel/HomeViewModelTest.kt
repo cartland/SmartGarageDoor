@@ -100,6 +100,7 @@ class HomeViewModelTest {
      */
     private lateinit var settleWindow: FakeAppSettleWindow
     private lateinit var stalenessManager: FakeCheckInStalenessManager
+    private lateinit var healthManager: FakeDoorDataHealthManager
 
     private val testDoorEvent =
         DoorEvent(
@@ -156,6 +157,8 @@ class HomeViewModelTest {
         // Settled unless a test says otherwise; FakeAppSettleWindow explains
         // why the fake's default is the opposite of production's.
         this@HomeViewModelTest.stalenessManager = stalenessManager
+        val healthManager = FakeDoorDataHealthManager()
+        this@HomeViewModelTest.healthManager = healthManager
         val settleWindow = FakeAppSettleWindow(initiallySettling = initiallySettling)
         this@HomeViewModelTest.settleWindow = settleWindow
         val liveClock = DefaultLiveClock(
@@ -192,6 +195,7 @@ class HomeViewModelTest {
                 FakeDoorCommandRepository(),
             ),
             checkInStalenessManager = stalenessManager,
+            doorDataHealthManager = healthManager,
             liveClock = liveClock,
             appSettleWindow = settleWindow,
             buttonHealthDisplay = computeButtonHealth(),
@@ -637,6 +641,57 @@ class HomeViewModelTest {
             advanceUntilIdle()
 
             assertEquals(1, buttonHealthRepository.fetchCount)
+        }
+
+    // --- Data health: the shared verdict reaches the screen ---
+
+    /**
+     * One failed fetch says nothing; the manager's verdict does. This pins
+     * that the VM reads the verdict (and not a single result) and that it
+     * both mutes the door and raises the bar, from one value.
+     */
+    @Test
+    fun anUnhealthyVerdictMutesTheDoorAndSaysTheServerIsUnreachable() =
+        runTest {
+            val viewModel = createViewModel(scope = backgroundScope)
+            runCurrent()
+            assertEquals(false, viewModel.doorState.value.isServerUnreachable, "healthy to start")
+            assertEquals(DataFreshness.FRESH, viewModel.doorState.value.freshness)
+
+            healthManager.setUnhealthy(true)
+            runCurrent()
+
+            assertEquals(true, viewModel.doorState.value.isServerUnreachable)
+            assertEquals(DataFreshness.STALE, viewModel.doorState.value.freshness)
+        }
+
+    @Test
+    fun aRecoveryTakesTheBarDownAgain() =
+        runTest {
+            // Positive control for the test above: a VM that latched the
+            // verdict true would pass it.
+            val viewModel = createViewModel(scope = backgroundScope)
+            healthManager.setUnhealthy(true)
+            runCurrent()
+
+            healthManager.setUnhealthy(false)
+            runCurrent()
+
+            assertEquals(false, viewModel.doorState.value.isServerUnreachable)
+            assertEquals(DataFreshness.FRESH, viewModel.doorState.value.freshness)
+        }
+
+    /** A single failed pull-to-refresh changes nothing on screen. */
+    @Test
+    fun aSingleFailedFetchSaysNothing() =
+        runTest {
+            val viewModel = createViewModel(scope = backgroundScope)
+            doorRepository.setFailCurrentDoorEventFetch(true)
+            viewModel.fetchCurrentDoorEvent()
+            runCurrent()
+
+            assertEquals(false, viewModel.doorState.value.isServerUnreachable)
+            assertEquals(DataFreshness.FRESH, viewModel.doorState.value.freshness)
         }
 
     // --- Settle-window wiring (docs/CLAUDE.md § The settle window) ---
