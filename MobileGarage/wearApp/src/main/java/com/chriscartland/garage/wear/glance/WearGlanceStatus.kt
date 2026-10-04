@@ -55,9 +55,14 @@ data class GlanceRefresh(
  * was on screen, and whichever refreshed second would conclude nothing had
  * changed. Surface-specific state belongs to the surface.
  *
- * [lastRefreshFailed] IS shared, and correctly so: "we could not reach the
- * server" is a fact about the process, not about one surface, and both should
- * present a remembered value the same way.
+ * Whether the last fetch failed IS shared — and with the watch's SCREEN as
+ * well, not only between these two: it is the repository's
+ * `currentDoorFetchFailed`, the process's one memory of it. "We could not
+ * reach the server" is a fact about the process, not about one surface. Until
+ * 2026-10-03 this class kept its own copy and `WearHomeViewModel` kept
+ * another, so the dial could grey over a failed poll while the tile, drawn a
+ * second later as the user left the app, presented the same door as
+ * confirmed.
  */
 class WearGlanceStatus(
     private val observeDoorEvents: ObserveDoorEventsUseCase,
@@ -65,13 +70,6 @@ class WearGlanceStatus(
     private val hydration: DoorSnapshotHydration,
     private val clock: AppClock,
 ) {
-    /**
-     * Whether the last refresh this process attempted failed. Seeded false: a
-     * surface that has not asked anything yet is un-asked, not failed, and
-     * the age is what tells the reader how much the value is worth.
-     */
-    private var lastRefreshFailed: Boolean = false
-
     /**
      * The verdict to show right now, from what is already known.
      *
@@ -93,7 +91,8 @@ class WearGlanceStatus(
                 // we may present it as current.
                 lastChangeEpochSeconds = event?.lastChangeTimeSeconds,
                 nowEpochSeconds = clock.nowEpochSeconds(),
-                isFetchError = lastRefreshFailed,
+                // Whoever asked last, on any surface — see the class KDoc.
+                isFetchError = observeDoorEvents.currentFetchFailed().value,
             ),
             event = event,
         )
@@ -102,14 +101,14 @@ class WearGlanceStatus(
     /**
      * Ask the server for a newer reading.
      *
-     * Records the outcome so the next [current] presents a value we could not
-     * confirm as remembered rather than current. Never throws for a failed
-     * fetch — a surface that cannot reach the server still has something true
-     * to show, and saying how old it is remains the honest answer.
+     * The repository records the outcome, so the next [current] — on this
+     * surface or any other — presents a value we could not confirm as
+     * remembered rather than current. Never throws for a failed fetch — a
+     * surface that cannot reach the server still has something true to show,
+     * and saying how old it is remains the honest answer.
      */
     suspend fun refresh(): GlanceRefresh {
         val failed = fetchCurrentDoorEvent() is AppResult.Error
-        lastRefreshFailed = failed
         return GlanceRefresh(
             succeeded = !failed,
             event = observeDoorEvents.current().value,

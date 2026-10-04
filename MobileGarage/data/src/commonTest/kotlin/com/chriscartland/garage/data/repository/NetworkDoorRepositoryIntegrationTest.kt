@@ -148,6 +148,84 @@ class NetworkDoorRepositoryIntegrationTest {
             assertNull(repo.currentDoorEvent.first())
         }
 
+    // --- currentDoorFetchFailed: one memory of "could not reach the server" ---
+
+    @Test
+    fun aRequestThatCannotReachTheServerIsRemembered() =
+        runTest {
+            configDataSource.setServerConfigResult(successConfig())
+            networkDataSource.setCurrentDoorEventResult(NetworkResult.ConnectionFailed)
+            val repo = createRepository()
+            assertEquals(false, repo.currentDoorFetchFailed.value, "a repository that has not asked is un-asked, not failed")
+
+            repo.fetchCurrentDoorEvent()
+
+            assertEquals(true, repo.currentDoorFetchFailed.value)
+        }
+
+    @Test
+    fun aMissingServerConfigIsRememberedAsAFailureToo() =
+        runTest {
+            // The early return: no request is even made. It is still an attempt
+            // to hear the door that did not get an answer, and it is the path a
+            // per-branch write is most likely to have forgotten.
+            configDataSource.setServerConfigResult(NetworkResult.ConnectionFailed)
+            val repo = createRepository()
+
+            val result = repo.fetchCurrentDoorEvent()
+
+            assertIs<AppResult.Error<*>>(result)
+            assertEquals(true, repo.currentDoorFetchFailed.value)
+        }
+
+    @Test
+    fun theNextRequestThatGetsThroughForgetsTheFailure() =
+        runTest {
+            configDataSource.setServerConfigResult(successConfig())
+            networkDataSource.setCurrentDoorEventResult(NetworkResult.ConnectionFailed)
+            val repo = createRepository()
+            repo.fetchCurrentDoorEvent()
+            assertEquals(true, repo.currentDoorFetchFailed.value)
+
+            networkDataSource.setCurrentDoorEventResult(
+                NetworkResult.Success(DoorEvent(doorPosition = DoorPosition.CLOSED)),
+            )
+            repo.fetchCurrentDoorEvent()
+
+            assertEquals(false, repo.currentDoorFetchFailed.value)
+        }
+
+    @Test
+    fun aPushConfirmsTheReadingWhateverTheLastRequestDid() =
+        runTest {
+            // The request path is down and the push path is not. The reading
+            // the server just handed us is as confirmed as a reading gets.
+            configDataSource.setServerConfigResult(successConfig())
+            networkDataSource.setCurrentDoorEventResult(NetworkResult.ConnectionFailed)
+            val repo = createRepository()
+            repo.fetchCurrentDoorEvent()
+            assertEquals(true, repo.currentDoorFetchFailed.value)
+
+            repo.insertDoorEvent(DoorEvent(doorPosition = DoorPosition.OPEN))
+
+            assertEquals(false, repo.currentDoorFetchFailed.value)
+        }
+
+    @Test
+    fun aFailedHistoryRequestSaysNothingAboutTheCurrentDoor() =
+        runTest {
+            // The flag answers one question — can we vouch for the CURRENT
+            // door — and the history list failing to load is not that.
+            configDataSource.setServerConfigResult(successConfig())
+            networkDataSource.setDoorEventPageResult(NetworkResult.ConnectionFailed)
+            val repo = createRepository()
+
+            val result = repo.fetchRecentDoorEvents()
+
+            assertIs<AppResult.Error<*>>(result)
+            assertEquals(false, repo.currentDoorFetchFailed.value)
+        }
+
     // --- fetchRecentDoorEvents (first page) ---
 
     @Test

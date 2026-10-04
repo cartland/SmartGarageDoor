@@ -1413,9 +1413,14 @@ even if we wanted it.
 ### What one shared reader serves both surfaces
 
 `WearGlanceStatus` holds what the tile and the complication both need: the
-current verdict, and a way to ask for a newer one. `lastRefreshFailed` lives
-there because "we could not reach the server" is a fact about the process, not
-about one surface.
+current verdict, and a way to ask for a newer one. Whether the last fetch
+failed is NOT kept here: "we could not reach the server" is a fact about the
+process, so it lives once, in `DoorRepository.currentDoorFetchFailed`, where the
+tile, the complication and the door screen all read it and any of them writes
+it by fetching. Before 2026-10-03 this reader kept one copy and
+`WearHomeViewModel` kept another, so the dial could grey over a failed poll
+while the tile, drawn as the user left the app, presented the same door as
+confirmed.
 
 What is deliberately **not** there is per-surface memory. The tile tracks the
 event it last drew so it can decide whether a re-render is worth spending; if

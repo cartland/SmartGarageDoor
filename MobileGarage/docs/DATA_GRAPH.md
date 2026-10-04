@@ -8,6 +8,7 @@
 |---|---|---|---|---|---|
 | `authState` | input | USER_ACTION | `AuthRepository` | — | `HomeViewModel` (invoke), `ProfileViewModel` (invoke) |
 | `currentDoorEvent` | input | PUSH | `DoorRepository` | — | `FunctionListViewModel` (current), `HomeViewModel` (current, position), `ProfileViewModel` (current) |
+| `currentDoorFetchFailed` | input | PUSH | `DoorRepository` | — | — |
 | `recentDoorEvents` | input | PUSH | `DoorRepository` | — | `DoorHistoryViewModel` (recent) |
 | `paginationState` | input | USER_ACTION | `DoorRepository` | — | `DoorHistoryViewModel` (paginationState) |
 | `buttonHealth` | input | PUSH | `ButtonHealthRepository` | — | — |
@@ -40,6 +41,7 @@ inputs and none of the derived nodes.
 graph LR
     authState(["authState · USER_ACTION"])
     currentDoorEvent(["currentDoorEvent · PUSH"])
+    currentDoorFetchFailed(["currentDoorFetchFailed · PUSH"])
     recentDoorEvents(["recentDoorEvents · PUSH"])
     paginationState(["paginationState · USER_ACTION"])
     buttonHealth(["buttonHealth · PUSH"])
@@ -66,6 +68,7 @@ graph LR
     ObserveAuthStateUseCase --> HomeViewModel
     ObserveAuthStateUseCase --> ProfileViewModel
     currentDoorEvent --> ObserveDoorEventsUseCase
+    currentDoorFetchFailed --> ObserveDoorEventsUseCase
     paginationState --> ObserveDoorEventsUseCase
     recentDoorEvents --> ObserveDoorEventsUseCase
     ObserveDoorEventsUseCase --> DoorHistoryViewModel

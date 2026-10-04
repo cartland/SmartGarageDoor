@@ -82,6 +82,7 @@ object DataGraph {
     ) {
         AUTH_STATE("authState"),
         CURRENT_DOOR_EVENT("currentDoorEvent"),
+        CURRENT_DOOR_FETCH_FAILED("currentDoorFetchFailed"),
         RECENT_DOOR_EVENTS("recentDoorEvents"),
         PAGINATION_STATE("paginationState"),
         BUTTON_HEALTH("buttonHealth"),

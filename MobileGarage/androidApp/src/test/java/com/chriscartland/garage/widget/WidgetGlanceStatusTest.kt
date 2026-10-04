@@ -62,6 +62,7 @@ class WidgetGlanceStatusTest {
         localDoorDataSource = local,
         fetchCurrentDoorEvent = FetchCurrentDoorEventUseCase(repo),
         clock = AppClock { now },
+        fetchFailed = repo.currentDoorFetchFailed,
         repaintRequests = repaints.count,
     )
 
@@ -141,6 +142,45 @@ class WidgetGlanceStatusTest {
             runCurrent()
 
             assertEquals(listOf(Liveness.LIVE, Liveness.STALE), frames.map { it.liveness })
+        }
+
+    @Test
+    fun aFailureSomeoneElseFoundIsWhatTheWidgetSays() =
+        runTest {
+            // The app's own fetch could not get through. The widget has not
+            // asked anything, and must still say "Not confirmed": the process
+            // knows, and the widget reads the process's memory, not its own.
+            val local = InMemoryLocalDoorDataSource()
+            local.insertDoorEvent(door(DoorPosition.OPEN))
+            val repo = FakeDoorRepository().apply { setFailCurrentDoorEventFetch(true) }
+            val reader = readerFor(local, repo)
+            val frames = framesOf(reader)
+
+            repo.fetchCurrentDoorEvent()
+            runCurrent()
+
+            assertEquals(listOf(Liveness.LIVE, Liveness.STALE), frames.map { it.liveness })
+            assertEquals(Liveness.STALE, reader.current().liveness)
+        }
+
+    @Test
+    fun whenAnyoneGetsThroughTheWidgetIsConfidentAgain() =
+        runTest {
+            // Positive control for the test above, and the other half of the
+            // rule: the doubt lasts exactly until the next thing the server
+            // tells us, by request or by push.
+            val local = InMemoryLocalDoorDataSource()
+            local.insertDoorEvent(door(DoorPosition.OPEN))
+            val repo = FakeDoorRepository().apply { setFailCurrentDoorEventFetch(true) }
+            val reader = readerFor(local, repo)
+            repo.fetchCurrentDoorEvent()
+            val frames = framesOf(reader)
+            assertEquals(listOf(Liveness.STALE), frames.map { it.liveness })
+
+            repo.insertDoorEvent(door(DoorPosition.OPEN))
+            runCurrent()
+
+            assertEquals(listOf(Liveness.STALE, Liveness.LIVE), frames.map { it.liveness })
         }
 
     @Test

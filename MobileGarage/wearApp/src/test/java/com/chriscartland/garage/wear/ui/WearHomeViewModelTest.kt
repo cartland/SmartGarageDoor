@@ -92,11 +92,16 @@ class WearHomeViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun TestScope.createViewModel(): WearHomeViewModel {
+    /**
+     * @param door the repository the ViewModel is built over. Passed in only by
+     *   a test about the FIRST frame, which has to put the process into a state
+     *   before the ViewModel exists to read it.
+     */
+    private fun TestScope.createViewModel(door: FakeDoorRepository = FakeDoorRepository()): WearHomeViewModel {
         val testDispatcher = StandardTestDispatcher(testScheduler)
         Dispatchers.setMain(testDispatcher)
         authRepository = FakeAuthRepository()
-        doorRepository = FakeDoorRepository()
+        doorRepository = door
         remoteButtonRepository = FakeRemoteButtonRepository()
         appVisibilityState = AppVisibilityState()
         clock = FakeClock(nowSeconds = NOW)
@@ -989,6 +994,45 @@ class WearHomeViewModelTest {
                 DataFreshness.STALE,
                 afterFailing,
             )
+        }
+
+    /**
+     * The other direction of the same memory: the watch face's complication
+     * refreshed while the app was closed and could not get through. The dial
+     * must open already knowing that, not present the door as confirmed until
+     * its own first poll fails ten seconds later.
+     */
+    @Test
+    fun theDialOpensAlreadyKnowingTheLastRefreshFailed() =
+        runTest {
+            val door = FakeDoorRepository()
+            door.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.CLOSED, lastCheckInTimeSeconds = NOW - 30),
+            )
+            door.setFailCurrentDoorEventFetch(true)
+            door.fetchCurrentDoorEvent()
+
+            val viewModel = createViewModel(door)
+
+            assertTrue(
+                "the first frame must not present a door the process could not confirm as current",
+                viewModel.freshness.value.isMuted,
+            )
+        }
+
+    @Test
+    fun theDialOpensConfidentWhenNothingHasFailed() =
+        runTest {
+            // Positive control for the test above: a dial that was always
+            // muted on its first frame would pass it.
+            val door = FakeDoorRepository()
+            door.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.CLOSED, lastCheckInTimeSeconds = NOW - 30),
+            )
+
+            val viewModel = createViewModel(door)
+
+            assertEquals(DataFreshness.FRESH, viewModel.freshness.value)
         }
 
     // --- Check-in staleness (docs/WEAR_OS.md follow-up 6, closed here) ---

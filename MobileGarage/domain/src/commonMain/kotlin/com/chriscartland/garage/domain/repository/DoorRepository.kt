@@ -22,6 +22,31 @@ interface DoorRepository {
     val currentDoorEvent: StateFlow<DoorEvent?>
 
     /**
+     * Observation: whether the most recent attempt to hear the current door
+     * from the server failed (ADR-022 — state-y, repo-owned).
+     *
+     * ONE memory for the whole process, on purpose. "We could not reach the
+     * server" is a fact about the app, not about whichever surface happened
+     * to ask — yet until 2026-10-03 it was remembered five times over (the
+     * watch screen, the watch's tile and complication, the phone widget per
+     * render, the Siri intent per ask), so the watch could grey its dial over
+     * a failed poll while its own tile, drawn a second later, presented the
+     * same door as confirmed. Whoever asks now writes the answer here, and
+     * every surface reads it.
+     *
+     * True after [fetchCurrentDoorEvent] returns an error, by any caller.
+     * False after one succeeds, and after [insertDoorEvent]: a reading the
+     * server pushed to us is as confirmed as a reading gets, whatever the
+     * last request did. Seeded false — a process that has not asked yet is
+     * un-asked, not failed, and the check-in's age is what says how much the
+     * cached reading is worth.
+     *
+     * PUSH, because a push can clear it at any time.
+     */
+    @NodeCadence(Cadence.PUSH)
+    val currentDoorFetchFailed: StateFlow<Boolean>
+
+    /**
      * Observation: recent door events owned as a [StateFlow] (ADR-022 —
      * state-y). Backed by an always-on collector over the local Room flow,
      * same pattern as [currentDoorEvent]. Exposed as [StateFlow] so

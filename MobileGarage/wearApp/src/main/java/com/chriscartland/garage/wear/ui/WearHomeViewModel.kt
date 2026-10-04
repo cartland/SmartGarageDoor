@@ -125,10 +125,14 @@ class WearHomeViewModel(
     val currentDoorEvent: StateFlow<DoorEvent?> = observeDoorEvents.current()
 
     /**
-     * Whether the most recent foreground poll failed. Written by the loop in
-     * [onVisible]; feeds the shared `isFetchError` input below.
+     * Whether the most recent attempt to hear the door failed — the
+     * repository's flag, passed through (ADR-022), not a copy of it. The poll
+     * loop in [onVisible] is one of its writers; the tile and the complication
+     * are the others, and they read it too. So the dial opens already knowing
+     * that the face's last refresh could not get through, and the tile drawn
+     * as the user leaves already knows what the last poll here found.
      */
-    private val lastFetchFailed = MutableStateFlow(false)
+    private val lastFetchFailed: StateFlow<Boolean> = observeDoorEvents.currentFetchFailed()
 
     /**
      * The watch's notion of "now", for judging how old the door reading is.
@@ -453,10 +457,11 @@ class WearHomeViewModel(
                 // once and has failed every poll since kept `hasData == true`
                 // for the life of the process, so the dial stayed fully
                 // saturated and confident over hours of failures — it would
-                // assert a six-hour-old reading as current. Feeding the
-                // outcome into `lastFetchFailed` is what lets the SHARED
-                // `isFetchError` input speak for the watch too.
-                lastFetchFailed.value = fetchCurrentDoorEventUseCase() is AppResult.Error
+                // assert a six-hour-old reading as current. The repository
+                // records the outcome (`lastFetchFailed` above reads it), which
+                // is what lets the SHARED `isFetchError` input speak for the
+                // watch — its screen, its tile and its complication alike.
+                fetchCurrentDoorEventUseCase()
                 val waitingOnDoor = buttonState.value is RemoteButtonState.SendingToServer ||
                     buttonState.value is RemoteButtonState.SendingToDoor ||
                     voicePressAwaitingDoor.value

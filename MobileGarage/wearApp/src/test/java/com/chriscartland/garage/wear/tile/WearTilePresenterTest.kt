@@ -80,6 +80,48 @@ class WearTilePresenterTest {
         }
 
     @Test
+    fun whatAnotherSurfaceLearnedAboutTheServerTheTileSays() =
+        runTest {
+            // The screen's poll fails; the user drops their wrist; the tile is
+            // drawn. It has not refreshed yet, and it must already be muted —
+            // the process knows. Each surface used to keep its own copy of
+            // this, so the tile presented as confirmed a door the dial had
+            // greyed a second earlier.
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.OPEN, lastCheckInTimeSeconds = NOW - 30),
+            )
+            doorRepository.setFailCurrentDoorEventFetch(true)
+            FetchCurrentDoorEventUseCase(doorRepository)()
+
+            val status = presenter().status()
+
+            assertTrue("a reading the process could not confirm must be muted", status.freshness.isMuted)
+            assertEquals(
+                "and the door we last knew is still named",
+                StatusHeadline.Door(DoorHeadline.OPEN),
+                status.headline,
+            )
+        }
+
+    @Test
+    fun whenAnotherSurfaceGetsThroughTheTileIsConfidentAgain() =
+        runTest {
+            // Positive control: without it a tile that was simply always muted
+            // would pass the test above.
+            doorRepository.setCurrentDoorEvent(
+                DoorEvent(doorPosition = DoorPosition.OPEN, lastCheckInTimeSeconds = NOW - 30),
+            )
+            doorRepository.setFailCurrentDoorEventFetch(true)
+            FetchCurrentDoorEventUseCase(doorRepository)()
+            doorRepository.setFailCurrentDoorEventFetch(false)
+            FetchCurrentDoorEventUseCase(doorRepository)()
+
+            val status = presenter().status()
+
+            assertEquals(DataFreshness.FRESH, status.freshness)
+        }
+
+    @Test
     fun aDoorFromBeforeTheGarageWentQuietIsMutedButStillNamed() =
         runTest {
             // The whole reason a tile is allowed to show a cached value: it says
