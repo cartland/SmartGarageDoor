@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-10-02
+last_verified: 2026-10-04
 ---
 # Wear OS App Changelog
 
@@ -13,6 +13,19 @@ The phone app's history lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 
 Same rule as the phone app: major = rewrite or core-experience shift;
 minor = added or removed user-facing feature; patch = fixes, polish, refactors.
+
+## 0.10.1
+
+- **The tile and the watch face agree with the screen you just left.**
+  Opening the app and leaving it each ask the tile and the complication to
+  update, so the face no longer shows an older reading than the dial did a
+  second earlier.
+- **One memory of "could not reach the server".** The dial, the tile and the
+  complication kept separate copies, so the dial could grey over a failed
+  poll while the tile presented the same door as confirmed. They now read
+  one flag: the dial opens already muted if the face's last refresh could
+  not get through, and the tile drawn as you leave knows what the last poll
+  found.
 
 ## 0.10.0
 
