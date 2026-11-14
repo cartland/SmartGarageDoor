@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-06-28
+last_verified: 2026-11-13
 ---
 
 # Notification & push-data reliability
@@ -34,6 +34,7 @@ where they affect *delivery/surfacing* reliability.
 |----|-----|---------|---------|--------|
 | **R5** ✅ | High | Open-door notif | **Deployed in `server/30`.** Was at-most-once: a single dropped/failed send was never retried (dedup marker saved before send; send error swallowed). Now: send-before-save, so a failed send leaves no marker and the next 5-min tick retries. | `FirebaseServer/src/controller/fcm/OldDataFCM.ts` |
 | **R6** ✅ | Med | Open-door notif | **Fixed in Android `2.20.0` (merged, not yet released).** Was a foreground drop: a notification-payload warning arriving while the app was foregrounded was only logged. Now `FCMService.onMessageReceived` renders it via `DoorNotificationPresenter.showWarning(...)` on the app-owned "Garage door" channel/slot. | `MobileGarage/androidApp/.../fcm/FCMService.kt` (notification block) |
+| **R7** ✅ | High | Push data + open-door notif | **Fixed on `main` (#1311), not yet released.** The stale banner's "fix outdated info" action (Home + History, Android + iOS) called `deregisterFcm()`, which unsubscribed `door_open-` and cleared the saved topic. Nothing subscribed it again: `FcmRegistrationManager` still said `REGISTERED`, so `start()` was a no-op until the next cold start, and door-open warnings stopped. The action is now `refreshFcmRegistration()` → `FcmRegistrationManager.restart()` (re-subscribe with retry, truthful status). The Function List's debug "Deregister FCM" button is unchanged. | `MobileGarage/viewmodel/.../HomeViewModel.kt`, `DoorHistoryViewModel.kt` |
 | **R1** | Med | Push data | Missed-push recovery is manual: staleness is auto-detected but only raises a banner; nothing auto-refetches. **Design settled (not yet built): [`STALENESS_RECOVERY_PLAN.md`](STALENESS_RECOVERY_PLAN.md)** — app-scoped recovery manager, backoff schedule, escalation to the FCM-reset path, full commonTest fixture story. | `MobileGarage/usecase/.../CheckInStalenessManager.kt:54-104` |
 | **R2** | Med | Push data | Runtime topic change unhandled: `FcmRegistrationManager.restart()` exists but nothing calls it (explicit `TODO`). | `MobileGarage/usecase/.../FcmRegistrationManager.kt:78-90` |
 | **M4** ✅ | Low | Open-door notif | **Fixed in Android `2.20.0` (merged, not yet released).** The warning no longer lands in FCM's "Miscellaneous" channel: manifest `default_notification_channel_id`/`default_notification_icon` route the OS-rendered background warning to an app-owned "Garage door" HIGH channel + garage icon (created eagerly at startup); the foreground warning + resolved render on the same channel. Channel id is a shared string resource (no manifest/code drift). | `AndroidManifest.xml` + `DoorNotificationPresenter.kt` + `GarageApplication.kt` |

@@ -1,7 +1,7 @@
 ---
 category: plan
 status: active
-last_verified: 2026-07-05
+last_verified: 2026-11-13
 ---
 
 # R1 — Automatic recovery from a missed push (design, not yet built)
@@ -62,16 +62,19 @@ A new `StaleCheckInRecoveryManager` in `usecase/` commonMain, mirroring the
 ### 3.2 Recovery action = the existing fetch, nothing new
 
 The recovery fetch is exactly what the stale banner's tap already does
-(`resetFcmAndRefetch` minus the FCM re-registration on the first attempt):
+(`resetFcmAndRefetch` minus the FCM re-subscribe on the first attempt):
 `fetchCurrentDoorEvent()` through the existing force-refresh UseCase path.
 On the **second** consecutive failed cycle, escalate to the full banner
-action (deregister FCM + re-register + refetch) once — this covers the
+action (`FcmRegistrationManager.restart()` + refetch) once — this covers the
 "subscription silently died" case (R4's gap) without touching topic
 names or payloads.
 
 - **FCM safety rules are untouched**: no topic name, no payload key, no
   subscription flow changes. The escalation calls the existing
-  `resetFcmAndRefetch` machinery that ships today.
+  `refreshFcmRegistration()` path the banner uses. Never a bare deregister:
+  until #1311 the banner did exactly that, and nothing subscribed the door
+  topic again until the next cold start, so an automated escalation built
+  on it would have switched door alerts off by itself.
 - Fetch results flow through the normal repository upsert — idempotent,
   and a successful fetch updates `lastCheckInTimeSeconds`, which flips
   staleness back to fresh through the existing reactive collector (no new

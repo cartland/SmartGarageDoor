@@ -47,7 +47,8 @@ import com.chriscartland.garage.usecase.CheckDoorCommandUseCase
 import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
 import com.chriscartland.garage.usecase.DefaultLiveClock
-import com.chriscartland.garage.usecase.DeregisterFcmUseCase
+import com.chriscartland.garage.usecase.DefaultRegisterFcmUseCase
+import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.LogAppEventUseCase
@@ -165,7 +166,11 @@ class RealNetworkButtonHealthRepositoryPropagationTest {
             dispatchers = TestDispatcherProvider(testDispatcher),
             fetchCurrentDoorEventUseCase = FetchCurrentDoorEventUseCase(doorRepo),
             fetchButtonHealthUseCase = FetchButtonHealthUseCase(authRepo, healthRepo),
-            deregisterFcmUseCase = DeregisterFcmUseCase(FakeDoorFcmRepository()),
+            fcmRegistrationManager = FcmRegistrationManager(
+                registerFcmUseCase = DefaultRegisterFcmUseCase(doorRepo, FakeDoorFcmRepository()),
+                scope = externalScope,
+                dispatcher = testDispatcher,
+            ),
             signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepo),
             pushRemoteButtonUseCase = PushRemoteButtonUseCase(authRepo, FakeRemoteButtonRepository()),
             checkDoorCommandUseCase = CheckDoorCommandUseCase(authRepo, FakeDoorCommandRepository()),

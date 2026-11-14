@@ -358,11 +358,11 @@ final class HistoryViewModelWrapper: ObservableObject {
         vm.fetchOlderDoorEvents()
     }
 
-    /// Stale-banner recovery: deregister FCM (so it re-subscribes fresh) and
-    /// refetch recent events. Mirrors Android's `DoorHistoryContent` reset-FCM
+    /// Stale-banner recovery: subscribe to FCM again and refetch recent
+    /// events. Mirrors Android's `DoorHistoryContent` reset-FCM
     /// banner action (`onResetFcm` + `onFetchRecentDoorEvents`).
     func resetFcmAndRefetch() {
-        vm.deregisterFcm()
+        vm.refreshFcmRegistration()
         vm.fetchRecentDoorEvents()
     }
 

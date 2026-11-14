@@ -80,7 +80,7 @@ fun DoorHistoryContent(
             resolved.fetchRecentDoorEvents()
         },
         onResetFcm = {
-            resolved.deregisterFcm()
+            resolved.refreshFcmRegistration()
         },
     )
 }
@@ -137,7 +137,7 @@ fun DoorHistoryContent(
                         text = stringResource(R.string.home_history_stale_check_in_error),
                         buttonText = stringResource(R.string.home_history_retry_button),
                         onClick = {
-                            Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
+                            Logger.e { "Trying to fix outdated info. Re-subscribing to FCM, and fetching data." }
                             onResetFcm()
                             onFetchRecentDoorEvents()
                         },

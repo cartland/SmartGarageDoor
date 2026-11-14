@@ -50,7 +50,8 @@ class FCMService : FirebaseMessagingService() {
     private val serviceScope = CoroutineScope(serviceJob + Dispatchers.Main.immediate)
 
     override fun onNewToken(token: String) {
-        Logger.d { "FCM Instance Token: $token" }
+        // Never log the token itself: it is enough to push to this device.
+        Logger.d { "FCM token refreshed" }
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {

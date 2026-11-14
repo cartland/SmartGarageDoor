@@ -149,8 +149,8 @@ fun HomeContent(
         onAlertAction = { alert ->
             when (alert) {
                 is HomeAlert.Stale -> {
-                    Logger.e { "Trying to fix outdated info. Resetting FCM, and fetching data." }
-                    resolved.deregisterFcm()
+                    Logger.e { "Trying to fix outdated info. Re-subscribing to FCM, and fetching data." }
+                    resolved.refreshFcmRegistration()
                     resolved.fetchCurrentDoorEvent()
                 }
                 is HomeAlert.PermissionMissing -> {

@@ -573,8 +573,8 @@ final class HomeViewModelWrapper: ObservableObject {
     func onAlertAction(_ kind: HomeAlertItem.Kind) {
         switch kind {
         case .stale:
-            // Re-register FCM + refetch, matching Android's "fix outdated info".
-            vm.deregisterFcm()
+            // Re-subscribe FCM + refetch, matching Android's "fix outdated info".
+            vm.refreshFcmRegistration()
             vm.fetchCurrentDoorEvent()
         case .permission:
             requestNotificationPermission()
