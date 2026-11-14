@@ -27,11 +27,14 @@ import com.chriscartland.garage.domain.model.ButtonHealthError
 import com.chriscartland.garage.domain.model.ButtonHealthState
 import com.chriscartland.garage.domain.model.DisplayName
 import com.chriscartland.garage.domain.model.DoorEvent
+import com.chriscartland.garage.domain.model.DoorFcmState
 import com.chriscartland.garage.domain.model.DoorPosition
 import com.chriscartland.garage.domain.model.Email
+import com.chriscartland.garage.domain.model.FcmRegistrationStatus
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.RemoteButtonState
 import com.chriscartland.garage.domain.model.User
+import com.chriscartland.garage.domain.model.toFcmTopic
 import com.chriscartland.garage.domain.repository.ButtonHealthRepository
 import com.chriscartland.garage.presentation.DataFreshness
 import com.chriscartland.garage.presentation.DoorWarning
@@ -50,7 +53,8 @@ import com.chriscartland.garage.usecase.CheckDoorCommandUseCase
 import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
 import com.chriscartland.garage.usecase.ComputeButtonHealthDisplayUseCase
 import com.chriscartland.garage.usecase.DefaultLiveClock
-import com.chriscartland.garage.usecase.DeregisterFcmUseCase
+import com.chriscartland.garage.usecase.DefaultRegisterFcmUseCase
+import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.LogAppEventUseCase
@@ -102,6 +106,12 @@ class HomeViewModelTest {
     private lateinit var stalenessManager: FakeCheckInStalenessManager
     private lateinit var healthManager: FakeDoorDataHealthManager
 
+    /**
+     * The real app-scoped manager over the fake repositories, hoisted so a
+     * test can call `start()` the way AppStartup does and read its status.
+     */
+    private lateinit var fcmRegistrationManager: FcmRegistrationManager
+
     private val testDoorEvent =
         DoorEvent(
             doorPosition = DoorPosition.CLOSED,
@@ -126,6 +136,50 @@ class HomeViewModelTest {
     fun tearDown() {
         Dispatchers.resetMain()
     }
+
+    /**
+     * #1311: the stale banner's "fix outdated info" action used to deregister
+     * the door topic, and nothing subscribed it again until the next cold
+     * start — the manager still said REGISTERED, so `start()` was a no-op.
+     * The action must subscribe again, through the app-scoped manager.
+     */
+    @Test
+    fun refreshFcmRegistrationSubscribesTheDoorTopicAgain() =
+        runTest {
+            val topic = BUILD_TIMESTAMP.toFcmTopic()
+            doorRepository.setBuildTimestamp(BUILD_TIMESTAMP)
+            doorFcmRepository.setRegisterResult(DoorFcmState.Registered(topic = topic))
+            val viewModel = createViewModel(scope = backgroundScope, fetchOnInit = false)
+            // What AppStartup does on launch.
+            fcmRegistrationManager.start()
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(1, doorFcmRepository.registerCount)
+
+            viewModel.refreshFcmRegistration()
+            testDispatcher.scheduler.runCurrent()
+
+            assertEquals(2, doorFcmRepository.registerCount)
+            assertEquals(topic, doorFcmRepository.lastRegisteredTopic)
+            assertEquals(FcmRegistrationStatus.REGISTERED, fcmRegistrationManager.registrationStatus.value)
+        }
+
+    @Test
+    fun refreshFcmRegistrationReportsAFailedSubscribeInsteadOfStayingRegistered() =
+        runTest {
+            doorRepository.setBuildTimestamp(BUILD_TIMESTAMP)
+            doorFcmRepository.setRegisterResult(DoorFcmState.Registered(topic = BUILD_TIMESTAMP.toFcmTopic()))
+            val viewModel = createViewModel(scope = backgroundScope, fetchOnInit = false)
+            fcmRegistrationManager.start()
+            testDispatcher.scheduler.runCurrent()
+
+            doorFcmRepository.setRegisterResult(DoorFcmState.NotRegistered)
+            viewModel.refreshFcmRegistration()
+            testDispatcher.scheduler.runCurrent()
+
+            // NOT_REGISTERED, with the manager's retry loop running — never a
+            // stale REGISTERED that would make the next start() a no-op.
+            assertEquals(FcmRegistrationStatus.NOT_REGISTERED, fcmRegistrationManager.registrationStatus.value)
+        }
 
     /**
      * [scope] is used for the LiveClock ticker (staleness comes from
@@ -172,6 +226,12 @@ class HomeViewModelTest {
             liveClock = liveClock,
             applicationScope = scope,
         )
+        val fcmRegistrationManager = FcmRegistrationManager(
+            registerFcmUseCase = DefaultRegisterFcmUseCase(doorRepository, doorFcmRepository),
+            scope = scope,
+            dispatcher = testDispatcher,
+        )
+        this@HomeViewModelTest.fcmRegistrationManager = fcmRegistrationManager
         val vm = DefaultHomeViewModel(
             observeDoorEvents = ObserveDoorEventsUseCase(doorRepository),
             observeAuthState = ObserveAuthStateUseCase(authRepository),
@@ -184,7 +244,7 @@ class HomeViewModelTest {
             dispatchers = TestDispatcherProvider(testDispatcher),
             fetchCurrentDoorEventUseCase = FetchCurrentDoorEventUseCase(doorRepository),
             fetchButtonHealthUseCase = FetchButtonHealthUseCase(authRepository, buttonHealthRepository),
-            deregisterFcmUseCase = DeregisterFcmUseCase(doorFcmRepository),
+            fcmRegistrationManager = fcmRegistrationManager,
             signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository),
             pushRemoteButtonUseCase = PushRemoteButtonUseCase(
                 authRepository,
@@ -863,3 +923,5 @@ private class HomeTestNoopButtonHealthRepository : ButtonHealthRepository {
         // no-op
     }
 }
+
+private const val BUILD_TIMESTAMP = "Sat Mar 13 14:45:00 2021"

@@ -37,8 +37,8 @@ import com.chriscartland.garage.usecase.ButtonStateMachine
 import com.chriscartland.garage.usecase.CheckDoorCommandUseCase
 import com.chriscartland.garage.usecase.CheckInStalenessManager
 import com.chriscartland.garage.usecase.ClassifyVoiceIntentUseCase
-import com.chriscartland.garage.usecase.DeregisterFcmUseCase
 import com.chriscartland.garage.usecase.DoorDataHealthManager
+import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchButtonHealthUseCase
 import com.chriscartland.garage.usecase.FetchCurrentDoorEventUseCase
 import com.chriscartland.garage.usecase.LiveClock
@@ -165,7 +165,15 @@ interface HomeViewModel {
      */
     fun refreshButtonHealth()
 
-    fun deregisterFcm()
+    /**
+     * The stale banner's "fix outdated info" action: subscribe this phone to
+     * the door's push topic again. Goes through the app-scoped
+     * [FcmRegistrationManager], so the subscription is restored (with retry)
+     * and its status stays truthful. It must never deregister: nothing would
+     * subscribe again until the next cold start, and door-open warnings would
+     * stop arriving (#1311).
+     */
+    fun refreshFcmRegistration()
 
     fun onButtonTap()
 
@@ -181,7 +189,7 @@ class DefaultHomeViewModel(
     private val dispatchers: DispatcherProvider,
     private val fetchCurrentDoorEventUseCase: FetchCurrentDoorEventUseCase,
     private val fetchButtonHealthUseCase: FetchButtonHealthUseCase,
-    private val deregisterFcmUseCase: DeregisterFcmUseCase,
+    private val fcmRegistrationManager: FcmRegistrationManager,
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
     private val pushRemoteButtonUseCase: PushRemoteButtonUseCase,
     private val checkDoorCommandUseCase: CheckDoorCommandUseCase,
@@ -374,11 +382,11 @@ class DefaultHomeViewModel(
         }
     }
 
-    override fun deregisterFcm() {
-        Logger.d { "deregisterFcm" }
-        viewModelScope.launch(dispatchers.io) {
-            deregisterFcmUseCase()
-        }
+    override fun refreshFcmRegistration() {
+        Logger.d { "refreshFcmRegistration" }
+        // The manager's own app-scoped coroutine, not viewModelScope: leaving
+        // the screen must not cancel the re-subscribe or its retries.
+        fcmRegistrationManager.restart()
     }
 
     override fun onButtonTap() {

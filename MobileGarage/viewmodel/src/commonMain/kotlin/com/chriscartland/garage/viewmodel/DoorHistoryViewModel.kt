@@ -28,7 +28,7 @@ import com.chriscartland.garage.domain.model.FetchError
 import com.chriscartland.garage.domain.model.LoadingResult
 import com.chriscartland.garage.domain.model.PaginationState
 import com.chriscartland.garage.usecase.CheckInStalenessManager
-import com.chriscartland.garage.usecase.DeregisterFcmUseCase
+import com.chriscartland.garage.usecase.FcmRegistrationManager
 import com.chriscartland.garage.usecase.FetchOlderDoorEventsUseCase
 import com.chriscartland.garage.usecase.FetchRecentDoorEventsUseCase
 import com.chriscartland.garage.usecase.LiveClock
@@ -71,7 +71,15 @@ interface DoorHistoryViewModel {
     /** Fetch the next OLDER page (load-more); appends to [recentDoorEvents]. */
     fun fetchOlderDoorEvents()
 
-    fun deregisterFcm()
+    /**
+     * The stale banner's "fix outdated info" action: subscribe this phone to
+     * the door's push topic again. Goes through the app-scoped
+     * [FcmRegistrationManager], so the subscription is restored (with retry)
+     * and its status stays truthful. It must never deregister: nothing would
+     * subscribe again until the next cold start, and door-open warnings would
+     * stop arriving (#1311).
+     */
+    fun refreshFcmRegistration()
 
     fun log(key: String)
 }
@@ -82,7 +90,7 @@ class DefaultDoorHistoryViewModel(
     private val dispatchers: DispatcherProvider,
     private val fetchRecentDoorEventsUseCase: FetchRecentDoorEventsUseCase,
     private val fetchOlderDoorEventsUseCase: FetchOlderDoorEventsUseCase,
-    private val deregisterFcmUseCase: DeregisterFcmUseCase,
+    private val fcmRegistrationManager: FcmRegistrationManager,
     private val checkInStalenessManager: CheckInStalenessManager,
     private val liveClock: LiveClock,
     // Default false — cold-start fetch lives in `InitialDoorFetchManager`
@@ -172,11 +180,11 @@ class DefaultDoorHistoryViewModel(
         }
     }
 
-    override fun deregisterFcm() {
-        Logger.d { "deregisterFcm" }
-        viewModelScope.launch(dispatchers.io) {
-            deregisterFcmUseCase()
-        }
+    override fun refreshFcmRegistration() {
+        Logger.d { "refreshFcmRegistration" }
+        // The manager's own app-scoped coroutine, not viewModelScope: leaving
+        // the screen must not cancel the re-subscribe or its retries.
+        fcmRegistrationManager.restart()
     }
 
     override fun log(key: String) {
