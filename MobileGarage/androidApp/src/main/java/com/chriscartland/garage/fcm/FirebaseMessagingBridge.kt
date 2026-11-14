@@ -57,7 +57,8 @@ class FirebaseMessagingBridge : MessagingBridge {
                         continuation.resume(null)
                     } else {
                         val token = task.result
-                        Logger.d { "FCM Instance Token: $token" }
+                        // Never log the token itself: it is enough to push to this device.
+                        Logger.d { "FCM token fetched" }
                         continuation.resume(token)
                     }
                 }
