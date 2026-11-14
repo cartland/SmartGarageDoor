@@ -1,7 +1,7 @@
 ---
 category: reference
 status: active
-last_verified: 2026-10-04
+last_verified: 2026-11-13
 ---
 # Android Changelog
 
@@ -14,6 +14,19 @@ Internal release history. For Play Store "What's New" text, see `distribution/wh
 - **Patch (X.Y.Z)** — Bug fixes, UI polish, performance, refactors. No new capability.
 
 Every version gets an entry in this file (internal history). Play Store `distribution/whatsnew/` gets a line per minor/major — patches roll up into the next minor's line, or get a combined line if promoted to production on their own.
+
+## 2.26.2
+
+- **"Fix outdated info" no longer switches door alerts off.** The stale
+  banner's action on Home and History unsubscribed the phone from door
+  notifications and nothing subscribed it again until the app was fully
+  restarted, so door-open warnings stopped arriving. It now subscribes the
+  phone again, retrying until it gets through.
+- **"Unable to reach the server" when the door data is unhealthy, never for
+  one failed fetch.** A one-line bar with **Retry** appears on Home after 3
+  failed fetches in a row, or a minute after a failure with no recovery. It
+  clears as soon as a fetch or a push gets through.
+- The push token is no longer written to the debug log.
 
 ## 2.26.1
 
