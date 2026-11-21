@@ -6,6 +6,18 @@ set -euo pipefail
 #
 # Automatically discovers all modules with test sources so new
 # modules are covered without editing this script.
+#
+# Architecture check* tasks: this script runs them one per step so each
+# gets its own PASS/FAIL marker and explanation. CI runs the same rules
+# via the `architectureChecks` aggregate task (MobileGarage/build.gradle.kts),
+# which DISCOVERS every root `check[A-Z]…` task rather than listing them.
+#
+# The two lists can therefore drift in one direction only: a newly
+# registered check is enforced by CI immediately, even if nobody adds a
+# step here. That is the safe direction (CI is the gate). The reverse —
+# a check that runs locally but not in CI — is what the aggregate makes
+# impossible, and is why all 33 of these went unenforced on PRs until
+# the "Architecture Checks" job was added.
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 GRADLE="$REPO_ROOT/MobileGarage/gradlew -p $REPO_ROOT/MobileGarage"
